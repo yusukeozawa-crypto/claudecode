@@ -4,7 +4,7 @@ name: 公開後QA
 #   1. 手動実行 (対象環境・端末を選択できる)
 #   2. main ブランチへのデプロイ後
 #   3. 毎日定時 (JST 09:00)
-#   4. Pull Request (self-test ジョブのみ)
+#   4. Pull Request / 作業ブランチへの push (self-test ジョブのみ)
 on:
   workflow_dispatch:
     inputs:
@@ -28,7 +28,12 @@ on:
         options: [all, pc, sp]
 
   push:
-    branches: [main]
+    # main へのデプロイ後の公開後QA と、作業ブランチでの self-test を兼ねる
+    # (作業ブランチでは self-test ジョブのみ実行される)
+    branches:
+      - main
+      - 'claude/**'
+      - 'feature/**'
     # デプロイ対象の変更時のみ実行したい場合は paths を調整する
     paths-ignore:
       - '**.md'
@@ -125,7 +130,12 @@ jobs:
   # ============================================================
   qa:
     name: 公開後QA (${{ github.event.inputs.environment || 'staging' }})
-    if: github.event_name != 'pull_request'
+    # 実サイトを対象にするジョブは main への push・手動実行・定時実行のみ。
+    # 作業ブランチや Pull Request では実行しない (Secrets を使うため)。
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
