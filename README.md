@@ -314,8 +314,23 @@ browsers:
 npx playwright install firefox webkit
 ```
 
-> 注: `isMobile` / `hasTouch` は Firefox が非対応のため、Firefox では viewport と
-> User-Agent のみが適用されます (`playwright.config.ts` で自動判定)。
+project は「有効なブラウザ × 端末」で自動生成されます (`utils/projects.ts`)。
+3 ブラウザを有効化すると project は 6 個 (chromium/firefox/webkit × pc/sp)、
+テスト数は 3 倍になります。
+
+| 有効なブラウザ | project | テスト数 |
+|---|---|---|
+| chromium のみ (既定) | 2 | 188 |
+| chromium + firefox + webkit | 6 | 564 |
+
+> 注1: `isMobile` / `hasTouch` は Firefox が非対応のため、Firefox では viewport と
+> User-Agent のみが適用されます (`utils/projects.ts` で自動判定)。
+> この挙動と project 生成そのものは `@selfcheck` のテストで検証しています。
+>
+> 注2: 実際の Firefox / WebKit での**テスト実行は未検証**です
+> (開発環境からブラウザ本体を取得できなかったため)。
+> 有効化して初回実行する際は、環境ごとの基準画像の作成が必要です
+> (`screenshots/baseline/<環境>/<project>/`)。
 
 ### 表記ルールを追加する
 
@@ -433,12 +448,27 @@ throttle:
 
 ## 6. CI (GitHub Actions)
 
-`.github/workflows/qa.yml` が以下のタイミングで実行されます。
+`.github/workflows/qa.yml` に 2 つのジョブがあります。
+
+| ジョブ | 対象 | Secrets | 実行タイミング |
+|---|---|---|---|
+| `self-test` | 同梱モックサイト (`QA_ENV=local`) | 不要 | push / PR / 手動 / 定時 |
+| `qa` | ステージング / 本番 | 必要 | push / 手動 / 定時 (PR では実行しない) |
+
+`self-test` は **Secrets を設定していない状態でもパイプラインを確認できる**ようにしてあります。
+QA ツール自体を改修したときのリグレッション検知も兼ねています
+(モックサイトは `playwright.config.ts` が自動起動します)。
+
+`qa` は実行前に必要な Secrets の設定を確認し、未設定なら明示的なエラーで停止します
+(URL 未設定のまま実行して分かりにくいエラーになるのを防ぐため)。
+
+実行タイミング:
 
 1. **手動実行** — 対象環境 (staging / production)、テスト種別、端末を選択できます
 2. **main ブランチへのデプロイ後** — `push: branches: [main]`
    (デプロイ用ワークフローの完了後に実行したい場合は、ファイル内の `workflow_run` を有効化)
-3. **毎日定時** — UTC 00:00 (JST 09:00)
+3. **Pull Request** — `self-test` のみ
+4. **毎日定時** — UTC 00:00 (JST 09:00)
 
 成果物と判定:
 

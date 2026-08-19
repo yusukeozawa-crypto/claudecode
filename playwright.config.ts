@@ -4,60 +4,20 @@
  * Firefox / WebKit を追加する場合は config/devices.yml の enabled を true にするだけでよい。
  */
 import path from 'node:path';
-import { defineConfig, devices as playwrightDevices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 import { isCi, loadConfig, PROJECT_ROOT } from './utils/config';
-import type { BrowserId, DeviceConfig } from './utils/types';
+import { buildProjects } from './utils/projects';
 
 const config = loadConfig();
 const { runtime, environment } = config;
 
 const REPORT_DIR = path.join(PROJECT_ROOT, 'reports');
 
-/** ブラウザごとの基本設定 */
-function browserDefaults(browserId: BrowserId) {
-  switch (browserId) {
-    case 'firefox':
-      return playwrightDevices['Desktop Firefox'];
-    case 'webkit':
-      return playwrightDevices['Desktop Safari'];
-    default:
-      return playwrightDevices['Desktop Chrome'];
-  }
-}
-
-/**
- * 端末設定をブラウザに適用する。
- * isMobile / hasTouch は Firefox が非対応なので、その場合は viewport と UA のみ適用する。
- */
-function deviceUse(browserId: BrowserId, device: DeviceConfig) {
-  const supportsMobileEmulation = browserId !== 'firefox';
-  return {
-    viewport: device.viewport,
-    deviceScaleFactor: device.deviceScaleFactor ?? 1,
-    ...(supportsMobileEmulation
-      ? { isMobile: Boolean(device.isMobile), hasTouch: Boolean(device.hasTouch) }
-      : {}),
-    ...(device.userAgent ? { userAgent: device.userAgent } : {}),
-  };
-}
-
-const projects = config.devices.browsers
-  .filter((browser) => browser.enabled)
-  .flatMap((browser) =>
-    config.devices.devices.map((device) => ({
-      name: `${browser.id}-${device.id}`,
-      // 端末・ブラウザ情報はテスト側から testInfo.project.metadata で参照する
-      metadata: {
-        browserId: browser.id,
-        deviceId: device.id,
-        deviceLabel: device.label,
-      },
-      use: {
-        ...browserDefaults(browser.id),
-        ...deviceUse(browser.id, device),
-      },
-    })),
-  );
+// project (ブラウザ × 端末) の生成は utils/projects.ts に分離してある。
+// Firefox / WebKit は config/devices.yml の enabled を true にするだけで対象に加わる。
+const projects = buildProjects(config.devices, {
+  chromiumExecutablePath: process.env.QA_CHROMIUM_EXECUTABLE,
+});
 
 export default defineConfig({
   testDir: './tests',
@@ -98,10 +58,6 @@ export default defineConfig({
     video: 'off',
     ignoreHTTPSErrors: false,
     ...(environment.httpCredentials ? { httpCredentials: environment.httpCredentials } : {}),
-    // ローカル Chromium を明示指定したい場合のみ使用する
-    ...(process.env.QA_CHROMIUM_EXECUTABLE
-      ? { launchOptions: { executablePath: process.env.QA_CHROMIUM_EXECUTABLE } }
-      : {}),
   },
   projects,
   // local 環境ではモックサイト (LP ドメイン + 申込ドメイン) を自動起動する

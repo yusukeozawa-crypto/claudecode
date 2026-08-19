@@ -18,6 +18,7 @@ import { FindingCollector } from '../../utils/findings';
 import { detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { maskUrl } from '../../utils/secrets';
+import { buildProjects, deviceUse } from '../../utils/projects';
 import type { FindingCategory, RedirectTrace } from '../../utils/types';
 
 const config = loadConfig();
@@ -310,5 +311,96 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(finding.actual, '本文からトークンが除去されること').not.toContain(token);
     expect(finding.url, 'URL からトークンが除去されること').not.toContain(token);
     expect(maskUrl(finding.url, config), '再マスクしても壊れないこと').toContain('handoff_token=');
+  });
+
+  // ------------------------------------------------------------------
+  // project 生成 (Firefox / WebKit を設定変更だけで追加できること)
+  // ------------------------------------------------------------------
+
+  test('ブラウザを有効化するだけで PC / SP の project が生成される', async () => {
+    const devicesFile = {
+      browsers: [
+        { id: 'chromium' as const, enabled: true },
+        { id: 'firefox' as const, enabled: true },
+        { id: 'webkit' as const, enabled: true },
+      ],
+      devices: config.devices.devices,
+    };
+
+    const projects = buildProjects(devicesFile);
+    const deviceIds = config.devices.devices.map((device) => device.id);
+
+    expect(projects.length, 'ブラウザ数 × 端末数の project が生成されること').toBe(3 * deviceIds.length);
+    for (const browserId of ['chromium', 'firefox', 'webkit']) {
+      for (const deviceId of deviceIds) {
+        expect(
+          projects.map((project) => project.name),
+          `${browserId}-${deviceId} の project が生成されること`,
+        ).toContain(`${browserId}-${deviceId}`);
+      }
+    }
+
+    // 無効なブラウザの project は生成されない
+    const chromiumOnly = buildProjects({
+      browsers: [
+        { id: 'chromium' as const, enabled: true },
+        { id: 'firefox' as const, enabled: false },
+        { id: 'webkit' as const, enabled: false },
+      ],
+      devices: config.devices.devices,
+    });
+    expect(
+      chromiumOnly.every((project) => project.name.startsWith('chromium-')),
+      '無効化したブラウザの project は生成されないこと',
+    ).toBe(true);
+
+    // 端末情報が metadata で渡ること (レポートの PC/SP 列に使用される)
+    for (const project of projects) {
+      const device = config.devices.devices.find((entry) => entry.id === project.metadata.deviceId);
+      expect(project.metadata.deviceLabel, 'metadata に端末ラベルが入ること').toBe(device?.label);
+    }
+  });
+
+  test('Firefox では isMobile / hasTouch を適用しない (非対応のため)', async () => {
+    const spDevice = config.devices.devices.find((device) => device.isMobile);
+    test.skip(!spDevice, 'isMobile: true の端末が設定されていません');
+
+    const firefoxUse = deviceUse('firefox', spDevice!);
+    expect(firefoxUse.isMobile, 'Firefox では isMobile を渡さない').toBeUndefined();
+    expect(firefoxUse.hasTouch, 'Firefox では hasTouch を渡さない').toBeUndefined();
+    expect(firefoxUse.viewport, 'viewport は適用する').toEqual(spDevice!.viewport);
+    expect(firefoxUse.userAgent, 'モバイル UA は適用する').toBe(spDevice!.userAgent);
+
+    for (const browserId of ['chromium', 'webkit'] as const) {
+      const otherUse = deviceUse(browserId, spDevice!);
+      expect(otherUse.isMobile, `${browserId} では isMobile を適用する`).toBe(true);
+      expect(otherUse.hasTouch, `${browserId} では hasTouch を適用する`).toBe(true);
+    }
+  });
+
+  test('Chromium 実体の明示指定は Chromium の project にのみ適用される', async () => {
+    const projects = buildProjects(
+      {
+        browsers: [
+          { id: 'chromium' as const, enabled: true },
+          { id: 'firefox' as const, enabled: true },
+          { id: 'webkit' as const, enabled: true },
+        ],
+        devices: config.devices.devices,
+      },
+      { chromiumExecutablePath: '/opt/pw-browsers/chromium' },
+    );
+
+    for (const project of projects) {
+      const hasLaunchOptions = 'launchOptions' in project.use;
+      if (project.metadata.browserId === 'chromium') {
+        expect(hasLaunchOptions, 'chromium には executablePath が適用されること').toBe(true);
+      } else {
+        expect(
+          hasLaunchOptions,
+          `${project.metadata.browserId} に Chromium の実体を渡すと起動できなくなるため適用しない`,
+        ).toBe(false);
+      }
+    }
   });
 });

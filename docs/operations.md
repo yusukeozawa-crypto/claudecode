@@ -73,7 +73,15 @@ git commit -m "chore: ステージングの基準画像を追加"
 
 ### 手順7: CI に載せる
 
-GitHub Secrets を設定し、Actions から手動実行して確認する。
+1. まず `self-test` ジョブ (同梱モックサイト対象・Secrets 不要) が緑になることを確認する
+2. GitHub Secrets を設定する (LP ドメインと申込ドメインの両方)
+   - `STAGING_BASE_URL` / `STAGING_APPLICATION_BASE_URL`
+   - `PRODUCTION_BASE_URL` / `PRODUCTION_APPLICATION_BASE_URL`
+   - Basic 認証がある場合は `STAGING_BASIC_USER` / `STAGING_BASIC_PASS`
+3. Actions から `qa` ジョブを手動実行して確認する
+
+Secrets が未設定の場合、`qa` ジョブは実行前に明示的なエラーで停止する
+(どの Secret が足りないかがログに出る)。
 
 ---
 
@@ -121,6 +129,13 @@ git commit -m "chore: 基準画像を更新"
 
 OS によるフォントレンダリングの差が原因。基準画像は CI と同じ環境
 (ubuntu-latest) で作成したものをコミットする。
+画像差分は Low のため CI は失敗しないが、差分が常時出る状態は避ける
+(Artifact から CI で作成された基準画像を取得してコミットする)。
+
+### npm ci が失敗する
+
+`package.json` と `package-lock.json` が同期していない。
+`npm install` を実行して lock ファイルを更新し、両方をコミットする。
 
 ### 計測タグの console エラーが大量に出る
 

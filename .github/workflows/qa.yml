@@ -4,6 +4,7 @@ name: 公開後QA
 #   1. 手動実行 (対象環境・端末を選択できる)
 #   2. main ブランチへのデプロイ後
 #   3. 毎日定時 (JST 09:00)
+#   4. Pull Request (self-test ジョブのみ)
 on:
   workflow_dispatch:
     inputs:
@@ -33,6 +34,9 @@ on:
       - '**.md'
       - 'docs/**'
 
+  pull_request:
+    branches: [main]
+
   # デプロイ用ワークフローの完了後に実行する場合はこちらを有効にする
   # workflow_run:
   #   workflows: ["Deploy"]
@@ -52,8 +56,76 @@ permissions:
   contents: read
 
 jobs:
+  # ============================================================
+  # self-test: 同梱モックサイトに対して QA ツール自体を検証する。
+  #   Secrets を必要としないため、URL 未設定の状態でもパイプラインを確認できる。
+  #   QA ツールの改修時のリグレッション検知も兼ねる。
+  # ============================================================
+  self-test:
+    name: QAツールの自己検証 (モックサイト)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      QA_ENV: local
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 依存関係をインストール
+        run: npm ci
+
+      - name: Chromium をインストール
+        run: npx playwright install --with-deps chromium
+
+      - name: 型チェック
+        run: npm run typecheck
+
+      - name: 全テストを実行 (モックサイト)
+        id: qa
+        continue-on-error: true
+        # モックサイト (LP ドメイン + 申込ドメイン) は playwright.config.ts が自動起動する
+        run: npx playwright test
+
+      - name: レポートを Artifact として保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-test-report-${{ github.run_number }}
+          path: |
+            reports/qa-report.html
+            reports/qa-report.json
+            reports/playwright-report/
+            screenshots/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: 重大度ゲート (Critical / High があれば失敗)
+        # 基準画像は環境ごとに分離されており、CI とローカルでフォント描画が異なると
+        # 画像差分 (Low) が出ることがある。Low はゲート対象外。
+        run: npm run gate
+
+      - name: 検査そのものが失敗した場合はジョブを失敗させる
+        if: steps.qa.outcome == 'failure'
+        run: |
+          echo "QA ツールの自己検証が失敗しました (reports/qa-report.html を確認してください)"
+          exit 1
+
+  # ============================================================
+  # qa: 実サイト (ステージング / 本番) に対する公開後QA。
+  #   URL・認証情報は GitHub Secrets から取得する。
+  #   Pull Request では実行しない (Secrets を使うため)。
+  # ============================================================
   qa:
-    name: 自動QA (${{ github.event.inputs.environment || 'staging' }})
+    name: 公開後QA (${{ github.event.inputs.environment || 'staging' }})
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -72,6 +144,27 @@ jobs:
     steps:
       - name: リポジトリを取得
         uses: actions/checkout@v4
+
+      - name: 必要な Secrets の設定を確認
+        # URL が未設定のまま実行すると分かりにくいエラーになるため、先に明示的に止める
+        run: |
+          if [ "$QA_ENV" = "production" ]; then
+            LP_URL="$PRODUCTION_BASE_URL"; APP_URL="$PRODUCTION_APPLICATION_BASE_URL"
+            LP_NAME="PRODUCTION_BASE_URL"; APP_NAME="PRODUCTION_APPLICATION_BASE_URL"
+          else
+            LP_URL="$STAGING_BASE_URL"; APP_URL="$STAGING_APPLICATION_BASE_URL"
+            LP_NAME="STAGING_BASE_URL"; APP_NAME="STAGING_APPLICATION_BASE_URL"
+          fi
+          MISSING=""
+          [ -z "$LP_URL" ] && MISSING="$MISSING $LP_NAME"
+          [ -z "$APP_URL" ] && MISSING="$MISSING $APP_NAME"
+          if [ -n "$MISSING" ]; then
+            echo "::error::GitHub Secrets が未設定です:$MISSING"
+            echo "リポジトリの Settings > Secrets and variables > Actions で設定してください。"
+            echo "LP ドメインと申込ドメインの両方が必要です (docs/operations.md 参照)。"
+            exit 1
+          fi
+          echo "対象環境 $QA_ENV の URL 設定を確認しました (値は出力しません)"
 
       - name: Node.js をセットアップ
         uses: actions/setup-node@v4

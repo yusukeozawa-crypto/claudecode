@@ -111,12 +111,19 @@ LP と申込ページは別ドメインで Cookie を共有できないため、
 
 ### 4.2 project の自動生成
 
-`playwright.config.ts` が「有効なブラウザ × 端末」の組み合わせで project を生成する。
+`utils/projects.ts` の `buildProjects()` が「有効なブラウザ × 端末」の組み合わせで
+project を生成し、`playwright.config.ts` がそれを使用する。
 project 名は `<browserId>-<deviceId>` (例: `chromium-pc`, `chromium-sp`)。
 端末・ブラウザ情報は `project.metadata` 経由でテストとレポートに渡る。
 
 `isMobile` / `hasTouch` は Firefox が非対応なので、Firefox では viewport と
-User-Agent のみを適用する。
+User-Agent のみを適用する。ローカルの Chromium 実体を明示指定する
+`QA_CHROMIUM_EXECUTABLE` は chromium の project にのみ適用する
+(他ブラウザに適用すると起動できなくなる)。
+
+生成ロジックを設定読み込みから分離してあるため、
+「ブラウザを有効化するだけで対象に加わる」ことをテストで検証できる
+(`tests/self-check/detectors.spec.ts`)。
 
 ### 4.3 テスト構成
 
@@ -129,6 +136,7 @@ User-Agent のみを適用する。
 | `tests/agency/agency-handoff.spec.ts` | `@agency` `@handoff` | 別ドメイン申込ページへの引き継ぎ |
 | `tests/security/agency-security.spec.ts` | `@security` | open redirect / パラメータ注入 / マスキング |
 | `tests/tools/discover-handoff.spec.ts` | `@discover` | 実サイトの仕様調査 (通常実行では起動しない) |
+| `tests/self-check/detectors.spec.ts` | `@selfcheck` | 検出ロジックと project 生成の自己検査 (local 環境のみ) |
 | `tests/health/links.spec.ts` | `@health` `@links` | リンク切れ・リダイレクトループ |
 | `tests/visual/screenshot-diff.spec.ts` | `@visual` | 基準画像との比較 |
 | `tests/text/wording.spec.ts` | `@text` | テキスト抽出・表記チェック・ページ間の表記統一 |
@@ -171,7 +179,18 @@ User-Agent のみを適用する。
 - `screenshots/current/<env>/<browser>-<device>/` — フルページスクリーンショット
 - `screenshots/baseline/<env>/<project>/` — 基準画像 (環境ごとに分離)
 
-## 6. CI 判定
+## 6. CI 構成と判定
+
+ワークフローは 2 ジョブ構成。
+
+| ジョブ | 対象 | Secrets |
+|---|---|---|
+| `self-test` | 同梱モックサイト (`QA_ENV=local`) | 不要 |
+| `qa` | ステージング / 本番 | 必要 (未設定なら実行前に停止) |
+
+`self-test` により、Secrets 未設定の状態でもパイプラインと QA ツール自体を検証できる。
+
+
 
 Critical / High が 1 件でもあれば失敗とする。判定は二重に行う。
 
