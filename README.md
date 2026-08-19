@@ -611,6 +611,7 @@ aiCheck:
 | [docs/checks.md](docs/checks.md) | 各検査項目の判定ロジックと閾値 |
 | [docs/severity.md](docs/severity.md) | 重大度の分類基準 |
 | [docs/operations.md](docs/operations.md) | 運用手順 (実サイト適用・トラブルシューティング) |
+| [docs/verification-log.md](docs/verification-log.md) | 検証記録 (何をどう確認したか・未検証の項目) |
 
 ---
 
@@ -638,3 +639,6 @@ aiCheck:
 ```bash
 npx playwright test --grep @selfcheck
 ```
+
+何をどう確認したか、どの項目が未検証かは
+[docs/verification-log.md](docs/verification-log.md) に記録しています。
