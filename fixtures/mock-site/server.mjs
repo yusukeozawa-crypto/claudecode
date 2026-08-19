@@ -164,6 +164,20 @@ const server = http.createServer(async (req, res) => {
   const cookies = readCookies(req);
 
   // ---------- 検出ロジックの自己検査用エンドポイント ----------
+  // 応答を遅延させる (タイムアウト検知の検証用)。ms は 5000 を上限とする。
+  if (pathname === '/slow') {
+    const requested = Number(url.searchParams.get('ms') ?? 1000);
+    const delay = Math.min(Number.isFinite(requested) ? Math.max(0, requested) : 1000, 5000);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' });
+    res.end(
+      `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>遅延応答</title></head>` +
+        `<body><h1 data-testid="slow-page">遅延応答ページ</h1>` +
+        `<p>このページは ${delay}ms 待ってから応答します (タイムアウト検知の検証用)。</p></body></html>`,
+    );
+    return;
+  }
+
   if (pathname === '/server-error') {
     res.writeHead(500, { 'content-type': MIME['.html'] });
     res.end('<h1>500 Internal Server Error</h1>');

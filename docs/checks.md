@@ -90,10 +90,16 @@
 | `network.ignoreUrlPatterns` | glob (計測タグ・広告ドメインを既定で除外) |
 | `network.ignoreThirdParty` | `true` の場合、baseUrl と別オリジンのリクエスト失敗を無視する |
 
-### ページ読み込みの遅延
+### ページ読み込みの遅延・タイムアウト
 
-`goto` の所要時間が `timeout.pageLoadWarnMs` (既定 15000ms) を超えた場合、
-Medium (`timeout`) として記録する。
+| 事象 | 判定 | 重大度 |
+|---|---|---|
+| 読み込みが遅い | `goto` の所要時間 > `timeout.pageLoadWarnMs` (既定 15000ms) | Medium (`timeout`) |
+| 読み込みタイムアウト | `goto` が `runtime.timeouts.navigation` を超過 | High (`timeout`) |
+| リンク先のタイムアウト | `checkLink` の fetch が `runtime.timeouts.navigation` を超過 | High (`timeout`) |
+
+いずれも `tests/self-check/timeout-cases.spec.ts` で検証している
+(モックサイトの `/slow?ms=N` エンドポイントを使用し、閾値を下げた設定で確認)。
 
 ### リダイレクトループ
 
@@ -284,6 +290,10 @@ AI API は使用せず、まず表示テキストを抽出して保存し、ル�
 | 別代理店の情報表示 | `/lp/` を改変 | 代理店名の誤表示・別代理店情報の表示が検出される |
 | セクションの表示崩れ | `/lp/` を改変 | 表示すべき非表示 / 非表示すべき表示が検出される |
 | トークンのマスキング | — | 検知結果の本文・URL からトークンが除去される |
+| 読み込み遅延 | `/slow?ms=900` | 閾値超過が Medium として検出される |
+| 読み込みタイムアウト | `/slow?ms=3000` | High として検出される |
+| リンク先のタイムアウト | `/slow?ms=2500` | タイムアウトと判別できる |
+| 誤検知 (遅延) | `/lp/` | 閾値内なら検知しない |
 | マスキング (クエリ形式) | — | `?handoff_token=` / `&mail=` / `&tel=` の値が除去される |
 | マスキング (JSON 形式) | — | 値が除去され、かつ JSON として解析できる (証跡が壊れない) |
 | マスキング (過剰防止) | — | JSON のキー名 (`name` 等) と代理店の電話番号は保持される |
