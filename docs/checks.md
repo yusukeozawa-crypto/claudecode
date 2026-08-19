@@ -268,7 +268,32 @@ AI API は使用せず、まず表示テキストを抽出して保存し、ル�
 代理店コードに関する検査 (表示・リダイレクト・別ドメイン申込引き継ぎ・セキュリティ) は
 [agency-code-scenarios.md](agency-code-scenarios.md) を参照。
 
-## 8. 検出ロジックの自己検査 (`tests/self-check/`)
+## 8. 設定検証 (`utils/config.ts` の `validateConfig`)
+
+運用者は `config/agencies.yml` を頻繁に編集するため、
+起動時に設定を検証し、不備があれば内容を列挙して実行前に停止する。
+検知されるのは次のような編集ミス (いずれも自己検査で担保)。
+
+| 編集ミス | メッセージ |
+|---|---|
+| 代理店コードの重複 | 「代理店コードが重複しています: XXX」 |
+| `redirected: true` なのに遷移先が流入 URL と同じ | 「redirected: true ですが expectedFinalPath が entryPath と同一です」 |
+| `redirected: false` なのに遷移先が異なる | 「redirected: false ですが expectedFinalPath が entryPath と異なります」 |
+| `recognition` が空 | 「recognition が空です (URL だけで合格にしないため 1 つ以上必要)」 |
+| 表示・非表示セクションの重複 | 「visibleSections と hiddenSections が重複しています」 |
+| 有効コードと無効コードの二重定義 | 「agencies と invalidCodes の両方に定義されています」 |
+| 申込ドメインの未設定 | 「applicationBaseUrl が空です」 |
+| 存在しないページ id の参照 | 「persistenceFlow の未知のページ id: XXX」 |
+| 有効なブラウザが無い | 「有効なブラウザが 1 つもありません」 |
+
+## 9. 検出ロジックの自己検査 (`tests/self-check/`)
+
+| ファイル | 検証内容 |
+|---|---|
+| `detectors.spec.ts` | 表示崩れ・エラー・リンク・表記・リダイレクト判定・マスキング・project 生成・ページ取得 |
+| `masking-cases.spec.ts` | 形式別のマスキング (クエリ / JSON) と過剰マスキングの防止 |
+| `timeout-cases.spec.ts` | 読み込み遅延・タイムアウト・リンク先タイムアウト |
+| `config-validation.spec.ts` | 設定検証のメッセージとセレクタ解決 |
 
 意図的に壊したページ (`fixtures/mock-site/broken/`) に対して、
 各検出ロジックが実際に反応することを確認する。`local` 環境でのみ実行。

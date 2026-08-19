@@ -102,7 +102,12 @@ export function loadConfig(): QaConfig {
   return config;
 }
 
-function validateConfig(config: QaConfig): void {
+/**
+ * 設定の妥当性を検証する。不備があれば内容を列挙して例外を投げる。
+ * 運用者が編集する頻度が高いため、どこが問題かを明示する
+ * (テストから検証できるよう export している)。
+ */
+export function validateConfig(config: QaConfig): void {
   const problems: string[] = [];
 
   if (!config.devices.browsers.some((b) => b.enabled)) {
