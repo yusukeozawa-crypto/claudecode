@@ -181,6 +181,127 @@ export interface HandoffResult {
   reached: boolean;
 }
 
+/**
+ * 引き継ぎに書き込み (非 GET) を伴う方式かどうか。
+ * 読み取り専用環境ではフォーム送信が遮断されるため、実際の遷移は行わない。
+ */
+export function requiresWriteRequest(spec: AgencySpec): boolean {
+  return spec.application.handoffMethod === 'post' || spec.application.handoffMethod === 'hidden';
+}
+
+/**
+ * 読み取り専用環境向けの静的検証。
+ *
+ * フォーム送信を行わずに、DOM から読み取れる範囲だけを検証する:
+ *   - CTA / フォームの遷移先ドメイン・パス
+ *   - hidden 項目に設定された代理店コード
+ * 実際の送信と申込側での認識は検証できないため、その旨を記録する。
+ */
+export async function verifyHandoffStatically(
+  page: Page,
+  config: QaConfig,
+  spec: AgencySpec,
+): Promise<FindingInput[]> {
+  const findings: FindingInput[] = [];
+  const url = page.url();
+  const expectedHost = expectedApplicationHost(config, spec.application.expectedDomain);
+  const expectedPath = spec.application.expectedPath.endsWith('/')
+    ? spec.application.expectedPath
+    : `${spec.application.expectedPath}/`;
+
+  // CTA (リンク or フォーム) の遷移先を DOM から読み取る
+  const target = await page.evaluate((testId: string) => {
+    const element = document.querySelector(`[data-testid="${testId}"]`);
+    if (!element) return null;
+    const form = element.closest('form');
+    if (form && form.getAttribute('action')) return { kind: 'form', href: (form as HTMLFormElement).action };
+    if (element instanceof HTMLAnchorElement) return { kind: 'link', href: element.href };
+    const nearestForm = document.querySelector('form[action]');
+    return nearestForm ? { kind: 'form', href: (nearestForm as HTMLFormElement).action } : null;
+  }, spec.cta.testId);
+
+  if (!target?.href) {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'high',
+      title: `${spec.code}: CTA の遷移先を DOM から特定できません`,
+      expected: `${expectedHost}${expectedPath} を指すリンクまたはフォームがあること`,
+      actual: 'href / action を取得できませんでした',
+      url,
+    });
+    return findings;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(target.href, url);
+  } catch {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'high',
+      title: `${spec.code}: CTA の遷移先 URL が不正です`,
+      expected: '有効な URL',
+      actual: target.href,
+      url,
+    });
+    return findings;
+  }
+
+  if (parsed.host !== expectedHost) {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'critical',
+      title: `${spec.code}: 申込先ドメインが仕様と異なります (${target.kind} の遷移先)`,
+      expected: expectedHost,
+      actual: parsed.host,
+      url,
+    });
+  }
+
+  const actualPath = parsed.pathname.endsWith('/') ? parsed.pathname : `${parsed.pathname}/`;
+  if (actualPath !== expectedPath) {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'critical',
+      title: `${spec.code}: 申込ページのパスが仕様と異なります (${target.kind} の遷移先)`,
+      expected: expectedPath,
+      actual: actualPath,
+      url,
+    });
+  }
+
+  // hidden 項目に設定された代理店コード (送信せずに確認できる)
+  const hiddenValue = await page
+    .evaluate((paramName: string) => {
+      const input = document.querySelector(`input[type="hidden"][name="${paramName}"]`);
+      return input instanceof HTMLInputElement ? input.value : null;
+    }, spec.application.handoffParam)
+    .catch(() => null);
+
+  if (hiddenValue !== null && hiddenValue !== spec.application.expectedCode) {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'critical',
+      title: `${spec.code}: hidden 項目の代理店コードが誤っています`,
+      expected: spec.application.expectedCode,
+      actual: hiddenValue === '' ? '(空)' : hiddenValue,
+      url,
+    });
+  }
+  if (hiddenValue === null && spec.application.handoffMethod !== 'query') {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'high',
+      title: `${spec.code}: 引き継ぎ用の hidden 項目が見つかりません`,
+      expected: `input[type=hidden][name="${spec.application.handoffParam}"] が存在すること`,
+      actual: '要素が存在しません',
+      url,
+    });
+  }
+
+  return findings;
+}
+
 /** CTA をクリックして申込ドメインへ遷移する */
 export async function clickCtaToApplication(
   page: Page,

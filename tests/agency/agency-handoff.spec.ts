@@ -20,9 +20,9 @@ import { test } from '../qa-fixtures';
 import { loadConfig, expectedApplicationHost } from '../../utils/config';
 import { agencySpecs } from '../../utils/agency';
 import {
-  HandoffRecorder, clickCtaToApplication, verifyApplicationDestination,
-  verifyApplicationPersistence, verifyFallbackHandoff, verifyHandoffTransport,
-  verifyRecognition,
+  HandoffRecorder, clickCtaToApplication, requiresWriteRequest, verifyApplicationDestination,
+  verifyApplicationPersistence, verifyFallbackHandoff, verifyHandoffStatically,
+  verifyHandoffTransport, verifyRecognition,
 } from '../../utils/handoff';
 import { verifyUrlHygiene } from '../../utils/redirect';
 import { buildEntryUrl, enterAsAgency, enterWithFallback } from '../../utils/agency-entry';
@@ -41,6 +41,24 @@ test.describe('申込ページへの引き継ぎ @agency @handoff', () => {
     test(`${spec.code}: ${spec.application.handoffMethod} 方式で申込ドメインへ引き継がれる`, async ({ qa, page }) => {
       test.slow();
       if (!(await enterAsAgency(qa, spec))) return;
+
+      // 読み取り専用環境 (本番) では、POST 送信を伴う引き継ぎは実行できない。
+      // DOM から読み取れる範囲 (遷移先ドメイン・パス・hidden 項目) を検証し、
+      // 実際の送信と申込側での認識はスキップした事実を記録する。
+      if (qa.isReadOnly && requiresWriteRequest(spec)) {
+        qa.addAll(await verifyHandoffStatically(page, config, spec));
+        qa.add({
+          category: 'agency-handoff',
+          severity: 'low',
+          title: `${spec.code}: ${spec.application.handoffMethod} 方式の送信検査をスキップしました`,
+          expected: '読み取り専用環境ではデータ送信を行わない',
+          actual: 'CTA の遷移先と hidden 項目のみ検証しました (申込側での認識は未検証)',
+          url: page.url(),
+        });
+        await qa.captureScreenshot(`handoff-static-${spec.code}`);
+        qa.collectMonitorFindings();
+        return;
+      }
 
       // --- 申込ドメイン宛の通信を記録する ---
       const recorder = new HandoffRecorder(
@@ -156,6 +174,18 @@ test.describe('申込ページへの引き継ぎ @agency @handoff', () => {
   for (const spec of specs) {
     test(`${spec.code}: 申込ページで他の代理店として認識されない`, async ({ qa, page }) => {
       if (!(await enterAsAgency(qa, spec))) return;
+
+      if (qa.isReadOnly && requiresWriteRequest(spec)) {
+        qa.add({
+          category: 'agency-handoff',
+          severity: 'low',
+          title: `${spec.code}: 読み取り専用環境のため申込側の認識確認をスキップしました`,
+          expected: '読み取り専用環境ではデータ送信を行わない',
+          actual: `${spec.application.handoffMethod} 方式は送信を伴うため未検証`,
+          url: page.url(),
+        });
+        return;
+      }
 
       const clicked = await clickCtaToApplication(page, spec, config);
       if (!clicked.navigated) return;
