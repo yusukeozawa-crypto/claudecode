@@ -1,0 +1,30 @@
+# ============================================================
+# 実行時の負荷・タイムアウト設定
+#   外部サイトへ過剰なリクエストを送らないための調整はここで行う
+# ============================================================
+# 並列実行数 (CI では workersCi を使用)
+workers: 4
+workersCi: 2
+
+# リトライ回数
+retries: 0
+retriesCi: 1
+
+# タイムアウト (ms)
+timeouts:
+  test: 90000
+  navigation: 30000
+  action: 15000
+  expect: 10000
+
+# リクエスト間隔 (ms) — ページ遷移・リンク検査の前に待機する
+throttle:
+  navigationDelayMs: 250
+  linkCheckDelayMs: 150
+  # リンク検査の同時実行数
+  linkCheckConcurrency: 4
+
+# 重大度ゲート: ここに含まれる重大度が 1 件でもあればテストを失敗させる
+failOnSeverities:
+  - critical
+  - high

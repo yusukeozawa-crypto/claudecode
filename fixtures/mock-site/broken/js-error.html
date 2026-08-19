@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>検出テスト用｜JavaScriptエラー発生ページ</title>
+</head>
+<body>
+  <h1 data-testid="broken-title">JavaScriptエラーが発生するページ</h1>
+  <p>このページは検出ロジックの自己検査 (self-check) 専用です。</p>
+  <script>
+    // console.error を意図的に出力する
+    console.error('QA self-check: intentional console error');
+    // 未捕捉例外 (pageerror) を意図的に発生させる
+    setTimeout(function () {
+      undefinedFunctionForQaSelfCheck();
+    }, 10);
+  </script>
+</body>
+</html>

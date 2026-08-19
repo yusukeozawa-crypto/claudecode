@@ -1,0 +1,29 @@
+# ============================================================
+# 端末 (viewport) とブラウザの定義
+#   projects = 有効なブラウザ × 端末 の組み合わせで自動生成される
+#   Firefox / WebKit は enabled: true にするだけで対象に加わる
+# ============================================================
+browsers:
+  - id: chromium
+    enabled: true
+  - id: firefox
+    enabled: false
+  - id: webkit
+    enabled: false
+
+devices:
+  - id: pc
+    label: PC
+    viewport: { width: 1440, height: 900 }
+    deviceScaleFactor: 1
+    isMobile: false
+    hasTouch: false
+
+  - id: sp
+    label: SP
+    viewport: { width: 390, height: 844 }
+    deviceScaleFactor: 3
+    isMobile: true
+    hasTouch: true
+    # モバイル相当の User-Agent
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"

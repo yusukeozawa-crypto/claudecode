@@ -1,0 +1,34 @@
+{
+  "name": "web-release-qa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Webサイト公開後の自動QAツール (Playwright + TypeScript)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "prepare:browsers": "playwright install chromium",
+    "test": "playwright test",
+    "test:staging": "node scripts/with-env.mjs QA_ENV=staging -- playwright test",
+    "test:production": "node scripts/with-env.mjs QA_ENV=production -- playwright test",
+    "test:pc": "playwright test --project=*-pc",
+    "test:sp": "playwright test --project=*-sp",
+    "test:agency": "playwright test --grep @agency",
+    "test:visual": "playwright test --grep @visual",
+    "test:crawl": "playwright test --grep @crawl",
+    "test:health": "playwright test --grep @health",
+    "test:text": "playwright test --grep @text",
+    "update:screenshots": "playwright test --grep @visual --update-snapshots",
+    "report": "node scripts/serve-report.mjs",
+    "gate": "node scripts/gate.mjs",
+    "typecheck": "tsc --noEmit",
+    "mock:serve": "node fixtures/mock-site/server.mjs",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "yaml": "^2.6.0"
+  }
+}

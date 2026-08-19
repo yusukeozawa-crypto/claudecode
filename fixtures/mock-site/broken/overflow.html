@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>検出テスト用｜横スクロール発生ページ</title>
+<style>
+  body { margin: 0; font-family: sans-serif; }
+  .too-wide { width: 1200px; background: #f8d7da; padding: 24px; }
+  .overlapping-a { position: absolute; top: 200px; left: 10px; width: 300px; height: 120px; background: #cce5ff; }
+  .overlapping-b { position: absolute; top: 240px; left: 30px; width: 300px; height: 120px; background: #d4edda; }
+</style>
+</head>
+<body>
+  <h1 data-testid="broken-title">横スクロールが発生するページ</h1>
+  <div class="too-wide" data-testid="too-wide">SP幅より広い固定幅の要素があるため横スクロールが発生します。</div>
+  <div class="overlapping-a" data-testid="overlap-a">重なり要素A</div>
+  <div class="overlapping-b" data-testid="overlap-b">重なり要素B</div>
+  <p style="margin-top: 400px;">このページは検出ロジックの自己検査 (self-check) 専用です。</p>
+</body>
+</html>

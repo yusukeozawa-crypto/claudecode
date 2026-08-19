@@ -1,0 +1,112 @@
+# ============================================================
+# 誤字脱字・表記揺れ検出ルール (ルールベース)
+#   AI による文章チェックは utils/ai-text-checker.ts のインターフェース経由で
+#   後から追加できる (既定では無効)
+# ============================================================
+
+# 抽出したテキストの保存先 (JSON / CSV)
+extract:
+  enabled: true
+  outputDir: reports/text
+  formats: [json, csv]
+  # テキストを取得しないセレクタ (スクリプト・スタイル・計測タグ等)
+  excludeSelectors:
+    - script
+    - style
+    - noscript
+    - "[aria-hidden='true']"
+    - "css=.visually-hidden"
+
+# 正式名称。表記が揺れていたら Low として報告する
+canonical:
+  companyName: テスト保険株式会社
+  productNames:
+    - ペットの安心保険
+  # 正式名称に対する誤表記 (誤 -> 正)
+  aliases:
+    テスト保険㈱: テスト保険株式会社
+    テスト保険(株): テスト保険株式会社
+    ペット安心保険: ペットの安心保険
+    ペットの安心ほけん: ペットの安心保険
+
+# 表記統一ルール: preferred 以外の variants が出現したら報告する
+unifyRules:
+  - id: application-noun
+    preferred: お申し込み
+    variants: [お申込み, お申込, 御申し込み]
+    note: 名詞形は「お申し込み」で統一
+  - id: hoshou
+    preferred: null            # どちらが正しいか文脈依存 → 併用検出のみ
+    variants: [保障, 補償]
+    detectOnly: true
+    note: 「保障」と「補償」の併用を検出 (保険種類により正解が異なるため要目視確認)
+  - id: web
+    preferred: Web
+    variants: [WEB, web, ウェブ]
+  - id: inquiry
+    preferred: お問い合わせ
+    variants: [お問合せ, お問い合せ, お問合わせ]
+  - id: price
+    preferred: 保険料
+    variants: [保険代, 保険費用]
+  - id: contract
+    preferred: ご契約
+    variants: [御契約]
+
+# 保険業界で表記を統一すべき用語 (辞書)
+insuranceTerms:
+  - preferred: 告知事項
+    variants: [告知内容, 告知項目]
+  - preferred: 免責事由
+    variants: [免責理由]
+  - preferred: 保険金
+    variants: [保健金]
+  - preferred: 補償割合
+    variants: [補填割合]
+
+# 使用禁止表現 (景表法・薬機法・保険業法などの観点)。検出時は Low だが必ず報告する
+prohibited:
+  - pattern: 絶対に安心
+    reason: 断定的表現は使用しない
+  - pattern: 必ず儲かる
+    reason: 誤認を招く表現
+  - pattern: 業界No.1
+    reason: 客観的根拠のない優位性表示
+  - pattern: 100%補償
+    reason: 断定的な補償範囲の表現
+  - pattern: 完全無料
+    reason: 誤認を招く表現
+
+# 誤字候補として検出する典型パターン (誤 -> 正)
+typoPatterns:
+  - wrong: 保健
+    correct: 保険
+    # 「保健所」「保健師」など正しい用法は除外する
+    exceptWhenFollowedBy: [所, 師, 室, 衛生, 福祉]
+  - wrong: 以外と
+    correct: 意外と
+  - wrong: 事務手続き き
+    correct: 事務手続き
+  - wrong: ご利用頂けます
+    correct: ご利用いただけます
+
+# 除外語 (固有名詞・法令名など、ルールを適用しない語)
+excludeWords:
+  - 保健所
+  - 一般社団法人日本ペット保険協会
+  - WEBRTC
+
+# 連続スペース・全角半角の混在など、体裁上の検出
+formatting:
+  detectDoubleSpace: true
+  detectFullWidthAlphaNum: true
+  detectTrailingPunctuationMix: false
+
+# AI による文章チェック (後から追加できるインターフェースのみ用意)
+aiCheck:
+  enabled: false
+  # 実装を追加する場合のプロバイダ名 (utils/ai-text-checker.ts で解決)
+  provider: none
+  # API キーは環境変数から取得する (設定ファイルに書かないこと)
+  apiKeyEnv: QA_AI_API_KEY
+  maxCharsPerPage: 4000

@@ -1,0 +1,85 @@
+# ============================================================
+# 代理店コード仕様 (すべて仮置き。実サイトに合わせて書き換える)
+#   - テストコードはこのファイルの値のみを参照する
+#   - セクション判定は data-testid を優先して使用する
+# ============================================================
+
+# URL パラメータ名
+paramName: agency_code
+
+storage:
+  # cookie | localStorage | both — サイトの実装に合わせる
+  type: both
+  # 保存キー (Cookie 名 / localStorage キー)
+  key: agency_code
+
+# 判定に使う要素。値は既定で data-testid として解決される。
+# "css=" / "text=" を先頭に付けると任意のセレクタも使用できる。
+selectors:
+  defaultSection: default-section
+  agencySection: agency-section
+  agencyName: agency-name
+  agencyContact: agency-contact
+  applicationButton: application-button
+  fallbackNotice: fallback-notice
+
+# テストに使用する代理店コード (テスト用コードのみを記載すること)
+codes:
+  - code: A001
+    valid: true
+    label: 有効コード
+    expectedName: テスト保険代理店A
+    expectedContact: 0120-000-001
+  - code: B002
+    valid: true
+    label: 別の有効コード
+    expectedName: テスト保険代理店B
+    expectedContact: 0120-000-002
+  - code: INVALID
+    valid: false
+    label: 無効コード
+
+# 条件ごとの期待表示。visible / hidden は selectors のキー名または data-testid 値。
+expectations:
+  # 代理店コードなし
+  none:
+    visible: [defaultSection]
+    hidden: [agencySection]
+    texts: {}
+  # 有効な代理店コードあり
+  valid:
+    visible: [agencySection, agencyName, agencyContact]
+    hidden: [defaultSection]
+    # 期待文言はコードごとの expectedName / expectedContact で個別に検証する
+    texts: {}
+  # 無効な代理店コードあり (フォールバック表示)
+  invalid:
+    visible: [defaultSection, fallbackNotice]
+    hidden: [agencySection]
+    texts:
+      fallbackNotice: 代理店情報を確認できませんでした
+
+# 申込導線への引き継ぎ
+application:
+  # 申込ボタンから遷移するページ (pages.yml の id)
+  targetPageId: application
+  # 申込 URL に代理店コードが URL パラメータとして付与されるべきか
+  expectParamInUrl: true
+  # hidden 項目に引き継がれるべき場合の指定 (不要なら null)
+  hiddenField:
+    testId: application-agency-code
+    # name 属性でも検証する (null 可)
+    name: agency_code
+  # 申込 API に代理店コードが送信される場合の検査対象 (不要なら requests: [] )
+  requests:
+    - urlPattern: "**/api/application*"
+      # リクエストボディ(JSON) または クエリで参照するキー
+      field: agency_code
+      # 本番では送信を伴う操作を行わないため検査をスキップする
+      skipWhenReadOnly: true
+
+# ページ遷移後のコード保持を検証する遷移パス (pages.yml の id)
+persistenceFlow:
+  - top
+  - product
+  - price

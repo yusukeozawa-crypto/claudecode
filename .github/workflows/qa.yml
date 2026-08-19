@@ -1,0 +1,136 @@
+name: 公開後QA
+
+# 実行タイミング
+#   1. 手動実行 (対象環境・端末を選択できる)
+#   2. main ブランチへのデプロイ後
+#   3. 毎日定時 (JST 09:00)
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 対象環境
+        required: true
+        default: staging
+        type: choice
+        options: [staging, production]
+      suite:
+        description: 実行するテスト (all / agency / visual / crawl / health / text)
+        required: true
+        default: all
+        type: choice
+        options: [all, agency, visual, crawl, health, text]
+      device:
+        description: 対象端末 (all / pc / sp)
+        required: true
+        default: all
+        type: choice
+        options: [all, pc, sp]
+
+  push:
+    branches: [main]
+    # デプロイ対象の変更時のみ実行したい場合は paths を調整する
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+  # デプロイ用ワークフローの完了後に実行する場合はこちらを有効にする
+  # workflow_run:
+  #   workflows: ["Deploy"]
+  #   types: [completed]
+  #   branches: [main]
+
+  schedule:
+    # UTC 00:00 = JST 09:00
+    - cron: '0 0 * * *'
+
+# 同一ブランチの実行が重なった場合は古い実行をキャンセルする
+concurrency:
+  group: qa-${{ github.ref }}-${{ github.event.inputs.environment || 'default' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    name: 自動QA (${{ github.event.inputs.environment || 'staging' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # 対象環境: 手動実行では入力値、それ以外は staging を既定にする
+      QA_ENV: ${{ github.event.inputs.environment || 'staging' }}
+      # 検査対象 URL・認証情報は GitHub Secrets から取得する (ログには出力しない)
+      STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+      PRODUCTION_BASE_URL: ${{ secrets.PRODUCTION_BASE_URL }}
+      STAGING_BASIC_USER: ${{ secrets.STAGING_BASIC_USER }}
+      STAGING_BASIC_PASS: ${{ secrets.STAGING_BASIC_PASS }}
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 依存関係をインストール
+        run: npm ci
+
+      - name: Chromium をインストール
+        # Firefox / WebKit を config/devices.yml で有効化した場合は
+        # 下記を `npx playwright install --with-deps` に変更する
+        run: npx playwright install --with-deps chromium
+
+      - name: 型チェック
+        run: npm run typecheck
+
+      - name: テスト実行
+        id: qa
+        # 失敗しても後続のレポート収集を行うため、ここでは終了コードを無視する
+        continue-on-error: true
+        run: |
+          SUITE="${{ github.event.inputs.suite || 'all' }}"
+          DEVICE="${{ github.event.inputs.device || 'all' }}"
+          ARGS=""
+          if [ "$SUITE" != "all" ]; then ARGS="$ARGS --grep @$SUITE"; fi
+          if [ "$DEVICE" != "all" ]; then ARGS="$ARGS --project=*-$DEVICE"; fi
+          echo "実行: npx playwright test $ARGS (QA_ENV=$QA_ENV)"
+          npx playwright test $ARGS
+
+      - name: HTML レポートを Artifact として保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-report-${{ github.run_number }}
+          path: |
+            reports/qa-report.html
+            reports/qa-report.json
+            reports/playwright-report/
+            reports/text/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: スクリーンショットを Artifact として保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # 差分画像 (reports/test-results) と現在画像・基準画像をまとめて保存する
+          name: qa-screenshots-${{ github.run_number }}
+          path: |
+            screenshots/
+            reports/test-results/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: 重大度ゲート (Critical / High があれば失敗)
+        run: npm run gate
+
+      - name: 検査そのものが失敗した場合はジョブを失敗させる
+        # Critical / High が無くても、テスト実行自体が失敗していれば失敗として扱う
+        if: steps.qa.outcome == 'failure'
+        run: |
+          echo "テスト実行が失敗しました (reports/qa-report.html を確認してください)"
+          exit 1

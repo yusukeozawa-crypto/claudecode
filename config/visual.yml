@@ -1,0 +1,35 @@
+# ============================================================
+# スクリーンショット / 視覚差分の設定
+#   基準画像: screenshots/baseline/<project>/...
+#   初回実行時は基準画像を自動作成し、2 回目以降は差分を検査する
+#   基準画像の更新: npm run update:screenshots
+# ============================================================
+enabled: true
+
+# 常に保存するフルページスクリーンショット
+capture:
+  fullPage: true
+  outputDir: screenshots/current
+
+compare:
+  # 差分許容値 (Playwright の toHaveScreenshot に渡す)
+  # ピクセル単位の色差の閾値 (0-1)
+  threshold: 0.2
+  # 全体に対する差分ピクセルの許容比率 (0-1)
+  maxDiffPixelRatio: 0.01
+  # 許容する差分ピクセル数 (null なら比率のみで判定)
+  maxDiffPixels: null
+  # アニメーション停止 / キャレット非表示
+  animations: disabled
+  caret: hide
+  # 比較前の待機 (ms)
+  stabilizeDelayMs: 300
+
+# 動的要素のマスク (日時・カルーセル・外部チャット等)
+# 値は data-testid、"css=" 接頭辞で任意セレクタも可
+mask:
+  - current-datetime
+  - hero-carousel
+  - "css=iframe[src*='chat']"
+  - "css=.ad-slot"
+maskColor: "#FF00FF"

@@ -1,0 +1,51 @@
+# ============================================================
+# エラー検知の設定 (計測タグ・外部ドメインは除外できる)
+# ============================================================
+console:
+  enabled: true
+  # console.error / console.warn のどちらを収集するか
+  levels: [error]
+  # メッセージ本文の除外パターン (部分一致 / 正規表現は /.../ で囲む)
+  ignoreMessages:
+    - "favicon.ico"
+    - "/ResizeObserver loop/"
+
+pageError:
+  enabled: true
+  ignoreMessages: []
+
+network:
+  enabled: true
+  # 不具合とみなす HTTP ステータス
+  failStatuses: [400, 401, 403, 404, 405, 408, 409, 410, 429, 500, 501, 502, 503, 504]
+  # 除外する URL パターン (計測タグ・広告・外部ドメイン)
+  ignoreUrlPatterns:
+    - "**/*.google-analytics.com/**"
+    - "**/*.googletagmanager.com/**"
+    - "**/*.doubleclick.net/**"
+    - "**/*.facebook.com/**"
+    - "**/*.hotjar.com/**"
+    - "**/*.clarity.ms/**"
+    - "**/*.yahoo.co.jp/**"
+  # 自ドメイン以外のリクエスト失敗を無視するか
+  ignoreThirdParty: true
+
+links:
+  enabled: true
+  # 検査するリンクの範囲: internal | all
+  scope: internal
+  # 外部リンクは HEAD リクエストのみで検査する (scope: all の場合)
+  externalMethod: HEAD
+  ignoreUrlPatterns:
+    - "mailto:*"
+    - "tel:*"
+    - "javascript:*"
+    - "**/*.pdf"
+  # 1 ページあたりの検査リンク上限 (過剰リクエスト防止)
+  maxLinksPerPage: 40
+  # リダイレクトループ検知の上限
+  maxRedirects: 5
+
+timeout:
+  # ページ読み込みがこの時間(ms)を超えたら「タイムアウト」として記録する
+  pageLoadWarnMs: 15000

@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# レポート・実行成果物 (基準画像のみコミットする)
+reports/
+screenshots/current/
+screenshots/diff/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+*.log
+.DS_Store

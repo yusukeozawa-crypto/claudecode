@@ -1,0 +1,34 @@
+# ============================================================
+# 対象環境の定義
+#   - QA_ENV 環境変数で切り替える (例: QA_ENV=staging npm test)
+#   - ${VAR} 形式で環境変数を展開できる (.env / GitHub Secrets)
+#   - readOnly: true の環境では「送信・申込完了」を伴う操作を一切行わない
+# ============================================================
+defaultEnvironment: local
+
+environments:
+  # 開発用: リポジトリ同梱のモックサイト (fixtures/mock-site) を起動して検査する
+  local:
+    label: ローカルモック
+    baseUrl: http://127.0.0.1:4173
+    readOnly: false
+    startLocalServer: true
+
+  staging:
+    label: ステージング
+    # 例: https://staging.example.com  (.env の STAGING_BASE_URL に設定)
+    baseUrl: ${STAGING_BASE_URL}
+    readOnly: false
+    startLocalServer: false
+    # Basic 認証が必要な場合のみ設定 (値は Secrets から渡す)
+    httpCredentials:
+      username: ${STAGING_BASIC_USER}
+      password: ${STAGING_BASIC_PASS}
+
+  production:
+    label: 本番
+    # 例: https://www.example.com  (.env の PRODUCTION_BASE_URL に設定)
+    baseUrl: ${PRODUCTION_BASE_URL}
+    # 本番では読み取りと画面遷移のみ。フォーム送信/申込完了はコードレベルで禁止される
+    readOnly: true
+    startLocalServer: false

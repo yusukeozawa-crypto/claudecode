@@ -1,0 +1,73 @@
+# ============================================================
+# テスト対象ページ
+#   source: config  … 下記 pages の定義を使用する (初期方式)
+#   source: sitemap … sitemap.xml から自動取得する (utils/page-source.ts)
+# ============================================================
+source: config
+
+sitemap:
+  path: /sitemap.xml
+  # 取得件数の上限 (過剰なリクエスト防止)
+  maxPages: 50
+  includePatterns: []
+  excludePatterns:
+    - "**/preview/**"
+    - "**/*.pdf"
+  # sitemap から取得したページに適用する既定のチェック内容
+  defaults:
+    agencyAware: false
+    checks: [layout, errors, links, visual, text]
+
+pages:
+  - id: top
+    name: トップページ
+    path: /
+    agencyAware: true          # 代理店コードによる表示差分があるページ
+    checks: [layout, errors, links, visual, text]
+    # 必ず存在すべき要素 (data-testid)
+    requiredTestIds: [main-visual, application-button]
+    # 重なり・はみ出しを検査する主要要素
+    primaryTestIds: [site-header, main-visual, application-button, site-footer]
+
+  - id: product
+    name: 商品詳細
+    path: /product.html
+    agencyAware: true
+    checks: [layout, errors, links, visual, text]
+    requiredTestIds: [product-detail]
+    primaryTestIds: [site-header, product-detail, site-footer]
+
+  - id: price
+    name: 保険料ページ
+    path: /price.html
+    agencyAware: true
+    checks: [layout, errors, links, visual, text]
+    requiredTestIds: [price-table]
+    primaryTestIds: [site-header, price-table, site-footer]
+
+  - id: faq
+    name: FAQ
+    path: /faq.html
+    agencyAware: false
+    checks: [layout, errors, links, visual, text]
+    requiredTestIds: [faq-list]
+    primaryTestIds: [site-header, faq-list, site-footer]
+
+  - id: application
+    name: 申込導線 (入力画面)
+    path: /application.html
+    agencyAware: true
+    # 申込画面はフォーム入力を伴うため視覚差分・文言チェックのみに限定する
+    checks: [layout, errors, visual, text]
+    requiredTestIds: [application-form]
+    primaryTestIds: [site-header, application-form, site-footer]
+
+  - id: agency-only
+    name: 代理店専用表示ページ
+    path: /agency.html
+    agencyAware: true
+    checks: [layout, errors, links, visual, text]
+    # agency-only-content は代理店コードがある場合のみ表示されるため、
+    # 常に表示される要素を必須要素として指定する (表示・非表示は @agency で検証する)
+    requiredTestIds: [agency-program]
+    primaryTestIds: [site-header, agency-program, site-footer]

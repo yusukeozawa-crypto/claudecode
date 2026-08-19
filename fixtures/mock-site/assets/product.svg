@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="商品イメージ">
+  <rect width="640" height="360" fill="#eef6ee"/>
+  <circle cx="320" cy="150" r="80" fill="#c6e2c6"/>
+  <rect x="180" y="260" width="280" height="20" rx="10" fill="#a9d3a9"/>
+</svg>

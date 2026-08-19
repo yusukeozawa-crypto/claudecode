@@ -1,0 +1,35 @@
+# ============================================================
+# 表示崩れ・横スクロール検査の設定
+# ============================================================
+horizontalScroll:
+  enabled: true
+  # scrollWidth が clientWidth をこの値(px)を超えて上回ったら不具合とみなす
+  tolerancePx: 2
+
+viewportOverflow:
+  enabled: true
+  # 主要要素が viewport 右端をこの値(px)を超えてはみ出したら不具合とみなす
+  tolerancePx: 4
+  # 意図的に画面幅より広い要素 (カルーセル等) は除外できる
+  ignoreTestIds: []
+
+overlap:
+  enabled: true
+  # 主要要素同士の重なり面積がこの比率を超えたら不具合とみなす
+  maxOverlapRatio: 0.25
+  ignoreTestIds: []
+
+images:
+  enabled: true
+  # naturalWidth === 0 の画像を読み込み失敗とみなす
+  # 遅延読み込み画像を待つための追加スクロール
+  scrollThroughPage: true
+  ignoreUrlPatterns:
+    - "**/tracking-pixel*"
+
+emptyScreen:
+  enabled: true
+  # body の可視テキストがこの文字数未満なら「空白画面」とみなす
+  minVisibleTextLength: 50
+  # 単一要素の高さが viewport 高さのこの倍数を超えたら「極端に大きな要素」とみなす
+  maxElementHeightRatio: 12

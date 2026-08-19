@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>お申し込み｜テスト保険株式会社</title>
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/logo.svg">
+</head>
+<body>
+  <header class="site-header" data-testid="site-header">
+    <div class="logo"><img src="/assets/logo.svg" width="160" height="40" alt="テスト保険株式会社"></div>
+    <nav class="global-nav" data-testid="global-nav">
+      <ul>
+        <li><a href="/index.html" data-testid="nav-top">トップ</a></li>
+        <li><a href="/product.html" data-testid="nav-product">商品詳細</a></li>
+        <li><a href="/price.html" data-testid="nav-price">保険料</a></li>
+        <li><a href="/faq.html" data-testid="nav-faq">よくあるご質問</a></li>
+        <li><a href="/agency.html" data-testid="nav-agency">代理店のお客さまへ</a></li>
+      </ul>
+    </nav>
+    <p class="meta">現在時刻 <span data-testid="current-datetime">-</span></p>
+  </header>
+
+  <main class="container">
+    <h1>お申し込み</h1>
+    <section class="panel" data-testid="default-section">
+      <h2>はじめてのお客さまへ</h2>
+      <p>「ペットの安心保険」は、テスト保険株式会社がご提供するペット向けの保険です。ご不明な点はお気軽にお問い合わせください。</p>
+      <p>お問い合わせ窓口：0120-000-000（受付時間 9:00〜18:00）</p>
+    </section>
+
+    <section class="panel agency-panel hidden" data-testid="agency-section">
+      <h2>担当代理店のご案内</h2>
+      <p>担当代理店：<span data-testid="agency-name">-</span></p>
+      <p>お問い合わせ先：<span data-testid="agency-contact">-</span></p>
+      <p>ご契約に関するご相談は、担当代理店までご連絡ください。</p>
+    </section>
+
+    <section class="panel fallback-panel hidden" data-testid="fallback-notice">
+      <h2>代理店情報を確認できませんでした</h2>
+      <p>お手数ですが、お問い合わせ窓口までご連絡ください。</p>
+    </section>
+
+    <section class="panel">
+      <form class="application-form" data-testid="application-form" action="/api/application" method="post">
+        <!-- 代理店コードは hidden 項目で引き継ぐ -->
+        <input type="hidden" name="agency_code" data-testid="application-agency-code" value="">
+        <div class="form-row">
+          <label for="pet-type">ペットの種類</label>
+          <select id="pet-type" name="pet_type" data-testid="input-pet-type">
+            <option value="dog">犬</option>
+            <option value="cat">猫</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="pet-age">ペットの年齢</label>
+          <select id="pet-age" name="pet_age" data-testid="input-pet-age">
+            <option value="0">0〜2歳</option>
+            <option value="3">3〜6歳</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="plan">補償割合</label>
+          <select id="plan" name="plan" data-testid="input-plan">
+            <option value="50">50パーセント</option>
+            <option value="70">70パーセント</option>
+          </select>
+        </div>
+        <p class="meta">この画面はテスト用です。個人情報は入力しないでください。</p>
+        <button type="submit" class="btn-application" data-testid="application-submit">お申し込み内容を確認する</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer" data-testid="site-footer">
+    <div class="container">
+      <p>テスト保険株式会社</p>
+      <ul>
+        <li><a href="/faq.html">よくあるご質問</a></li>
+        <li><a href="/index.html">トップページ</a></li>
+        <li><a href="https://example.com/" data-testid="external-link" rel="noopener">外部サイト（例）</a></li>
+      </ul>
+      <p class="meta">本サイトはテスト用のモックサイトです。実在の商品・会社とは関係ありません。</p>
+    </div>
+  </footer>
+
+  <script src="/assets/agency.js"></script>
+</body>
+</html>
