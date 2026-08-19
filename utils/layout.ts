@@ -291,9 +291,15 @@ export async function runLayoutChecks(
   }
 
   // --- 主要要素のはみ出し / 重なり ---
-  const primaryTestIds = (options.primaryTestIds ?? []).filter(
-    (id) => !layout.viewportOverflow.ignoreTestIds.includes(id) && !layout.overlap.ignoreTestIds.includes(id),
+  // 除外リストは検査ごとに独立して適用する。
+  // 両方の和集合で除外すると、overlap.ignoreTestIds に入れた要素の
+  // はみ出し検査まで無効になってしまう。
+  const allPrimaryTestIds = options.primaryTestIds ?? [];
+  const overflowTargets = allPrimaryTestIds.filter(
+    (id) => !layout.viewportOverflow.ignoreTestIds.includes(id),
   );
+  const overlapTargets = allPrimaryTestIds.filter((id) => !layout.overlap.ignoreTestIds.includes(id));
+  const primaryTestIds = Array.from(new Set([...overflowTargets, ...overlapTargets]));
 
   if (primaryTestIds.length > 0) {
     const boxes = await collectElementBoxes(page, primaryTestIds);
@@ -303,6 +309,7 @@ export async function runLayoutChecks(
     if (layout.viewportOverflow.enabled && viewportWidth > 0) {
       for (const box of boxes) {
         if (!box.found || !box.visible) continue;
+        if (!overflowTargets.includes(box.testId)) continue;
         const right = box.x + box.width;
         if (right > viewportWidth + layout.viewportOverflow.tolerancePx) {
           findings.push({
@@ -326,7 +333,9 @@ export async function runLayoutChecks(
     }
 
     if (layout.overlap.enabled) {
-      const visibleBoxes = boxes.filter((box) => box.found && box.visible);
+      const visibleBoxes = boxes.filter(
+        (box) => box.found && box.visible && overlapTargets.includes(box.testId),
+      );
       for (let i = 0; i < visibleBoxes.length; i++) {
         for (let j = i + 1; j < visibleBoxes.length; j++) {
           // 入れ子関係にある要素同士は「重なり」ではないため除外する

@@ -97,21 +97,24 @@ export class RedirectTracker {
 
   /** ページ本文から meta refresh の遷移先を取得する (遷移方式の判定に使用) */
   async captureMetaRefresh(): Promise<string | null> {
+    // url= を持たない refresh タグ (単純な再読み込み) は遷移ではないため対象外にする。
+    // 記録してしまうと、リダイレクトしていないページの遷移方式が
+    // meta-refresh と誤判定される。
     const target = await this.page
       .evaluate(() => {
         const meta = document.querySelector('meta[http-equiv="refresh" i]');
         if (!meta) return null;
         const content = meta.getAttribute('content') ?? '';
         const match = /url\s*=\s*(.+)$/i.exec(content);
-        return match ? match[1].trim().replace(/^['"]|['"]$/g, '') : '';
+        return match ? match[1].trim().replace(/^['"]|['"]$/g, '') : null;
       })
       .catch(() => null);
-    if (target !== null) {
-      const absolute = target ? new URL(target, this.page.url()).toString() : this.page.url();
-      if (!this.metaRefreshTargets.includes(absolute)) this.metaRefreshTargets.push(absolute);
-      return absolute;
-    }
-    return null;
+
+    if (!target) return null;
+
+    const absolute = new URL(target, this.page.url()).toString();
+    if (!this.metaRefreshTargets.includes(absolute)) this.metaRefreshTargets.push(absolute);
+    return absolute;
   }
 
   /**

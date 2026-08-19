@@ -16,15 +16,22 @@ if (!fs.existsSync(reportPath)) {
 
 const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
 const counts = report.summary?.findings ?? { critical: 0, high: 0, medium: 0, low: 0 };
+// 判定基準はレポートに記録された設定 (config/runtime.yml の failOnSeverities) に従う。
+// ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
+const failOn = report.summary?.failOnSeverities ?? ['critical', 'high'];
+const severityLabel = failOn.map((severity) => severity.toUpperCase()).join(' / ');
 
 console.log(`対象環境 : ${report.summary?.environmentLabel ?? '-'} (${report.summary?.baseUrl ?? '-'})`);
 console.log(`検知件数 : Critical ${counts.critical} / High ${counts.high} / Medium ${counts.medium} / Low ${counts.low}`);
+console.log(`判定基準 : ${severityLabel} を 1 件でも検知したら失敗`);
 
-if (counts.critical > 0 || counts.high > 0) {
-  console.error('判定: 失敗 — Critical / High の不具合を検知しました。');
+const blockingCount = failOn.reduce((total, severity) => total + (counts[severity] ?? 0), 0);
+
+if (blockingCount > 0) {
+  console.error(`判定: 失敗 — ${severityLabel} の不具合を検知しました。`);
   const blocking = (report.records ?? [])
     .flatMap((record) => record.findings ?? [])
-    .filter((finding) => finding.severity === 'critical' || finding.severity === 'high');
+    .filter((finding) => failOn.includes(finding.severity));
   for (const finding of blocking.slice(0, 20)) {
     console.error(` - [${finding.severity}] ${finding.title} (${finding.pageName ?? finding.pageId ?? '-'} / ${finding.deviceId ?? '-'}) ${finding.url}`);
   }
@@ -32,4 +39,4 @@ if (counts.critical > 0 || counts.high > 0) {
   process.exit(1);
 }
 
-console.log('判定: 成功 — Critical / High の不具合はありません。');
+console.log(`判定: 成功 — ${severityLabel} の不具合はありません。`);

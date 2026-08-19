@@ -12,7 +12,8 @@ import { test as base, expect, type APIRequestContext, type Page } from '@playwr
 import { loadConfig } from '../utils/config';
 import { QaSession } from '../utils/qa-session';
 import { resolvePages } from '../utils/page-source';
-import { guardAgainstCompletion } from '../utils/handoff';
+import { isForbiddenRequest } from '../utils/handoff';
+import { maskUrl } from '../utils/secrets';
 import type { FindingInput, PageConfig, QaConfig } from '../utils/types';
 
 /** 読み取り専用環境で許可する HTTP メソッド */
@@ -39,26 +40,49 @@ export const test = base.extend<QaFixtures>({
   },
 
   // ---- 安全装置 ----
+  //   Playwright の route は「後から登録したハンドラが優先」される。
+  //   2 つに分けると先に登録した側が呼ばれなくなるため、1 つのハンドラで
+  //   両方の判定を行う (分けていたために、本番環境で申込完了の遮断が
+  //   機能していなかった)。
   page: async ({ page, qaConfig }, use) => {
-    // (1) 申込完了・データ送信のリクエストは全環境で遮断する
     completionViolations.set(page, []);
-    await guardAgainstCompletion(page, qaConfig, (finding) => {
-      completionViolations.get(page)?.push(finding);
-    });
+    const readOnly = qaConfig.environment.readOnly;
+    const hasForbiddenPatterns = qaConfig.agency.application.forbiddenRequestPatterns.length > 0;
 
-    // (2) 読み取り専用環境では書き込み系リクエストを遮断する
-    if (qaConfig.environment.readOnly) {
+    if (readOnly || hasForbiddenPatterns) {
       await page.route('**/*', async (route) => {
-        const method = route.request().method().toUpperCase();
-        if (READ_ONLY_METHODS.has(method)) {
-          await route.continue();
+        const request = route.request();
+        const url = request.url();
+        const method = request.method().toUpperCase();
+
+        // (1) 申込完了・データ送信のリクエストは全環境で遮断する
+        if (hasForbiddenPatterns && isForbiddenRequest(url, qaConfig)) {
+          completionViolations.get(page)?.push({
+            category: 'agency-handoff',
+            severity: 'critical',
+            title: '申込完了・データ送信のリクエストが発生しました',
+            expected: '申込完了処理を実行しないこと',
+            actual: `${method} ${url} を遮断しました`,
+            url: page.url(),
+          });
+          await route.abort('blockedbyclient');
           return;
         }
-        // 本番では申込完了やデータ送信を一切行わない
-        console.warn(`[qa] 読み取り専用環境のため ${method} リクエストを遮断しました: ${route.request().url()}`);
-        await route.abort('blockedbyclient');
+
+        // (2) 読み取り専用環境では書き込み系リクエストを遮断する
+        if (readOnly && !READ_ONLY_METHODS.has(method)) {
+          // URL に一時トークンや個人情報が含まれ得るためマスクして出力する
+          console.warn(
+            `[qa] 読み取り専用環境のため ${method} リクエストを遮断しました: ${maskUrl(url, qaConfig)}`,
+          );
+          await route.abort('blockedbyclient');
+          return;
+        }
+
+        await route.continue();
       });
     }
+
     await use(page);
   },
 

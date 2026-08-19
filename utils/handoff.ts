@@ -51,6 +51,45 @@ export interface HandoffObservation {
   tokenValues: string[];
 }
 
+/**
+ * POST ボディから代理店コードを取り出す。
+ * フォーム形式 (application/x-www-form-urlencoded) と JSON の双方に対応する。
+ * 実サイトの引き継ぎが JSON API の場合に「送信されていない」と誤判定しないため。
+ */
+function extractCodeFromBody(postData: string, paramName: string): string | null {
+  const fromForm = new URLSearchParams(postData).get(paramName);
+  if (fromForm) return fromForm;
+
+  try {
+    const parsed = JSON.parse(postData) as unknown;
+    const found = findValueByKey(parsed, paramName);
+    if (found !== null) return found;
+  } catch {
+    /* JSON ではない */
+  }
+  return null;
+}
+
+/** ネストしたオブジェクトから指定キーの値を探す */
+function findValueByKey(value: unknown, key: string): string | null {
+  if (value === null || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const found = findValueByKey(entry, key);
+      if (found !== null) return found;
+    }
+    return null;
+  }
+  for (const [entryKey, entryValue] of Object.entries(value as Record<string, unknown>)) {
+    if (entryKey === key && (typeof entryValue === 'string' || typeof entryValue === 'number')) {
+      return String(entryValue);
+    }
+    const found = findValueByKey(entryValue, key);
+    if (found !== null) return found;
+  }
+  return null;
+}
+
 /** 申込ドメイン宛の通信を記録する */
 export class HandoffRecorder {
   readonly observation: HandoffObservation = {
@@ -84,8 +123,14 @@ export class HandoffRecorder {
       const url = new URL(request.url());
       const postData = request.postData() ?? null;
       const queryCode = url.searchParams.get(config.agency.paramName);
-      const queryToken = url.searchParams.get(tokenParam) ?? url.searchParams.get('handoff_token');
-      const bodyCode = postData ? new URLSearchParams(postData).get(config.agency.paramName) : null;
+      // tokenParam が代理店コードのパラメータ名と同一の場合 (query 方式) は、
+      // コードをトークンとして数えない。数えると誤ったコードでも
+      // 「トークンあり」となり Critical が抑止されてしまう。
+      const tokenParamIsCode = tokenParam === config.agency.paramName;
+      const queryToken = tokenParamIsCode
+        ? url.searchParams.get('handoff_token')
+        : (url.searchParams.get(tokenParam) ?? url.searchParams.get('handoff_token'));
+      const bodyCode = postData ? extractCodeFromBody(postData, config.agency.paramName) : null;
 
       const hasCode = queryCode === expectedCode || bodyCode === expectedCode;
       const hasToken = Boolean(queryToken);
@@ -142,33 +187,13 @@ export class HandoffRecorder {
 // ---------------------------------------------------------------------------
 
 /**
- * 申込完了・データ送信のリクエストを遮断する安全装置。
- * 全環境で有効。発生した場合は Critical として報告する。
+ * 申込完了・データ送信のリクエストかどうか。
+ * 遮断そのものは tests/qa-fixtures.ts の単一 route ハンドラが行う
+ * (route は後から登録したハンドラが優先されるため、ハンドラを分けられない)。
  */
-export async function guardAgainstCompletion(
-  page: Page,
-  config: QaConfig,
-  onViolation: (finding: FindingInput) => void,
-): Promise<void> {
+export function isForbiddenRequest(url: string, config: QaConfig): boolean {
   const patterns = config.agency.application.forbiddenRequestPatterns;
-  if (patterns.length === 0) return;
-
-  await page.route('**/*', async (route) => {
-    const url = route.request().url();
-    if (matchesAnyGlob(url, patterns)) {
-      onViolation({
-        category: 'agency-handoff',
-        severity: 'critical',
-        title: '申込完了・データ送信のリクエストが発生しました',
-        expected: '申込完了処理を実行しないこと',
-        actual: `${route.request().method()} ${url} を遮断しました`,
-        url: page.url(),
-      });
-      await route.abort('blockedbyclient');
-      return;
-    }
-    await route.continue();
-  });
+  return patterns.length > 0 && matchesAnyGlob(url, patterns);
 }
 
 // ---------------------------------------------------------------------------
@@ -468,10 +493,13 @@ export async function verifyRecognition(
 
   // (9) 別の代理店コードに置き換わっていないこと
   const bodyText = ((await page.locator('body').textContent()) ?? '').replace(/\s+/g, ' ');
+  const ownValues = Object.values(spec.expectedTexts ?? {});
   for (const other of config.agencies.agencies) {
     if (other.code === spec.code) continue;
     for (const value of Object.values(other.expectedTexts ?? {})) {
-      if (value && bodyText.includes(value)) {
+      // 自代理店の表示値に含まれる文字列は対象外 (部分一致による誤検知の防止)
+      if (!value || ownValues.some((own) => own === value || own.includes(value))) continue;
+      if (bodyText.includes(value)) {
         findings.push({
           category: 'agency-handoff',
           severity: 'critical',

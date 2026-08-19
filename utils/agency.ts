@@ -346,14 +346,18 @@ export async function verifyNoOtherAgencyInfo(
   const findings: FindingInput[] = [];
   const url = page.url();
   const bodyText = ((await page.locator('body').textContent()) ?? '').replace(/\s+/g, ' ');
-  const ownValues = new Set(
-    ownCode ? Object.values(findAgencySpec(config, ownCode)?.expectedTexts ?? {}) : [],
-  );
+  const ownValues = ownCode
+    ? Object.values(findAgencySpec(config, ownCode)?.expectedTexts ?? {})
+    : [];
 
   for (const other of agencySpecs(config)) {
     if (ownCode && other.code === ownCode) continue;
     for (const [key, value] of Object.entries(other.expectedTexts ?? {})) {
-      if (!value || ownValues.has(value)) continue;
+      if (!value) continue;
+      // 自代理店の表示値に含まれる文字列は対象外にする。
+      // 例: 自「ABC保険サービス」/ 他「ABC保険」のとき、
+      // 部分一致だけで判定すると常に誤検知になる。
+      if (ownValues.some((own) => own === value || own.includes(value))) continue;
       if (bodyText.includes(value)) {
         findings.push({
           category: 'agency-display',

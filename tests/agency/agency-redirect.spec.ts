@@ -24,9 +24,12 @@ import {
   verifyRedirectTrace, verifyUrlHygiene,
 } from '../../utils/redirect';
 
+import { deviceUse } from '../../utils/projects';
+
 const config = loadConfig();
 const specs = agencySpecs(config);
 const maxRedirects = config.agencies.redirect.maxRedirects;
+const browserId = config.devices.browsers.find((browser) => browser.enabled)?.id ?? 'chromium';
 
 function entryUrl(path: string, code: string | null): string {
   const url = new URL(path, `${config.environment.baseUrl}/`);
@@ -234,7 +237,7 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
 //      端末ごとに context を作って比較するため、1 つの project でのみ実行する
 // ------------------------------------------------------------------
 test.describe('リダイレクトルールの端末間一致 @agency @redirect', () => {
-  const firstProject = `${config.devices.browsers.find((browser) => browser.enabled)?.id}-${config.devices.devices[0]?.id}`;
+  const firstProject = `${browserId}-${config.devices.devices[0]?.id}`;
 
   test('PC と SP で最終 URL と遷移方式が一致する', async ({ qa, browser }, testInfo) => {
     test.skip(
@@ -248,13 +251,10 @@ test.describe('リダイレクトルールの端末間一致 @agency @redirect',
       const results: Array<{ deviceId: string; finalPath: string; mechanism: string }> = [];
 
       for (const device of config.devices.devices) {
-        const context = await browser.newContext({
-          viewport: device.viewport,
-          deviceScaleFactor: device.deviceScaleFactor ?? 1,
-          isMobile: Boolean(device.isMobile),
-          hasTouch: Boolean(device.hasTouch),
-          ...(device.userAgent ? { userAgent: device.userAgent } : {}),
-        });
+        // project 生成と同じロジックを使う (Firefox は isMobile / hasTouch 非対応)
+        const context = await browser.newContext(
+          deviceUse(browserId, device) as Parameters<typeof browser.newContext>[0],
+        );
         const devicePage = await context.newPage();
         const tracker = new RedirectTracker(devicePage);
 

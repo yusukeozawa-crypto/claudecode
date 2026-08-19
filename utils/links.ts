@@ -127,9 +127,11 @@ export async function checkPageLinks(
   const results = await mapWithConcurrency(
     links,
     config.runtime.throttle.linkCheckConcurrency,
-    async (link, index) => {
-      // リクエスト間隔を空けて対象サイトへの負荷を抑える
-      if (delay > 0) await sleep(delay * (index % Math.max(1, config.runtime.throttle.linkCheckConcurrency)));
+    async (link) => {
+      // リクエスト間隔を空けて対象サイトへの負荷を抑える。
+      // 各リクエストの前に必ず待機する (index を使った待機では
+      // concurrency 個ごとに待機なしのリクエストが混ざってしまう)。
+      if (delay > 0) await sleep(delay);
       return checkLink(request, link, config);
     },
   );

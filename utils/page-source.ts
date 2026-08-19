@@ -9,7 +9,8 @@ import type { PageConfig, QaConfig } from './types';
 
 /** 設定ファイルに定義されたページ */
 export function pagesFromConfig(config: QaConfig): PageConfig[] {
-  return config.pages.pages;
+  // source: sitemap のときは pages が空でもよいため null ガードする
+  return config.pages.pages ?? [];
 }
 
 /** sitemap.xml からページ一覧を取得する */

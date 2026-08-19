@@ -43,6 +43,8 @@ export default class QaHtmlReporter implements Reporter {
   private environmentName = '';
   private baseUrl = '';
   private projectNames: string[] = [];
+  /** ゲートの判定基準 (config/runtime.yml の failOnSeverities) */
+  private failOnSeverities: Severity[] = ['critical', 'high'];
 
   onBegin(config: FullConfig): void {
     this.startedAt = new Date();
@@ -52,12 +54,19 @@ export default class QaHtmlReporter implements Reporter {
       this.environmentName = qaConfig.environmentName;
       this.environmentLabel = qaConfig.environment.label;
       this.baseUrl = qaConfig.environment.baseUrl;
+      this.failOnSeverities = qaConfig.runtime.failOnSeverities;
     } catch {
       // 設定読み込みに失敗した場合もレポート生成自体は継続する
     }
   }
 
   onTestEnd(testCase: TestCase, result: TestResult): void {
+    // リトライされたテストは最後の試行だけを採用する。
+    // 全試行を積むと、失敗 → リトライ成功 のテストで失敗時の検知が残り、
+    // 成功しているのにゲートが失敗する。
+    const existingIndex = this.records.findIndex((entry) => entry.testId === testCase.id);
+    if (existingIndex >= 0) this.records.splice(existingIndex, 1);
+
     const attachment = result.attachments.find((entry) => entry.name === 'qa-findings');
     let parsed: FindingsAttachment | null = null;
 
@@ -123,7 +132,10 @@ export default class QaHtmlReporter implements Reporter {
         skipped: this.records.filter((record) => record.status === 'skipped').length,
       },
       findings: counts,
-      gateFailed: counts.critical > 0 || counts.high > 0,
+      // 判定基準は config/runtime.yml の failOnSeverities に従う。
+      // ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
+      failOnSeverities: this.failOnSeverities,
+      gateFailed: this.failOnSeverities.some((severity) => (counts[severity] ?? 0) > 0),
     };
 
     fs.writeFileSync(JSON_PATH, JSON.stringify({ summary, records: this.records }, null, 2), 'utf8');
@@ -137,8 +149,11 @@ export default class QaHtmlReporter implements Reporter {
     console.log(`検知件数      : Critical ${counts.critical} / High ${counts.high} / Medium ${counts.medium} / Low ${counts.low}`);
     console.log(`HTML レポート : ${relativeHtml}`);
     console.log(`JSON          : ${path.relative(PROJECT_ROOT, JSON_PATH)}`);
+    console.log(
+      `判定基準      : ${this.failOnSeverities.map((severity) => severity.toUpperCase()).join(' / ')} を 1 件でも検知したら失敗`,
+    );
     if (summary.gateFailed) {
-      console.log('判定          : Critical / High を検知したため CI は失敗として終了します');
+      console.log('判定          : 判定基準に該当する不具合を検知したため CI は失敗として終了します');
     }
     console.log('====================================================');
   }

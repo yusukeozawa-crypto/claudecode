@@ -254,6 +254,17 @@ function describeKind(kind: TextIssue['kind']): string {
 }
 
 /** サイト横断の表記揺れ (ページ間で表記が分かれているもの) を検出する */
+/**
+ * 除外語の範囲と重ならない出現があるか。
+ * ページ単位の検査と同じ扱いにするため、既存の excludedRanges を再利用する
+ * (例: WEB のルールで WEBRTC を拾わない)。
+ */
+function hasRelevantOccurrence(text: string, term: string, excludeWords: string[]): boolean {
+  if (!term) return false;
+  const ranges = excludedRanges(text, excludeWords ?? []);
+  return findOccurrences(text, term).some((index) => !isInExcludedRange(index, term.length, ranges));
+}
+
 export function detectCrossPageInconsistency(
   perPageText: Array<{ pageId: string; text: string }>,
   config: QaConfig,
@@ -267,7 +278,9 @@ export function detectCrossPageInconsistency(
 
     for (const candidate of candidates) {
       for (const page of perPageText) {
-        if (page.text.includes(candidate)) {
+        // 除外語 (固有名詞など) の中に含まれる出現は数えない。
+        // ページ単位の検査と同じ扱いにする (例: WEB のルールで WEBRTC を拾わない)
+        if (hasRelevantOccurrence(page.text, candidate, config.text.excludeWords)) {
           const pages = usage.get(candidate) ?? [];
           pages.push(page.pageId);
           usage.set(candidate, pages);

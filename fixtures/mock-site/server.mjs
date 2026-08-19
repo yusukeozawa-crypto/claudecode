@@ -265,7 +265,8 @@ const server = http.createServer(async (req, res) => {
   // ---------- その他の静的ページ (代理店コンテキストを注入する) ----------
   const relative = pathname.replace(/^\/+/, '');
   const target = path.resolve(ROOT, relative);
-  if (!target.startsWith(ROOT)) {
+  // ROOT + セパレータで比較する (兄弟ディレクトリへの脱出を防ぐ)
+  if (target !== ROOT && !target.startsWith(ROOT + path.sep)) {
     res.writeHead(403).end('Forbidden');
     return;
   }

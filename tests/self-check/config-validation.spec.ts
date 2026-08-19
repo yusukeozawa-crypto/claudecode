@@ -7,6 +7,7 @@
  */
 import { test, expect } from '../qa-fixtures';
 import { loadConfig, resolveSelector, validateConfig } from '../../utils/config';
+import { isForbiddenRequest } from '../../utils/handoff';
 import type { QaConfig } from '../../utils/types';
 
 const config = loadConfig();
@@ -126,5 +127,33 @@ test.describe('セレクタ解決の自己検査 @selfcheck', () => {
     expect(resolveSelector('css=.agency-box'), 'css= は任意セレクタ').toBe('.agency-box');
     expect(resolveSelector('text=お申し込み'), 'text= はそのまま渡す').toBe('text=お申し込み');
     expect(resolveSelector('xpath=//div'), 'xpath= はそのまま渡す').toBe('xpath=//div');
+  });
+});
+
+test.describe('安全装置の自己検査 @selfcheck', () => {
+  test('申込完了・データ送信のリクエストが遮断される', async ({ page, qaConfig }) => {
+    // route ハンドラを 2 つに分けていた頃は、読み取り専用環境で
+    // この遮断が機能していなかった。単一ハンドラ化の回帰防止。
+    const completeUrl = new URL('/entry/complete', `${qaConfig.environment.applicationBaseUrl}/`).toString();
+    const normalUrl = new URL('/entry/', `${qaConfig.environment.applicationBaseUrl}/`).toString();
+
+    expect(isForbiddenRequest(completeUrl, qaConfig), '申込完了 URL は禁止対象').toBe(true);
+    expect(isForbiddenRequest(normalUrl, qaConfig), '通常の申込画面は禁止対象ではない').toBe(false);
+
+    // 通常の申込画面は開ける (過剰遮断でないこと)
+    const response = await page.goto(normalUrl);
+    expect(response?.ok(), '通常の申込画面は開けること').toBe(true);
+
+    // 申込完了 URL は遮断され、ページを開けないこと
+    // (遮断により遷移が中断されるため、この検証は最後に行う)
+    const error = await page.goto(completeUrl).then(
+      () => null,
+      (reason: unknown) => reason,
+    );
+    expect(error, '申込完了 URL への遷移が遮断されること').not.toBeNull();
+    expect(
+      String(error),
+      'クライアント側で遮断されたことが分かること',
+    ).toMatch(/BLOCKED|blockedbyclient|ERR_BLOCKED/i);
   });
 });

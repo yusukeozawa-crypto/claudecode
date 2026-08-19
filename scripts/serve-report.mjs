@@ -33,7 +33,8 @@ http
     const relative = requestPath === '/' ? 'qa-report.html' : requestPath.replace(/^\/+/, '');
     const target = path.resolve(ROOT, relative);
 
-    if (!target.startsWith(ROOT)) {
+    // ROOT + セパレータで比較する (reports-backup のような兄弟ディレクトリへの脱出を防ぐ)
+  if (target !== ROOT && !target.startsWith(ROOT + path.sep)) {
       res.writeHead(403).end('Forbidden');
       return;
     }

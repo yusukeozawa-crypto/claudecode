@@ -116,7 +116,7 @@ export function validateConfig(config: QaConfig): void {
   if (config.devices.devices.length === 0) {
     problems.push('config/devices.yml: devices が空です');
   }
-  if (config.pages.source === 'config' && config.pages.pages.length === 0) {
+  if (config.pages.source === 'config' && (config.pages.pages ?? []).length === 0) {
     problems.push('config/pages.yml: pages が空です');
   }
   if (!config.agency.paramName) {
@@ -164,7 +164,8 @@ export function validateConfig(config: QaConfig): void {
       problems.push(`config/agencies.yml: ${invalid.code} が agencies と invalidCodes の両方に定義されています`);
     }
   }
-  const pageIds = new Set(config.pages.pages.map((p) => p.id));
+  // source: sitemap のときは pages が空でもよいため null ガードする
+  const pageIds = new Set((config.pages.pages ?? []).map((p) => p.id));
   if (config.pages.source === 'config') {
     for (const id of config.agency.persistenceFlow) {
       if (!pageIds.has(id)) problems.push(`config/agency.yml: persistenceFlow の未知のページ id: ${id}`);
