@@ -20,6 +20,8 @@ import { verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../util
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
+import { detectCrossPageInconsistency } from '../../utils/text-rules';
+import { collectLinks } from '../../utils/links';
 import type { FindingCategory, RedirectTrace } from '../../utils/types';
 
 const config = loadConfig();
@@ -510,5 +512,88 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       pages.map((page) => page.id),
       '設定ファイルのページ定義にフォールバックすること',
     ).toEqual(config.pages.pages.map((page) => page.id));
+  });
+
+  // ------------------------------------------------------------------
+  // 空白画面 / 極端に大きな要素 / URL の不要パラメータ / リンク上限
+  // ------------------------------------------------------------------
+
+  test('空白画面を検出できる', async ({ page }) => {
+    await page.goto('/broken/blank.html');
+    const findings = await runLayoutChecks(page, config, {});
+
+    const blank = findings.find((finding) => finding.title.includes('ほぼ空白'));
+    expect(blank, `空白画面が検出されること (検知: ${JSON.stringify(findings)})`).toBeTruthy();
+    expect(blank?.severity, '空白画面は High として報告される').toBe('high');
+    expect(blank?.expected, '閾値が期待結果に含まれること').toContain(
+      String(config.layout.emptyScreen.minVisibleTextLength),
+    );
+  });
+
+  test('極端に大きな要素を検出できる', async ({ page }) => {
+    await page.goto('/broken/huge.html');
+    const findings = await runLayoutChecks(page, config, {});
+
+    const huge = findings.find((finding) => finding.title.includes('極端に大きな要素'));
+    expect(huge, `巨大要素が検出されること (検知: ${JSON.stringify(findings)})`).toBeTruthy();
+    expect(huge?.category, '表示崩れとして分類される').toBe('layout');
+  });
+
+  test('URL の不要なパラメータを検出できる', async () => {
+    const spec = config.agencies.agencies[0];
+    const withExtra = `${config.environment.baseUrl}${spec.entryPath}?${config.agency.paramName}=${spec.code}&debug=1&tracking_id=abc`;
+
+    const findings = verifyUrlHygiene(withExtra, config, '自己検査');
+    const extras = findings.filter((finding) => finding.title.includes('不要なパラメータ'));
+    expect(extras.length, '許可されていないパラメータが検出されること').toBeGreaterThan(0);
+    expect(
+      extras.some((finding) => finding.title.includes('debug')),
+      'パラメータ名が示されること',
+    ).toBe(true);
+    expect(extras[0].severity, '不要なパラメータは Medium として報告される').toBe('medium');
+  });
+
+  test('リンク検査の件数上限が効く', async ({ page }) => {
+    await page.goto('/lp/');
+
+    const limited = {
+      ...config,
+      errors: {
+        ...config.errors,
+        links: { ...config.errors.links, maxLinksPerPage: 2 },
+      },
+    };
+    const links = await collectLinks(page, limited);
+    expect(links.length, '上限 (2 件) を超えないこと').toBeLessThanOrEqual(2);
+
+    const unlimited = await collectLinks(page, config);
+    expect(unlimited.length, '上限を上げれば多く収集されること').toBeGreaterThan(links.length);
+  });
+
+  test('ページ間の表記揺れを検出できる', async () => {
+    const rule = config.text.unifyRules.find(
+      (entry) => !entry.detectOnly && entry.preferred && entry.variants.length > 0,
+    );
+    test.skip(!rule, '表記統一ルールが設定されていません');
+
+    // 同じ意味の語がページごとに異なる表記になっている状態
+    const inconsistent = [
+      { pageId: 'page-a', text: `こちらから${rule!.preferred}ください。` },
+      { pageId: 'page-b', text: `こちらから${rule!.variants[0]}ください。` },
+    ];
+    const findings = detectCrossPageInconsistency(inconsistent, config);
+    expect(findings.length, 'ページ間の不統一が検出されること').toBeGreaterThan(0);
+    expect(findings[0].actual, 'どのページで使われているかが示されること').toContain('page-a');
+    expect(findings[0].actual, 'どのページで使われているかが示されること').toContain('page-b');
+
+    // 全ページで統一されている場合は検出しない
+    const consistent = [
+      { pageId: 'page-a', text: `こちらから${rule!.preferred}ください。` },
+      { pageId: 'page-b', text: `こちらも${rule!.preferred}ください。` },
+    ];
+    const noFindings = detectCrossPageInconsistency(consistent, config).filter(
+      (finding) => finding.title.includes(rule!.id),
+    );
+    expect(noFindings, '統一されていれば検出しないこと').toEqual([]);
   });
 });
