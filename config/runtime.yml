@@ -24,6 +24,14 @@ throttle:
   # リンク検査の同時実行数
   linkCheckConcurrency: 4
 
+# Playwright のトレース取得。
+#   トレースには通信内容 (一時トークン・Cookie・リクエストボディ) がそのまま
+#   含まれるため、Artifact の共有範囲に注意すること。
+#   秘密情報を一切残したくない場合は 'off' にする (デバッグ容易性とのトレードオフ)。
+#   off | on | retain-on-failure | on-first-retry
+trace: on-first-retry
+traceCi: retain-on-failure
+
 # 重大度ゲート: ここに含まれる重大度が 1 件でもあればテストを失敗させる
 failOnSeverities:
   - critical

@@ -372,7 +372,7 @@ mask:                               # 動的要素をマスクする
 `config/errors.yml` の `network.ignoreUrlPatterns` / `console.ignoreMessages` /
 `links.ignoreUrlPatterns` を編集します。
 
-### 並列実行数・リクエスト間隔を変更する
+### 並列実行数・リクエスト間隔・トレースを変更する
 
 `config/runtime.yml` を編集します。外部サイトへの負荷を抑えたい場合はここで調整します。
 
@@ -383,6 +383,11 @@ throttle:
   navigationDelayMs: 250            # ページ遷移前の待機
   linkCheckDelayMs: 150             # リンク検査の間隔
   linkCheckConcurrency: 4           # リンク検査の同時実行数
+
+# トレースには通信内容 (トークン・Cookie・リクエストボディ) が含まれる。
+# 秘密情報を Artifact に残したくない場合は off にする。
+trace: on-first-retry               # off | on | retain-on-failure | on-first-retry
+traceCi: retain-on-failure
 ```
 
 ---
@@ -523,8 +528,15 @@ CI 上に基準画像が無い場合はその回で作成され、比較は行�
 - **申込完了リクエストは全環境で遮断します。** `config/agency.yml` の
   `application.forbiddenRequestPatterns` に一致するリクエストが発生した場合、
   フィクスチャが遮断し Critical として報告します。
-- **一時トークン・セッション ID はレポートに出力しません。** すべての検知結果に
+- **一時トークン・セッション ID・URL に付加された個人情報はレポートに出力しません。**
+  検知結果・検査文脈の URL・添付する証跡 (リダイレクト経路など) のすべてに
   マスキング処理が自動適用されます (`utils/secrets.ts`)。
+  「URL に個人情報が含まれている」ことは Critical として報告しますが、
+  その値自体はレポートへ出力しません (レポートは CI の Artifact になるため)。
+- **トレースには通信内容がそのまま含まれます。** Playwright のトレースには
+  一時トークン・Cookie・リクエストボディが含まれるため、Artifact の共有範囲に
+  注意してください。秘密情報を一切残したくない場合は `config/runtime.yml` の
+  `trace` / `traceCi` を `off` にします (デバッグ容易性とのトレードオフ)。
 - 代理店コード起因のセキュリティ (open redirect、任意ドメインへの遷移、
   URL パラメータの HTML 出力、URL への個人情報付加) を検査します
   (`npm run test:security`)。

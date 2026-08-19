@@ -129,6 +129,9 @@ export interface RuntimeFile {
     linkCheckDelayMs: number;
     linkCheckConcurrency: number;
   };
+  /** トレース取得 (通信内容が含まれるため共有範囲に注意) */
+  trace: 'off' | 'on' | 'retain-on-failure' | 'on-first-retry';
+  traceCi: 'off' | 'on' | 'retain-on-failure' | 'on-first-retry';
   failOnSeverities: Severity[];
 }
 

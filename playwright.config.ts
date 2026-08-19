@@ -53,7 +53,8 @@ export default defineConfig({
     baseURL: environment.baseUrl,
     navigationTimeout: runtime.timeouts.navigation,
     actionTimeout: runtime.timeouts.action,
-    trace: isCi() ? 'retain-on-failure' : 'on-first-retry',
+    // トレースには通信内容 (トークン等) が含まれる。config/runtime.yml で変更できる。
+    trace: isCi() ? runtime.traceCi : runtime.trace,
     screenshot: 'only-on-failure',
     video: 'off',
     ignoreHTTPSErrors: false,

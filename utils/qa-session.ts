@@ -13,6 +13,7 @@ import { detectTextIssues, textIssuesToFindings } from './text-rules';
 import { runAiTextCheck } from './ai-text-checker';
 import { sleep } from './throttle';
 import { pageUrl } from './config';
+import { maskText } from './secrets';
 import type { FindingInput, PageConfig, QaConfig } from './types';
 
 export interface GotoOptions {
@@ -217,10 +218,15 @@ export class QaSession {
     if (pageConfig.checks.includes('errors')) this.collectMonitorFindings();
   }
 
-  /** 証跡 (経路記録など) を JSON としてレポートに添付する */
+  /**
+   * 証跡 (リダイレクト経路など) を JSON としてレポートに添付する。
+   * 経路上の URL には一時トークンや個人情報が含まれ得るため、
+   * 出力前にマスキングする (レポートは CI の Artifact として共有される)。
+   */
   async attachJson(name: string, payload: unknown): Promise<void> {
+    const serialized = JSON.stringify(payload, null, 2);
     await this.testInfo.attach(name, {
-      body: JSON.stringify(payload, null, 2),
+      body: maskText(serialized, this.config) ?? serialized,
       contentType: 'application/json',
     });
   }

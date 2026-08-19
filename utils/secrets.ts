@@ -55,20 +55,48 @@ export function maskUrl(url: string, config: QaConfig): string {
   }
 }
 
-/** 文字列中の秘密情報をマスクする */
+/**
+ * 文字列中の秘密情報・個人情報をマスクする。
+ *
+ * 対象の形は 2 通り:
+ *   - クエリ形式  : `?handoff_token=xxx` / `&mail=xxx`
+ *   - JSON/ログ形式: `"handoff_token": "xxx"` / `token=xxx`
+ *
+ * 区切り文字と前後のクォートは保持する。壊すと添付した証跡が
+ * JSON として解析できなくなり、証跡の意味が失われるため。
+ *
+ * 秘密情報 (トークン・セッション) はどの形式でもマスクするが、
+ * 個人情報らしいキー (mail / tel / name など) はクエリ形式のみを対象にする。
+ * JSON のキー名 ("name" など) まで潰すと、調査結果 (hidden 項目名の一覧など) が
+ * 読めなくなるため。
+ */
 export function maskText(text: string | undefined, config: QaConfig): string | undefined {
   if (!text) return text;
   let masked = text;
   const security = config.agencies.security;
 
-  // key=value 形式 (URL / クエリ / ログ) のマスキング。
-  // 個人情報らしいキー (mail / tel など) も対象にする。
-  // 値のパターン (電話番号など) は本文には適用しない
-  // — 代理店の電話番号は期待値としてレポートに表示する必要があるため。
-  for (const name of maskedParamNames(config)) {
+  const replaceKeyValue = (input: string, name: string, prefixClass: string): string => {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    masked = masked.replace(new RegExp(`([?&"'\\s]|^)(${escaped}[\\w-]*)\\s*[=:]\\s*"?([^"'&\\s,}]+)"?`, 'gi'),
-      (_match, prefix: string, key: string) => `${prefix}${key}=${MASK}`);
+    // prefix / キー / 区切り / 開始クォート / 値 / 終了クォート を個別に捕捉する
+    const pattern = new RegExp(
+      `(${prefixClass})(${escaped}[\\w-]*)("?\\s*[=:]\\s*)("?)([^"'&\\s,}\\]]+)("?)`,
+      'gi',
+    );
+    return input.replace(
+      pattern,
+      (_match, prefix: string, key: string, separator: string, openQuote: string, _value: string, closeQuote: string) =>
+        `${prefix}${key}${separator}${openQuote}${MASK}${closeQuote}`,
+    );
+  };
+
+  // 秘密情報: クエリ形式・JSON/ログ形式のどちらもマスクする
+  for (const name of security.maskParamNames) {
+    masked = replaceKeyValue(masked, name, '[?&"\'\\s]|^');
+  }
+
+  // 個人情報らしいキー: クエリ形式 (?key= / &key=) のみを対象にする
+  for (const name of config.agencies.redirect.forbiddenQueryParamKeywords) {
+    masked = replaceKeyValue(masked, name, '[?&]');
   }
 
   // パターンによるマスキング (JWT / 長い 16 進文字列など)

@@ -326,6 +326,26 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     }
   });
 
+  test('レポートに添付する証跡から一時トークンが除去される', async () => {
+    // QaSession.attachJson と同じ経路 (JSON.stringify -> maskText) を検証する
+    const token = 'ZXZpZGVuY2UtdG9rZW4tMTIzNDU2Nzg5MGFiY2RlZg';
+    const trace = {
+      entryUrl: `${config.environment.baseUrl}/lp/?${config.agency.paramName}=X001`,
+      finalUrl: `${config.environment.applicationBaseUrl}/entry/?handoff_token=${token}`,
+      hops: [
+        { url: `${config.environment.applicationBaseUrl}/entry/?handoff_token=${token}`, status: 200 },
+      ],
+    };
+
+    const serialized = JSON.stringify(trace, null, 2);
+    const masked = maskText(serialized, config) ?? '';
+
+    expect(masked, '証跡からトークンが除去されること').not.toContain(token);
+    expect(masked, '経路の構造は保持されること').toContain('finalUrl');
+    expect(masked, '代理店コードは残ること').toContain(`${config.agency.paramName}=X001`);
+    expect(() => JSON.parse(masked), 'マスク後も JSON として解析できること').not.toThrow();
+  });
+
   test('レポートに一時トークンが出力されない', async () => {
     const token = 'c2VsZi1jaGVjay10b2tlbi0xMjM0NTY3ODkw';
     const collector = new FindingCollector(config, {
