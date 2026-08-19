@@ -16,7 +16,14 @@ import { randomUUID } from 'node:crypto';
 import { escapeHtml, getAgency, resolveHandoffToken } from './agency-master.mjs';
 
 const PORT = Number(process.env.MOCK_APPLICATION_PORT || 4174);
-const HOST = process.env.MOCK_APPLICATION_HOST || '127.0.0.1';
+/**
+ * 既定では全インターフェースで待ち受ける。
+ * 申込ドメインの URL はホスト名 (localhost) で指定されるため、
+ * 環境によって localhost が ::1 (IPv6) に解決されることがある。
+ * 127.0.0.1 だけに bind すると、その環境で接続できなくなる
+ * (GitHub Actions の ubuntu-latest は /etc/hosts に ::1 localhost を持つ)。
+ */
+const HOST = process.env.MOCK_APPLICATION_HOST || undefined;
 
 const PARAM_NAME = 'agency_code';
 const SESSION_COOKIE = 'app_session';
@@ -226,5 +233,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`mock application site listening on http://${HOST}:${PORT}`);
+  console.log(`mock application site listening on port ${PORT} (host: ${HOST ?? 'all interfaces'})`);
 });

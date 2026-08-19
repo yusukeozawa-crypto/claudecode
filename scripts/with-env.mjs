@@ -4,6 +4,8 @@
  *   node scripts/with-env.mjs KEY=VALUE ... -- command [args...]
  */
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 const argv = process.argv.slice(2);
 const separator = argv.indexOf('--');
@@ -28,9 +30,10 @@ if (!command) {
   process.exit(2);
 }
 
-// node_modules/.bin を PATH に加えることで playwright を直接呼べるようにする
-const binDir = new URL('../node_modules/.bin', import.meta.url).pathname;
-env.PATH = `${binDir}${process.platform === 'win32' ? ';' : ':'}${env.PATH ?? ''}`;
+// node_modules/.bin を PATH に加えることで playwright を直接呼べるようにする。
+// URL.pathname は Windows で "/C:/..." になるため fileURLToPath で変換する。
+const binDir = path.join(fileURLToPath(new URL('..', import.meta.url)), 'node_modules', '.bin');
+env.PATH = `${binDir}${path.delimiter}${env.PATH ?? ''}`;
 
 const child = spawn(command, rest, { stdio: 'inherit', env, shell: process.platform === 'win32' });
 child.on('exit', (code, signal) => process.exit(signal ? 1 : code ?? 1));

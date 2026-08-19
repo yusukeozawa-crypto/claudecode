@@ -236,7 +236,9 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
   });
 
   test('URL への個人情報・不要パラメータの付加を検出できる', async () => {
-    const withPii = `${config.environment.baseUrl}/lp/?agency_code=A001&mail=test@example.com`;
+    const spec = config.agencies.agencies[0];
+    const codeParam = `${config.agency.paramName}=${spec.code}`;
+    const withPii = `${config.environment.baseUrl}${spec.entryPath}?${codeParam}&mail=test@example.com`;
     const findings = verifyUrlHygiene(withPii, config, '自己検査');
     expect(categories(findings), '個人情報らしいパラメータが検出されること').toContain('security');
     expect(
@@ -244,7 +246,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       '重大度が Critical であること',
     ).toBe(true);
 
-    const clean = verifyUrlHygiene(`${config.environment.baseUrl}/lp/?agency_code=A001`, config, '自己検査');
+    const clean = verifyUrlHygiene(`${config.environment.baseUrl}${spec.entryPath}?${codeParam}`, config, '自己検査');
     expect(clean, '許可されたパラメータのみなら検知しない').toEqual([]);
   });
 
@@ -256,10 +258,15 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     // first のコードで流入したページに second の情報が出ている状況を作る
     await page.goto(`${config.environment.baseUrl}${first.entryPath}?${config.agency.paramName}=${first.code}`);
     await page.waitForLoadState('load');
-    await page.evaluate((otherName: string) => {
-      const element = document.querySelector('[data-testid="agency-name"]');
-      if (element) element.textContent = otherName;
-    }, second.expectedTexts['agency-name']);
+    // 代理店名の要素は設定 (agency.yml の selectors) から解決する
+    const nameTestId = config.agency.selectors.agencyName;
+    await page.evaluate(
+      ({ testId, otherName }: { testId: string; otherName: string }) => {
+        const element = document.querySelector(`[data-testid="${testId}"]`);
+        if (element) element.textContent = otherName;
+      },
+      { testId: nameTestId, otherName: second.expectedTexts[nameTestId] },
+    );
 
     const wrongTexts = await verifyTexts(page, first.expectedTexts, '自己検査');
     expect(categories(wrongTexts), '代理店名の誤表示が検出されること').toContain('agency-display');

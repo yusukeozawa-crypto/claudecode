@@ -48,12 +48,14 @@ test.describe('代理店コードのセキュリティ @security', () => {
   // 秘密情報のマスキング (レポートにトークンを出力しない)
   // ------------------------------------------------------------------
   test('一時トークンがレポート上でマスキングされる', async () => {
+    // 検証に使う値は設定から取得する (サイト固有の値をテストコードに書かない)
+    const sampleCode = specs[specs.length - 1].code;
     const token = 'QTAwMi5hYmNkZWYxMjM0NTY3ODkw';
-    const url = `https://application.example.jp/entry/?handoff_token=${token}&agency_code=A002`;
+    const url = `${config.environment.applicationBaseUrl}/entry/?handoff_token=${token}&${config.agency.paramName}=${sampleCode}`;
 
     const maskedUrl = maskUrl(url, config);
     expect(maskedUrl, 'トークンの値が URL に残っていないこと').not.toContain(token);
-    expect(maskedUrl, '代理店コードは残ること').toContain('agency_code=A002');
+    expect(maskedUrl, '代理店コードは残ること').toContain(`${config.agency.paramName}=${sampleCode}`);
 
     const maskedText = maskText(`handoff_token=${token} を送信しました`, config);
     expect(maskedText, 'トークンの値が本文に残っていないこと').not.toContain(token);
