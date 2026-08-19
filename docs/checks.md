@@ -175,8 +175,16 @@ High (`redirect-loop`) として記録する。リンク検査側でも独立に
 | `compare.caret` | `hide` でテキストキャレットを隠す |
 | `compare.stabilizeDelayMs` | 比較前の待機 (既定 300ms) |
 
-差分が出た場合、基準画像 / 現在画像 / 差分画像が Playwright レポートに添付され、
-`reports/test-results/` 配下にも出力される。
+差分が出た場合、次の 3 枚が `reports/test-results/` 配下に出力され、
+**QA レポートの検知一覧から直接参照できる** (ラベル付きで並ぶ)。
+
+| ファイル | 内容 | レポート上の表示 |
+|---|---|---|
+| `<pageId>-expected.png` | 基準画像 | 基準画像 |
+| `<pageId>-actual.png` | 現在の画像 | 現在画像 |
+| `<pageId>-diff.png` | 差分画像 | 差分画像 |
+
+`npm run report` でレポートを配信すると、そのままブラウザで 3 枚を比較できる。
 
 > 基準画像は CSS ピクセル基準 (`scale: 'css'`) で作成する。SP の
 > `deviceScaleFactor: 3` のまま保存すると比較時に解像度が一致せず、

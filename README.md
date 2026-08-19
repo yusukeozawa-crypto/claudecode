@@ -137,7 +137,7 @@ npx playwright test --headed --debug
 | `reports/qa-report.json` | 同内容の JSON (CI 判定・二次利用向け) |
 | `reports/playwright-report/` | Playwright 標準レポート (トレース・差分画像) |
 | `reports/text/<env>/` | ページごとの抽出テキスト (JSON / CSV) |
-| `reports/test-results/` | 失敗時のスクリーンショット・基準画像との差分画像 |
+| `reports/test-results/` | 失敗時のスクリーンショット・視覚差分の 3 枚 (基準画像 / 現在画像 / 差分画像) |
 | `screenshots/current/<env>/<browser>-<device>/` | フルページスクリーンショット |
 | `screenshots/baseline/<env>/<project>/` | 基準画像 (環境別・Git にコミットする) |
 

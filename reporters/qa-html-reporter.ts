@@ -201,10 +201,22 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   const findingRows = findings
     .map((finding) => {
       const record = records.find((entry) => entry.findings.includes(finding));
-      const shots = (record?.attachedScreenshots ?? [])
+      // 検知結果に紐づく画像 (視覚差分の 3 枚など) を優先し、
+      // 無い場合はテストに添付されたスクリーンショットを表示する
+      const shotPaths =
+        (finding.screenshots ?? []).length > 0
+          ? (finding.screenshots ?? [])
+          : (record?.attachedScreenshots ?? []);
+      const shotLabel = (shot: string): string => {
+        if (shot.includes('-expected.')) return '基準画像';
+        if (shot.includes('-actual.')) return '現在画像';
+        if (shot.includes('-diff.')) return '差分画像';
+        return 'スクリーンショット';
+      };
+      const shots = shotPaths
         .map(
           (shot) =>
-            `<a class="shot" href="${escapeHtml(shot)}" target="_blank" rel="noopener"><img src="${escapeHtml(shot)}" alt="スクリーンショット" loading="lazy"></a>`,
+            `<a class="shot" href="${escapeHtml(shot)}" target="_blank" rel="noopener" title="${escapeHtml(shotLabel(shot))}"><img src="${escapeHtml(shot)}" alt="${escapeHtml(shotLabel(shot))}" loading="lazy"><span class="shot-label">${escapeHtml(shotLabel(shot))}</span></a>`,
         )
         .join('');
       return `
@@ -293,7 +305,9 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   .expected { color: #14683a; } .actual { color: var(--critical); }
   .url { word-break: break-all; max-width: 260px; font-size: 12px; }
   .shots { white-space: nowrap; }
-  .shot img { height: 56px; border: 1px solid var(--border); border-radius: 4px; margin-right: 4px; }
+  .shot { display: inline-block; margin-right: 6px; text-align: center; text-decoration: none; color: #5a6671; }
+  .shot img { height: 56px; border: 1px solid var(--border); border-radius: 4px; display: block; }
+  .shot-label { display: block; font-size: 10px; margin-top: 2px; }
   .filters { margin: 10px 0; font-size: 13px; }
   .filters label { margin-right: 12px; }
   .empty { padding: 20px; color: #5a6672; }

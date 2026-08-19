@@ -99,6 +99,10 @@ export async function compareWithBaseline(
     return [];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    // 差分が出た場合、Playwright は出力先に 3 枚を書き出す。
+    // QA レポートから直接参照できるよう、検知結果に相対パスを持たせる。
+    const comparisonImages = collectComparisonImages(testInfo, options.pageId);
+
     return [
       {
         category: 'visual-diff',
@@ -109,14 +113,36 @@ export async function compareWithBaseline(
         url: page.url(),
         pageId: options.pageId,
         pageName: options.pageName,
+        screenshots: comparisonImages,
         detail: [
           `基準画像: ${path.relative(PROJECT_ROOT, baselinePath)}`,
-          '基準画像 / 現在画像 / 差分画像は HTML レポートの添付ファイルから確認できます',
+          comparisonImages.length > 0
+            ? '基準画像 (expected) / 現在画像 (actual) / 差分画像 (diff) をレポートから確認できます'
+            : '基準画像 / 現在画像 / 差分画像は HTML レポートの添付ファイルから確認できます',
           '意図した変更の場合は npm run update:screenshots で基準画像を更新してください',
         ].join(' / '),
       },
     ];
   }
+}
+
+/**
+ * 差分比較の 3 枚 (基準画像 / 現在画像 / 差分画像) を集める。
+ * reports/ を起点とした相対パスで返す (QA レポートから参照するため)。
+ */
+function collectComparisonImages(testInfo: TestInfo, pageId: string): string[] {
+  const reportDir = path.join(PROJECT_ROOT, 'reports');
+  const suffixes = ['expected', 'actual', 'diff'];
+  const images: string[] = [];
+
+  for (const suffix of suffixes) {
+    const filePath = testInfo.outputPath(`${pageId}-${suffix}.png`);
+    if (fs.existsSync(filePath)) {
+      images.push(path.relative(reportDir, filePath));
+    }
+  }
+
+  return images;
 }
 
 function firstLines(text: string, count: number): string {
