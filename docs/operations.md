@@ -125,6 +125,23 @@ git commit -m "chore: 基準画像を更新"
 該当要素の `data-testid` を追加する。フォントの読み込みタイミングによる差分の場合は
 `compare.stabilizeDelayMs` を増やすか、`compare.maxDiffPixelRatio` を緩める。
 
+### CI の self-test で Low が出る (Critical / High は 0)
+
+基準画像を開発マシンで作成している場合、CI (ubuntu-latest) ではフォント描画の
+違いにより画像差分 (Low) が出る。**Low はゲート対象外なのでジョブは成功する。**
+
+実測例 (モックサイト対象の self-test):
+
+| 環境 | 検知件数 |
+|---|---|
+| 開発マシン | Critical 0 / High 0 / Medium 0 / Low 4 (情報記録のみ) |
+| CI (ubuntu-latest) | Critical 0 / High 0 / Medium 0 / Low 11 (情報記録 4 + 画像差分 7) |
+
+Low 4 の内訳は「一時トークンによる引き継ぎを確認」(PC/SP) と
+マスキング検証 (PC/SP) で、いずれも不具合ではなく記録目的のもの。
+
+差分を無くすには、CI の Artifact から `screenshots/baseline` を取得してコミットする。
+
 ### CI と手元で差分が出る
 
 OS によるフォントレンダリングの差が原因。基準画像は CI と同じ環境

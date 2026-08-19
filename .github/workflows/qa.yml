@@ -79,9 +79,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Node.js をセットアップ
+        # actions/* の major は Node 20 ランタイム対象のため実行時に警告が出る。
+        # ランナー側が新しい Node で実行するため動作に支障はないが、
+        # 警告を消す場合は各 action の major を上げる (動作確認のうえで実施すること)。
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: 依存関係をインストール
@@ -113,8 +116,10 @@ jobs:
           if-no-files-found: warn
 
       - name: 重大度ゲート (Critical / High があれば失敗)
-        # 基準画像は環境ごとに分離されており、CI とローカルでフォント描画が異なると
-        # 画像差分 (Low) が出ることがある。Low はゲート対象外。
+        # 基準画像を別環境 (開発者のマシン) で作成している場合、フォント描画の違いにより
+        # 画像差分 (Low) が出る。Low はゲート対象外なのでジョブは成功する。
+        # 差分を無くしたい場合は、この Artifact の screenshots/baseline を取得して
+        # コミットする (docs/operations.md「CI と手元で差分が出る」参照)。
         run: npm run gate
 
       - name: 検査そのものが失敗した場合はジョブを失敗させる
@@ -177,9 +182,12 @@ jobs:
           echo "対象環境 $QA_ENV の URL 設定を確認しました (値は出力しません)"
 
       - name: Node.js をセットアップ
+        # actions/* の major は Node 20 ランタイム対象のため実行時に警告が出る。
+        # ランナー側が新しい Node で実行するため動作に支障はないが、
+        # 警告を消す場合は各 action の major を上げる (動作確認のうえで実施すること)。
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: 依存関係をインストール

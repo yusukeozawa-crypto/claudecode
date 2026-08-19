@@ -19,6 +19,7 @@ import { detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../ut
 import { verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
+import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
 import type { FindingCategory, RedirectTrace } from '../../utils/types';
 
 const config = loadConfig();
@@ -409,5 +410,57 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
         ).toBe(false);
       }
     }
+  });
+
+  // ------------------------------------------------------------------
+  // ページ取得 (config / sitemap.xml の切り替え)
+  // ------------------------------------------------------------------
+
+  test('sitemap.xml からページを取得でき、除外パターンが適用される', async ({ request }) => {
+    const pages = await pagesFromSitemap(config, request);
+
+    expect(pages.length, 'sitemap からページを取得できること').toBeGreaterThan(0);
+    expect(
+      pages.length,
+      `maxPages (${config.pages.sitemap.maxPages}) を超えないこと`,
+    ).toBeLessThanOrEqual(config.pages.sitemap.maxPages);
+
+    const paths = pages.map((page) => page.path);
+    expect(paths, '共通 LP が含まれること').toContain('/lp/');
+    expect(
+      paths.filter((path) => path.includes('/preview/')),
+      'excludePatterns の /preview/ が除外されること',
+    ).toEqual([]);
+    expect(
+      paths.filter((path) => path.endsWith('.pdf')),
+      'excludePatterns の PDF が除外されること',
+    ).toEqual([]);
+
+    // id はファイル名 (レポート・抽出テキストの保存名) として使えること
+    for (const page of pages) {
+      expect(page.id, `id が安全な文字のみであること: ${page.id}`).toMatch(/^[A-Za-z0-9._-]+$/);
+      expect(page.checks.length, 'sitemap の defaults が適用されること').toBeGreaterThan(0);
+    }
+
+    expect(sitemapPageId('/'), 'ルートは top になる').toBe('top');
+    expect(sitemapPageId('/lp/'), '末尾スラッシュを除去する').toBe('lp');
+    expect(sitemapPageId('/a/b.html'), '階層は - でつなぐ').toBe('a-b');
+  });
+
+  test('sitemap.xml の取得に失敗した場合は config/pages.yml にフォールバックする', async ({ request }) => {
+    const brokenConfig = {
+      ...config,
+      pages: {
+        ...config.pages,
+        source: 'sitemap' as const,
+        sitemap: { ...config.pages.sitemap, path: '/no-such-sitemap.xml' },
+      },
+    };
+
+    const pages = await resolvePages(brokenConfig, request);
+    expect(
+      pages.map((page) => page.id),
+      '設定ファイルのページ定義にフォールバックすること',
+    ).toEqual(config.pages.pages.map((page) => page.id));
   });
 });
