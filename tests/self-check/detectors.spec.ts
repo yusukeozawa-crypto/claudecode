@@ -15,7 +15,10 @@ import { checkPageLinks } from '../../utils/links';
 import { detectTextIssues } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
-import type { FindingCategory } from '../../utils/types';
+import { detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
+import { verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
+import { maskUrl } from '../../utils/secrets';
+import type { FindingCategory, RedirectTrace } from '../../utils/types';
 
 const config = loadConfig();
 const SP_VIEWPORT = { width: 390, height: 844 };
@@ -49,11 +52,11 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
 
   test('正常なページでは表示崩れを検出しない (誤検知の確認)', async ({ page }) => {
     await page.setViewportSize(SP_VIEWPORT);
-    await page.goto('/index.html');
+    await page.goto('/lp/');
 
     const findings = await runLayoutChecks(page, config, {
-      requiredTestIds: ['main-visual', 'application-button'],
-      primaryTestIds: ['site-header', 'main-visual', 'application-button', 'site-footer'],
+      requiredTestIds: ['default-hero', 'common-benefits'],
+      primaryTestIds: ['site-header', 'default-hero', 'common-benefits', 'site-footer'],
     });
     expect(findings, `検知内容: ${JSON.stringify(findings, null, 2)}`).toEqual([]);
   });
@@ -116,7 +119,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
   });
 
   test('正常なページでは表記の指摘が出ない (誤検知の確認)', async ({ page }) => {
-    await page.goto('/index.html');
+    await page.goto('/lp/');
     const extracted = await extractText(page, config);
     const issues = detectTextIssues(extracted.fullText, config.text);
     expect(issues, `検知内容: ${JSON.stringify(issues, null, 2)}`).toEqual([]);
@@ -140,5 +143,172 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     collector.add({ category: 'js-error', title: 'JavaScript エラー (High)' });
     expect(collector.blocking.length, 'Critical / High はゲート対象になる').toBe(2);
     expect(collector.blocking.map((finding) => finding.severity).sort()).toEqual(['critical', 'high']);
+  });
+
+  // ------------------------------------------------------------------
+  // 代理店ごとの検出ロジック (リダイレクト / 誤表示 / URL / マスキング)
+  // ------------------------------------------------------------------
+
+  test('遷移方式 (HTTP / meta refresh / JS / SPA) を判定できる', async () => {
+    const base = { entryUrl: 'https://example.jp/lp/', finalUrl: 'https://example.jp/partner/a/' };
+
+    expect(
+      detectMechanism({ ...base, httpRedirectCount: 1, documentRequestCount: 2, historyChangeCount: 0, metaRefreshTargets: [] }),
+      'HTTP 3xx があれば http',
+    ).toBe('http');
+
+    expect(
+      detectMechanism({ ...base, httpRedirectCount: 0, documentRequestCount: 2, historyChangeCount: 0, metaRefreshTargets: ['https://example.jp/partner/a/'] }),
+      'meta refresh を検出できる',
+    ).toBe('meta-refresh');
+
+    expect(
+      detectMechanism({ ...base, httpRedirectCount: 0, documentRequestCount: 2, historyChangeCount: 0, metaRefreshTargets: [] }),
+      'ドキュメント要求が増えていれば JavaScript による遷移',
+    ).toBe('js');
+
+    expect(
+      detectMechanism({ ...base, httpRedirectCount: 0, documentRequestCount: 1, historyChangeCount: 1, metaRefreshTargets: [] }),
+      'history 変更のみなら SPA ルーティング',
+    ).toBe('spa');
+
+    expect(
+      detectMechanism({
+        entryUrl: 'https://example.jp/lp/',
+        finalUrl: 'https://example.jp/lp/',
+        httpRedirectCount: 0,
+        documentRequestCount: 1,
+        historyChangeCount: 0,
+        metaRefreshTargets: [],
+      }),
+      'URL が変わらなければリダイレクトなし',
+    ).toBe('none');
+  });
+
+  test('別代理店のLPへのリダイレクトとリダイレクトループを検出できる', async () => {
+    const spec = config.agencies.agencies[0];
+    const wrongTrace: RedirectTrace = {
+      entryUrl: `${config.environment.baseUrl}${spec.entryPath}`,
+      // 別代理店の専用 LP へ飛ばされた状態
+      finalUrl: `${config.environment.baseUrl}/partner/other/`,
+      hops: [],
+      httpRedirectCount: 1,
+      documentRequestCount: 2,
+      historyChangeCount: 0,
+      metaRefreshTargets: [],
+      mechanism: 'http',
+      loopDetected: false,
+    };
+
+    const findings = verifyRedirectTrace(
+      wrongTrace,
+      {
+        code: spec.code,
+        entryPath: spec.entryPath,
+        expectedFinalPath: spec.expectedFinalPath,
+        redirected: spec.redirected,
+        redirectMechanism: spec.redirectMechanism,
+        expectedRedirectCount: spec.expectedRedirectCount,
+        expectedRedirectPaths: spec.expectedRedirectPaths,
+      },
+      config,
+    );
+    expect(categories(findings), '想定外のリダイレクトが Critical として検出されること').toContain('agency-redirect');
+    expect(
+      findings.some((finding) => finding.severity === 'critical'),
+      '重大度が Critical であること',
+    ).toBe(true);
+
+    const loopFindings = verifyRedirectTrace(
+      { ...wrongTrace, loopDetected: true },
+      {
+        code: spec.code,
+        entryPath: spec.entryPath,
+        expectedFinalPath: spec.expectedFinalPath,
+        redirected: spec.redirected,
+        redirectMechanism: spec.redirectMechanism,
+      },
+      config,
+    );
+    expect(categories(loopFindings), 'リダイレクトループが検出されること').toContain('redirect-loop');
+    expect(loopFindings[0].severity, 'リダイレクトループは Critical').toBe('critical');
+  });
+
+  test('URL への個人情報・不要パラメータの付加を検出できる', async () => {
+    const withPii = `${config.environment.baseUrl}/lp/?agency_code=A001&mail=test@example.com`;
+    const findings = verifyUrlHygiene(withPii, config, '自己検査');
+    expect(categories(findings), '個人情報らしいパラメータが検出されること').toContain('security');
+    expect(
+      findings.some((finding) => finding.severity === 'critical'),
+      '重大度が Critical であること',
+    ).toBe(true);
+
+    const clean = verifyUrlHygiene(`${config.environment.baseUrl}/lp/?agency_code=A001`, config, '自己検査');
+    expect(clean, '許可されたパラメータのみなら検知しない').toEqual([]);
+  });
+
+  test('別代理店の情報表示・セクションの表示崩れを検出できる', async ({ page }) => {
+    const specs = config.agencies.agencies;
+    test.skip(specs.length < 2, '代理店が 2 件以上必要です');
+    const [first, second] = specs;
+
+    // first のコードで流入したページに second の情報が出ている状況を作る
+    await page.goto(`${config.environment.baseUrl}${first.entryPath}?${config.agency.paramName}=${first.code}`);
+    await page.waitForLoadState('load');
+    await page.evaluate((otherName: string) => {
+      const element = document.querySelector('[data-testid="agency-name"]');
+      if (element) element.textContent = otherName;
+    }, second.expectedTexts['agency-name']);
+
+    const wrongTexts = await verifyTexts(page, first.expectedTexts, '自己検査');
+    expect(categories(wrongTexts), '代理店名の誤表示が検出されること').toContain('agency-display');
+
+    const otherInfo = await verifyNoOtherAgencyInfo(page, config, first.code, '自己検査');
+    expect(categories(otherInfo), '別代理店の情報表示が検出されること').toContain('agency-display');
+
+    // 表示すべきセクションを隠した状態
+    await page.evaluate((section: string) => {
+      document.querySelector(`[data-testid="${section}"]`)?.setAttribute('hidden', 'hidden');
+    }, first.visibleSections[0]);
+    const sectionFindings = await verifySections(page, first, '自己検査');
+    expect(
+      sectionFindings.some((finding) => finding.title.includes('表示すべきセクションが表示されていません')),
+      '表示すべきセクションの非表示が検出されること',
+    ).toBe(true);
+
+    // 非表示にすべきセクションを表示した状態
+    if (first.hiddenSections.length > 0) {
+      await page.evaluate((section: string) => {
+        document.querySelector(`[data-testid="${section}"]`)?.removeAttribute('hidden');
+      }, first.hiddenSections[0]);
+      const shownFindings = await verifySections(page, first, '自己検査');
+      expect(
+        shownFindings.some((finding) => finding.title.includes('非表示にすべきセクションが表示されています')),
+        '非表示にすべきセクションの表示が検出されること',
+      ).toBe(true);
+    }
+  });
+
+  test('レポートに一時トークンが出力されない', async () => {
+    const token = 'c2VsZi1jaGVjay10b2tlbi0xMjM0NTY3ODkw';
+    const collector = new FindingCollector(config, {
+      environment: config.environmentName,
+      environmentLabel: config.environment.label,
+      baseUrl: config.environment.baseUrl,
+      browserId: 'chromium',
+      deviceId: 'pc',
+      deviceLabel: 'PC',
+    });
+    const finding = collector.add({
+      category: 'agency-handoff',
+      severity: 'low',
+      title: '自己検査',
+      actual: `handoff_token=${token}`,
+      url: `${config.environment.applicationBaseUrl}/entry/?handoff_token=${token}`,
+    });
+
+    expect(finding.actual, '本文からトークンが除去されること').not.toContain(token);
+    expect(finding.url, 'URL からトークンが除去されること').not.toContain(token);
+    expect(maskUrl(finding.url, config), '再マスクしても壊れないこと').toContain('handoff_token=');
   });
 });

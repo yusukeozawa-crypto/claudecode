@@ -4,16 +4,18 @@
 
 Web サイト公開後に、PC / SP の両方で以下の不具合を自動検知する。
 
-1. 代理店コードによるセクションの表示・非表示
+1. 代理店コードごとのセクション表示・非表示 (コードの有無ではなく代理店単位の仕様で判定)
 2. ページ遷移後の代理店コード保持
-3. 申込画面への代理店コード引き継ぎ
-4. 表示崩れ
-5. 横スクロール
-6. リンク切れ
-7. 画像読み込みエラー
-8. JavaScript エラー
-9. 誤字脱字・表記揺れの候補抽出
-10. スクリーンショット保存
+3. 代理店ごとの LP リダイレクト (経路・遷移方式・ループ)
+4. 別ドメインの申込ページへの代理店情報引き継ぎ
+5. 代理店コード起因のセキュリティ (open redirect / XSS / 情報漏えい)
+6. 表示崩れ
+7. 横スクロール
+8. リンク切れ
+9. 画像読み込みエラー
+10. JavaScript エラー
+11. 誤字脱字・表記揺れの候補抽出
+12. スクリーンショット保存
 
 ## 2. 技術構成
 
@@ -55,13 +57,32 @@ Web サイト公開後に、PC / SP の両方で以下の不具合を自動検�
 この分離により「1 テストで複数の不具合をまとめて報告する」「Low / Medium は
 記録しつつ CI は継続する」が両立する。
 
-### 3.4 本番環境では書き込みを行わない
+### 3.4 代理店ごとの期待結果を設定で持つ
+
+代理店コードの「有無」では判定しない。代理店ごとに異なる期待結果 (流入 LP・
+リダイレクト・表示内容・申込引き継ぎ) を `config/agencies.yml` に持ち、
+テストはそれを読んで組み合わせを生成する。代理店を 1 件追加すれば、
+その代理店のテスト (表示・リダイレクト・引き継ぎ・PC/SP・他代理店との組み合わせ) が
+自動的に追加される。
+
+### 3.5 引き継ぎ方式を推測しない
+
+LP と申込ページは別ドメインで Cookie を共有できないため、引き継ぎ方式は実装依存になる。
+仕様を推測せず、`npm run discover` (`tests/tools/discover-handoff.spec.ts`) で
+実際の通信・DOM・ストレージを記録し、その結果を設定に反映する。
+テスト実行時も、観測した方式が設定と異なれば警告する。
+
+### 3.6 本番環境では書き込みを行わない
 
 `config/environments.yml` で `readOnly: true` の環境では、フィクスチャが
-`GET` / `HEAD` / `OPTIONS` 以外のリクエストを遮断する。申込 API への引き継ぎ検査は
-自動的にスキップされる。読み取り専用環境で行うのは読み取りと画面遷移のみ。
+`GET` / `HEAD` / `OPTIONS` 以外のリクエストを遮断する。読み取り専用環境で行うのは
+読み取りと画面遷移のみ。
 
-### 3.5 ページ取得処理を分離する
+さらに **全環境で** 申込完了・データ送信のリクエスト
+(`config/agency.yml` の `application.forbiddenRequestPatterns`) を遮断し、
+発生した場合は Critical として報告する。
+
+### 3.7 ページ取得処理を分離する
 
 テスト対象ページの取得は `utils/page-source.ts` に分離してある。
 現在は `config/pages.yml` を参照するが、`source: sitemap` に切り替えると
@@ -76,7 +97,8 @@ Web サイト公開後に、PC / SP の両方で以下の不具合を自動検�
 | `environments.yml` | 対象環境・baseUrl・読み取り専用フラグ・Basic 認証 |
 | `devices.yml` | ブラウザの有効/無効、端末 (viewport / UA / DPR) |
 | `pages.yml` | テスト対象ページ、実行する検査、必須要素、主要要素 |
-| `agency.yml` | URL パラメータ名、保存先、コード一覧、条件ごとの期待表示、申込引き継ぎ、遷移フロー |
+| `agencies.yml` | **代理店ごとの個別仕様** (流入 LP・リダイレクト・表示/非表示セクション・代理店名・電話番号・バナー・CTA・申込先ドメイン・引き継ぎ方式・認識確認方法)、無効コード / コードなしの期待結果、URL 検査条件、セキュリティ検査条件 |
+| `agency.yml` | 代理店コードの共通の仕組み (URL パラメータ名、保存先、共通セレクタ、申込完了の禁止パターン、遷移フロー) |
 | `layout.yml` | 横スクロール・はみ出し・重なり・画像・空白画面の閾値 |
 | `visual.yml` | 差分許容値、マスク対象、保存先 |
 | `errors.yml` | console / pageerror / ネットワーク / リンクの検知条件と除外リスト |
@@ -102,7 +124,11 @@ User-Agent のみを適用する。
 |---|---|---|
 | `tests/crawl/page-health.spec.ts` | `@crawl` `@health` | 全ページの表示・表示崩れ・エラー・スクリーンショット |
 | `tests/crawl/sitemap-crawl.spec.ts` | `@crawl` `@sitemap` | sitemap.xml 取得時の巡回 (source: sitemap のときのみ) |
-| `tests/agency/agency-code.spec.ts` | `@agency` | 代理店コード 7 シナリオ |
+| `tests/agency/agency-display.spec.ts` | `@agency` | 代理店ごとの表示・保持・再流入・保存値削除 (設定から自動生成) |
+| `tests/agency/agency-redirect.spec.ts` | `@agency` `@redirect` | 代理店ごとのリダイレクト経路・遷移方式・PC/SP 一致 |
+| `tests/agency/agency-handoff.spec.ts` | `@agency` `@handoff` | 別ドメイン申込ページへの引き継ぎ |
+| `tests/security/agency-security.spec.ts` | `@security` | open redirect / パラメータ注入 / マスキング |
+| `tests/tools/discover-handoff.spec.ts` | `@discover` | 実サイトの仕様調査 (通常実行では起動しない) |
 | `tests/health/links.spec.ts` | `@health` `@links` | リンク切れ・リダイレクトループ |
 | `tests/visual/screenshot-diff.spec.ts` | `@visual` | 基準画像との比較 |
 | `tests/text/wording.spec.ts` | `@text` | テキスト抽出・表記チェック・ページ間の表記統一 |

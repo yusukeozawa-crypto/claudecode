@@ -10,8 +10,12 @@
 
 ```bash
 # .env
-STAGING_BASE_URL=https://staging.example.com
-PRODUCTION_BASE_URL=https://www.example.com
+# LP ドメイン
+STAGING_BASE_URL=https://staging.example.jp
+PRODUCTION_BASE_URL=https://www.example.jp
+# 申込ドメイン (LP とは別ドメイン)
+STAGING_APPLICATION_BASE_URL=https://staging-application.example-insurance.jp
+PRODUCTION_APPLICATION_BASE_URL=https://application.example-insurance.jp
 ```
 
 `config/environments.yml` の `defaultEnvironment` を `staging` に変更すると、
@@ -26,13 +30,23 @@ PRODUCTION_BASE_URL=https://www.example.com
 npx playwright test --grep @crawl --project=chromium-pc
 ```
 
-### 手順3: 代理店コード仕様を合わせる
+### 手順3: 代理店ごとの仕様を実測して設定する
 
-`config/agency.yml` を実装に合わせる。詳細は
-[agency-code-scenarios.md](agency-code-scenarios.md) の「実サイトへの適用手順」を参照。
+**引き継ぎ方式やリダイレクト仕様は推測しない。** まず調査ツールで実測する。
 
 ```bash
-npm run test:agency
+QA_ENV=staging npm run discover
+cat reports/discovery/suggested-agencies.yml
+```
+
+出力を実装担当と確認したうえで `config/agencies.yml` に反映する
+(代理店ごとの流入 LP・リダイレクト・表示内容・申込引き継ぎ)。
+詳細は [handoff-discovery.md](handoff-discovery.md) と
+[agency-code-scenarios.md](agency-code-scenarios.md) を参照。
+
+```bash
+QA_ENV=staging npm run test:agency      # 表示・リダイレクト・引き継ぎ
+QA_ENV=staging npm run test:security    # セキュリティ検査
 ```
 
 ### 手順4: 除外リストを調整する
@@ -118,6 +132,23 @@ OS によるフォントレンダリングの差が原因。基準画像は CI �
 `config/errors.yml` の `links.maxLinksPerPage` を下げる、または
 `config/runtime.yml` の `linkCheckConcurrency` を上げる (対象サイトへの負荷と相談)。
 
+### リダイレクトの実装方式が変わったと警告が出る
+
+`redirect-mechanism` の警告 (Medium) は、HTTP 3xx だったものが JavaScript 遷移に
+変わった場合などに出る。遷移先が正しければ CI は失敗しない。
+実装変更が意図したものであれば `config/agencies.yml` の `redirectMechanism` を更新する。
+
+### 引き継ぎ方式が仕様と異なると警告が出る
+
+`npm run discover` で実際の方式を確認し、`application.handoffMethod` を更新する。
+複数の方式が併用されている場合は、どれが正なのかを実装担当に確認する。
+
+### 申込ページで代理店が認識されない
+
+`recognition` の確認方法が実装と合っていない可能性がある。
+`npm run discover` の出力 (hidden 項目名・localStorage キー・`data-testid` 一覧・
+API 応答キー) を見て `recognition` を修正する。
+
 ### 対象サイトへの負荷を下げたい
 
 `config/runtime.yml` で調整する。
@@ -146,6 +177,8 @@ throttle:
 ## 4. 安全上の注意
 
 - 本番環境では申込完了ボタンを押さない (`readOnly: true` で機構的に遮断済み)
+- 申込完了リクエストは全環境で遮断される (`application.forbiddenRequestPatterns`)
+- 一時トークン・セッション ID はレポートに出力されない (マスキング済み)
 - 個人情報を入力しない
 - テスト用代理店コードのみを使用する
 - Cookie や認証情報をログに出力しない

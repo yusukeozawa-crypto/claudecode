@@ -104,18 +104,34 @@ export default defineConfig({
       : {}),
   },
   projects,
-  // local 環境ではモックサイトを自動起動する
+  // local 環境ではモックサイト (LP ドメイン + 申込ドメイン) を自動起動する
   ...(environment.startLocalServer
     ? {
-        webServer: {
-          command: 'node fixtures/mock-site/server.mjs',
-          url: environment.baseUrl,
-          reuseExistingServer: !isCi(),
-          timeout: 30000,
-          stdout: 'ignore',
-          stderr: 'pipe',
-          env: { MOCK_SITE_PORT: String(new URL(environment.baseUrl).port || 4173) },
-        },
+        webServer: [
+          {
+            command: 'node fixtures/mock-site/server.mjs',
+            url: environment.baseUrl,
+            reuseExistingServer: !isCi(),
+            timeout: 30000,
+            stdout: 'ignore',
+            stderr: 'pipe',
+            env: {
+              MOCK_SITE_PORT: String(new URL(environment.baseUrl).port || 4173),
+              MOCK_APPLICATION_ORIGIN: environment.applicationBaseUrl,
+            },
+          },
+          {
+            command: 'node fixtures/mock-site/application-server.mjs',
+            url: `${environment.applicationBaseUrl}/entry/`,
+            reuseExistingServer: !isCi(),
+            timeout: 30000,
+            stdout: 'ignore',
+            stderr: 'pipe',
+            env: {
+              MOCK_APPLICATION_PORT: String(new URL(environment.applicationBaseUrl).port || 4174),
+            },
+          },
+        ],
       }
     : {}),
 });

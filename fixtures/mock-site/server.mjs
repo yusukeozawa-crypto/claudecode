@@ -1,19 +1,53 @@
 #!/usr/bin/env node
 /**
- * モックサイト用の静的サーバー。
- * QA ツールの動作確認 (local 環境) 専用で、検査対象サイトの挙動を模している。
- *   - 静的ファイル配信
+ * モックサイト: LP ドメイン (既定 http://127.0.0.1:4173)。
+ *
+ * QA ツールの動作確認専用。実サイトの想定挙動を模している。
+ *   - 代理店コードごとのリダイレクト (なし / HTTP 302 / meta refresh)
+ *   - 代理店コードごとの表示セクション・代理店名・電話番号・バナー・CTA
+ *   - 申込ドメイン (別オリジン) への引き継ぎ (クエリ / 一時トークン / POST)
+ *   - Cookie + localStorage への保存と、保存値からの復元
+ *   - open redirect 対策・URL パラメータのエスケープ
  *   - 404 / 500 / リダイレクトループの再現 (検出ロジックの自己検査用)
- *   - /api/application は申込 API のモック
  */
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AGENCIES, escapeHtml, getAgency, isValidCode, issueHandoffToken } from './agency-master.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.MOCK_SITE_PORT || 4173);
 const HOST = process.env.MOCK_SITE_HOST || '127.0.0.1';
+/** 申込ドメイン (別オリジン)。ホスト名を変えることで Cookie が共有されない状況を再現する */
+const APPLICATION_ORIGIN = process.env.MOCK_APPLICATION_ORIGIN || 'http://localhost:4174';
+
+const PARAM_NAME = 'agency_code';
+const STORAGE_KEY = 'agency_code';
+
+/** 代理店コードにより表示・非表示が変わるセクション (LP 種別ごと) */
+const SECTIONS = {
+  '/lp/': {
+    default: {
+      visible: ['default-hero', 'common-benefits', 'default-contact'],
+      hidden: ['agency-campaign', 'agency-contact', 'agency-only-content'],
+    },
+    agency: {
+      visible: ['default-hero', 'common-benefits', 'agency-campaign', 'agency-contact', 'agency-only-content'],
+      hidden: ['default-contact'],
+    },
+  },
+  partner: {
+    default: {
+      visible: ['partner-exclusive-hero', 'partner-exclusive-offer'],
+      hidden: ['agency-contact'],
+    },
+    agency: {
+      visible: ['partner-exclusive-hero', 'partner-exclusive-offer', 'agency-contact'],
+      hidden: [],
+    },
+  },
+};
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -27,25 +61,109 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-async function readBody(req) {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  return Buffer.concat(chunks).toString('utf8');
+function readCookies(req) {
+  const header = req.headers.cookie;
+  if (!header) return {};
+  return header.split('; ').reduce((accumulator, part) => {
+    const [name, ...rest] = part.split('=');
+    accumulator[decodeURIComponent(name)] = decodeURIComponent(rest.join('='));
+    return accumulator;
+  }, {});
+}
+
+/** CTA の遷移先を引き継ぎ方式に応じて組み立てる */
+function buildCta(code, agency) {
+  if (!code || !agency) {
+    return {
+      text: 'お申し込みはこちら',
+      href: `${APPLICATION_ORIGIN}/entry/`,
+      handoffMethod: 'none',
+      agencyCode: '',
+    };
+  }
+  switch (agency.handoffMethod) {
+    case 'token': {
+      // 一時トークン方式: コード自体は URL に載せない
+      const token = issueHandoffToken(code);
+      return {
+        text: agency.ctaText,
+        href: `${APPLICATION_ORIGIN}/entry/?handoff_token=${encodeURIComponent(token)}`,
+        handoffMethod: 'token',
+        agencyCode: '',
+      };
+    }
+    case 'post':
+      // POST 方式: フォームの hidden 項目で送信する
+      return {
+        text: agency.ctaText,
+        href: `${APPLICATION_ORIGIN}/entry/`,
+        handoffMethod: 'post',
+        agencyCode: code,
+      };
+    default:
+      return {
+        text: agency.ctaText,
+        href: `${APPLICATION_ORIGIN}/entry/?${PARAM_NAME}=${encodeURIComponent(code)}`,
+        handoffMethod: 'query',
+        agencyCode: code,
+      };
+  }
+}
+
+/** ページに埋め込む代理店コンテキストを組み立てる */
+function buildContext({ pathname, code, fromUrl }) {
+  const agency = getAgency(code);
+  const sectionSet = pathname.startsWith('/partner/') ? SECTIONS.partner : SECTIONS['/lp/'];
+  const variant = agency ? sectionSet.agency : sectionSet.default;
+
+  return {
+    paramName: PARAM_NAME,
+    storageKey: STORAGE_KEY,
+    activeCode: agency ? code : null,
+    invalidCode: Boolean(code) && !agency,
+    fromUrl: Boolean(fromUrl),
+    agency: agency
+      ? {
+          name: agency.name,
+          phone: agency.phone,
+          banner: agency.banner,
+          logo: agency.logo,
+          campaign: agency.campaign,
+        }
+      : null,
+    visibleSections: variant.visible,
+    hiddenSections: variant.hidden,
+    cta: buildCta(agency ? code : null, agency),
+  };
+}
+
+/**
+ * meta refresh 方式のリダイレクトタグ。
+ * HTTP ステータスは 200 のまま遷移するため、テスト側は仕組みの違いを検出できる。
+ */
+function metaRefreshTag(targetUrl) {
+  return `<meta http-equiv="refresh" content="0;url=${escapeHtml(targetUrl)}">`;
+}
+
+async function serveHtml(res, filePath, injected) {
+  const raw = await fs.readFile(filePath, 'utf8');
+  // JSON.stringify の結果に </script> が含まれないようにエスケープする
+  const serialized = JSON.stringify(injected.context).replace(/</g, '\\u003c');
+  const head = [
+    injected.metaRefresh ?? '',
+    `<script>window.__AGENCY_CONTEXT__ = ${serialized};</script>`,
+  ].join('\n');
+  const html = raw.replace('<!--AGENCY_CONTEXT-->', head);
+  res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' });
+  res.end(html);
 }
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = decodeURIComponent(url.pathname);
+  const cookies = readCookies(req);
 
-  // --- 申込 API のモック (代理店コードの引き継ぎ検証用) ---
-  if (pathname === '/api/application') {
-    const body = req.method === 'POST' ? await readBody(req) : '';
-    res.writeHead(200, { 'content-type': MIME['.json'] });
-    res.end(JSON.stringify({ ok: true, received: body.slice(0, 500) }));
-    return;
-  }
-
-  // --- 検出ロジックの自己検査用エンドポイント ---
+  // ---------- 検出ロジックの自己検査用エンドポイント ----------
   if (pathname === '/server-error') {
     res.writeHead(500, { 'content-type': MIME['.html'] });
     res.end('<h1>500 Internal Server Error</h1>');
@@ -62,8 +180,76 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- 静的ファイル配信 ---
-  const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+  // ---------- サイトルート ----------
+  if (pathname === '/') {
+    res.writeHead(302, { location: `/lp/${url.search}` });
+    res.end();
+    return;
+  }
+
+  // ---------- LP / 代理店専用 LP ----------
+  const isLandingPage = pathname === '/lp/' || pathname === '/lp' || pathname.startsWith('/partner/');
+  if (isLandingPage) {
+    const normalized = pathname === '/lp' ? '/lp/' : pathname;
+    const rawCode = url.searchParams.get(PARAM_NAME);
+    // URL パラメータが無い場合は保存済みコードから復元する
+    const storedCode = cookies[STORAGE_KEY] ?? null;
+    const code = rawCode !== null && rawCode !== '' ? rawCode : storedCode;
+    const agency = getAgency(code);
+
+    // open redirect 対策: 外部ドメインへの遷移指示は受け付けない
+    const nextParam = url.searchParams.get('next') ?? url.searchParams.get('redirect_to');
+    if (nextParam) {
+      let allowed = false;
+      try {
+        const target = new URL(nextParam, `http://${req.headers.host}`);
+        allowed = target.host === req.headers.host && target.protocol === 'http:';
+      } catch {
+        allowed = false;
+      }
+      if (allowed) {
+        res.writeHead(302, { location: new URL(nextParam, `http://${req.headers.host}`).pathname });
+        res.end();
+        return;
+      }
+      // 許可されない遷移先は無視してそのままページを表示する (リダイレクトしない)
+    }
+
+    // 代理店ごとのリダイレクト
+    if (agency && agency.redirectTo && normalized !== agency.redirectTo) {
+      const target = `${agency.redirectTo}?${PARAM_NAME}=${encodeURIComponent(code)}`;
+      if (agency.redirectType === 'http') {
+        res.writeHead(302, { location: target, 'cache-control': 'no-store' });
+        res.end();
+        return;
+      }
+      if (agency.redirectType === 'meta') {
+        // meta refresh: HTTP 200 のまま、共通 LP に refresh タグを埋め込む
+        await serveHtml(res, path.join(ROOT, 'lp/index.html'), {
+          context: buildContext({ pathname: normalized, code, fromUrl: rawCode !== null }),
+          metaRefresh: metaRefreshTag(target),
+        });
+        return;
+      }
+    }
+
+    const filePath = normalized === '/lp/'
+      ? path.join(ROOT, 'lp/index.html')
+      : path.join(ROOT, normalized.replace(/^\/+/, ''), 'index.html');
+
+    try {
+      await serveHtml(res, filePath, {
+        context: buildContext({ pathname: normalized, code, fromUrl: rawCode !== null }),
+      });
+    } catch {
+      res.writeHead(404, { 'content-type': MIME['.html'] });
+      res.end('<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>404</title></head><body><h1>404 Not Found</h1></body></html>');
+    }
+    return;
+  }
+
+  // ---------- その他の静的ページ (代理店コンテキストを注入する) ----------
+  const relative = pathname.replace(/^\/+/, '');
   const target = path.resolve(ROOT, relative);
   if (!target.startsWith(ROOT)) {
     res.writeHead(403).end('Forbidden');
@@ -73,6 +259,20 @@ const server = http.createServer(async (req, res) => {
   try {
     const stat = await fs.stat(target);
     const filePath = stat.isDirectory() ? path.join(target, 'index.html') : target;
+    if (path.extname(filePath) === '.html') {
+      const rawCode = url.searchParams.get(PARAM_NAME);
+      const code = rawCode !== null && rawCode !== '' ? rawCode : cookies[STORAGE_KEY] ?? null;
+      const raw = await fs.readFile(filePath, 'utf8');
+      if (raw.includes('<!--AGENCY_CONTEXT-->')) {
+        await serveHtml(res, filePath, {
+          context: buildContext({ pathname, code, fromUrl: rawCode !== null }),
+        });
+        return;
+      }
+      res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' });
+      res.end(raw);
+      return;
+    }
     const content = await fs.readFile(filePath);
     res.writeHead(200, {
       'content-type': MIME[path.extname(filePath)] ?? 'application/octet-stream',
@@ -86,5 +286,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`mock site listening on http://${HOST}:${PORT}`);
+  console.log(`mock LP site listening on http://${HOST}:${PORT} (application: ${APPLICATION_ORIGIN})`);
+  console.log(`registered agencies: ${Object.keys(AGENCIES).join(', ')}`);
+  if (!isValidCode('A001')) console.warn('agency master is empty');
 });

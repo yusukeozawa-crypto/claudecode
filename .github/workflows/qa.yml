@@ -14,11 +14,11 @@ on:
         type: choice
         options: [staging, production]
       suite:
-        description: 実行するテスト (all / agency / visual / crawl / health / text)
+        description: 実行するテスト
         required: true
         default: all
         type: choice
-        options: [all, agency, visual, crawl, health, text]
+        options: [all, agency, redirect, handoff, security, visual, crawl, health, text]
       device:
         description: 対象端末 (all / pc / sp)
         required: true
@@ -63,6 +63,9 @@ jobs:
       # 検査対象 URL・認証情報は GitHub Secrets から取得する (ログには出力しない)
       STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
       PRODUCTION_BASE_URL: ${{ secrets.PRODUCTION_BASE_URL }}
+      # 申込ドメイン (LP とは別ドメイン)
+      STAGING_APPLICATION_BASE_URL: ${{ secrets.STAGING_APPLICATION_BASE_URL }}
+      PRODUCTION_APPLICATION_BASE_URL: ${{ secrets.PRODUCTION_APPLICATION_BASE_URL }}
       STAGING_BASIC_USER: ${{ secrets.STAGING_BASIC_USER }}
       STAGING_BASIC_PASS: ${{ secrets.STAGING_BASIC_PASS }}
 

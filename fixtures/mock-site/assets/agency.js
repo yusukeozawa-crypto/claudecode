@@ -1,23 +1,17 @@
 /**
- * モックサイトの代理店コード処理。
- * 実サイトの想定挙動:
- *   1. URL パラメータ agency_code を受け取ったら Cookie と localStorage に保存する
- *   2. 保存済みのコードはページ遷移後も引き継ぐ
- *   3. 有効コードなら代理店セクションを表示し、既定セクションを隠す
- *   4. 無効コードなら保存せずフォールバック表示を出す
- *   5. 申込画面へは URL パラメータと hidden 項目で引き継ぐ
+ * モックサイト (LP ドメイン) の代理店コード処理。
+ *
+ * 代理店ごとの挙動 (表示セクション・代理店名・電話番号・バナー・CTA 文言・
+ * 申込ドメインへの引き継ぎ方式) はサーバーが window.__AGENCY_CONTEXT__ に
+ * 埋め込む。実サイトでのサーバーサイドレンダリングを模している。
+ *
+ * URL パラメータの値を HTML へそのまま出力しないこと (テキストは textContent 経由)。
  */
 (function () {
   'use strict';
 
-  var PARAM = 'agency_code';
-  var STORAGE_KEY = 'agency_code';
-
-  // 代理店マスタ (実サイトでは API 等から取得する想定)
-  var AGENCIES = {
-    A001: { name: 'テスト保険代理店A', contact: '0120-000-001' },
-    B002: { name: 'テスト保険代理店B', contact: '0120-000-002' },
-  };
+  var context = window.__AGENCY_CONTEXT__ || {};
+  var STORAGE_KEY = context.storageKey || 'agency_code';
 
   function readCookie(name) {
     var parts = document.cookie ? document.cookie.split('; ') : [];
@@ -29,17 +23,8 @@
   }
 
   function writeCookie(name, value) {
-    document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value) + '; path=/; max-age=2592000; samesite=lax';
-  }
-
-  function readStored() {
-    var fromCookie = readCookie(STORAGE_KEY);
-    if (fromCookie) return fromCookie;
-    try {
-      return window.localStorage.getItem(STORAGE_KEY);
-    } catch (e) {
-      return null;
-    }
+    document.cookie =
+      encodeURIComponent(name) + '=' + encodeURIComponent(value) + '; path=/; max-age=2592000; samesite=lax';
   }
 
   function store(code) {
@@ -51,79 +36,118 @@
     }
   }
 
-  function show(el, visible) {
-    if (!el) return;
-    el.classList.toggle('hidden', !visible);
+  function show(element, visible) {
+    if (!element) return;
+    if (visible) {
+      element.removeAttribute('hidden');
+    } else {
+      element.setAttribute('hidden', 'hidden');
+    }
   }
 
-  function decorateLinks(code) {
-    // サイト内リンクに代理店コードを引き継ぐ
+  function bySection(name) {
+    return document.querySelector('[data-testid="' + name + '"]');
+  }
+
+  function setText(testId, value) {
+    var element = document.querySelector('[data-testid="' + testId + '"]');
+    // textContent で設定するため、値が HTML として解釈されることはない
+    if (element) element.textContent = value;
+  }
+
+  function setImage(testId, src, alt) {
+    var element = document.querySelector('[data-testid="' + testId + '"]');
+    if (!element) return;
+    if (src) {
+      element.setAttribute('src', src);
+      element.setAttribute('alt', alt || '');
+      element.removeAttribute('hidden');
+    } else {
+      element.setAttribute('hidden', 'hidden');
+    }
+  }
+
+  /** サイト内リンクに代理店コードを引き継ぐ (同一オリジンのみ) */
+  function decorateInternalLinks(code) {
     var links = document.querySelectorAll('a[href]');
     for (var i = 0; i < links.length; i++) {
       var href = links[i].getAttribute('href');
-      if (!href || /^(https?:)?\/\//.test(href) || /^(mailto|tel|javascript):/.test(href) || href.charAt(0) === '#') continue;
-      var url = new URL(href, window.location.href);
+      if (!href || /^(mailto|tel|javascript):/i.test(href) || href.charAt(0) === '#') continue;
+      var url;
+      try {
+        url = new URL(href, window.location.href);
+      } catch (e) {
+        continue;
+      }
+      // 外部ドメイン (申込ドメインを含む) のリンクはサーバーが生成した URL をそのまま使う
       if (url.origin !== window.location.origin) continue;
       if (code) {
-        url.searchParams.set(PARAM, code);
+        url.searchParams.set(context.paramName || 'agency_code', code);
       } else {
-        url.searchParams.delete(PARAM);
+        url.searchParams.delete(context.paramName || 'agency_code');
       }
       links[i].setAttribute('href', url.pathname + url.search + url.hash);
     }
   }
 
   function render() {
-    var params = new URLSearchParams(window.location.search);
-    var fromUrl = params.get(PARAM);
-    var stored = readStored();
+    var activeCode = context.activeCode || null;
+    var invalidCode = Boolean(context.invalidCode);
+    var agency = context.agency || null;
 
-    var activeCode = null;
-    var invalidCode = null;
+    // 有効コードで流入した場合のみ保存する (無効コードは保存しない)
+    if (activeCode && context.fromUrl) store(activeCode);
 
-    if (fromUrl !== null && fromUrl !== '') {
-      if (AGENCIES[fromUrl]) {
-        // 有効コード: 保存して切り替える (別コードでの再流入も上書きされる)
-        store(fromUrl);
-        activeCode = fromUrl;
-      } else {
-        // 無効コード: 保存しない。保存済みコードがあってもフォールバックを表示する
-        invalidCode = fromUrl;
-      }
-    } else if (stored && AGENCIES[stored]) {
-      activeCode = stored;
-    }
+    // 保存済みコードからの復元はサーバーが行うため、ここでは表示のみを担当する
+    var visible = context.visibleSections || [];
+    var hidden = context.hiddenSections || [];
+    for (var i = 0; i < visible.length; i++) show(bySection(visible[i]), true);
+    for (var j = 0; j < hidden.length; j++) show(bySection(hidden[j]), false);
 
-    var agency = activeCode ? AGENCIES[activeCode] : null;
-
-    var defaultSection = document.querySelector('[data-testid="default-section"]');
-    var agencySection = document.querySelector('[data-testid="agency-section"]');
-    var fallbackNotice = document.querySelector('[data-testid="fallback-notice"]');
-    var agencyOnly = document.querySelector('[data-testid="agency-only-content"]');
-
-    show(defaultSection, !agency);
-    show(agencySection, Boolean(agency));
-    show(fallbackNotice, Boolean(invalidCode));
-    if (agencyOnly) show(agencyOnly, Boolean(agency));
+    show(bySection('fallback-notice'), invalidCode);
 
     if (agency) {
-      var nameEl = document.querySelector('[data-testid="agency-name"]');
-      var contactEl = document.querySelector('[data-testid="agency-contact"]');
-      if (nameEl) nameEl.textContent = agency.name;
-      if (contactEl) contactEl.textContent = agency.contact;
+      setText('agency-name', agency.name);
+      setText('agency-phone', agency.phone);
+      setText('agency-campaign-text', agency.campaign);
+      setImage('agency-banner', agency.banner, agency.name + 'のご案内');
+      setImage('agency-logo', agency.logo, agency.name);
     }
 
-    // 申込フォームの hidden 項目へ引き継ぐ
-    var hiddenField = document.querySelector('[data-testid="application-agency-code"]');
-    if (hiddenField) hiddenField.value = activeCode || '';
+    // CTA (文言・遷移先・引き継ぎ方式はサーバーが決定する)
+    var cta = document.querySelector('[data-testid="cta-primary"]');
+    var ctaForm = document.querySelector('[data-testid="cta-form"]');
+    var ctaHiddenField = document.querySelector('[data-testid="cta-agency-code"]');
 
-    decorateLinks(activeCode);
+    if (cta && context.cta) {
+      if (context.cta.text) cta.textContent = context.cta.text;
+      if (context.cta.handoffMethod === 'post') {
+        // POST 送信方式: リンクではなくフォームを使用する
+        show(cta, false);
+        show(ctaForm, true);
+        if (ctaForm) {
+          ctaForm.setAttribute('action', context.cta.href);
+          var submit = document.querySelector('[data-testid="cta-form-submit"]');
+          if (submit && context.cta.text) submit.textContent = context.cta.text;
+        }
+        if (ctaHiddenField) ctaHiddenField.value = context.cta.agencyCode || '';
+      } else {
+        cta.setAttribute('href', context.cta.href);
+        show(ctaForm, false);
+      }
+    }
 
-    // 表示中の日時 (視覚差分ではマスク対象になる動的要素)
     var clock = document.querySelector('[data-testid="current-datetime"]');
     if (clock) clock.textContent = new Date().toLocaleString('ja-JP');
 
-    document.documentElement.setAttribute('data-agency-state', agency ? 'agency' : invalidCode ? 'invalid' : 'default');
+    decorateInternalLinks(activeCode);
+
+    document.documentElement.setAttribute(
+      'data-agency-state',
+      agency ? 'agency' : invalidCode ? 'invalid' : 'default',
+    );
+    // テストが描画完了を待てるようにする
+    document.documentElement.setAttribute('data-agency-rendered', '1');
   }
 
   if (document.readyState === 'loading') {

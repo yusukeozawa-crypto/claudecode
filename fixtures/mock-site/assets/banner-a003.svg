@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120" role="img" aria-label="シースリーバナー">
+  <rect width="640" height="120" fill="#8a4b9c"/>
+  <rect x="24" y="34" width="360" height="18" rx="9" fill="#ffffff" opacity="0.85"/>
+  <rect x="24" y="66" width="240" height="14" rx="7" fill="#ffffff" opacity="0.6"/>
+</svg>

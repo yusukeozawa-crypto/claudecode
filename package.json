@@ -23,7 +23,12 @@
     "gate": "node scripts/gate.mjs",
     "typecheck": "tsc --noEmit",
     "mock:serve": "node fixtures/mock-site/server.mjs",
-    "clean": "node scripts/clean.mjs"
+    "clean": "node scripts/clean.mjs",
+    "mock:serve:application": "node fixtures/mock-site/application-server.mjs",
+    "test:redirect": "playwright test --grep @redirect",
+    "test:handoff": "playwright test --grep @handoff",
+    "test:security": "playwright test --grep @security",
+    "discover": "node scripts/with-env.mjs QA_DISCOVER=1 -- playwright test --grep @discover --project=*-pc --reporter=list"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

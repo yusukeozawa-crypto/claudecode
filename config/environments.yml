@@ -11,13 +11,18 @@ environments:
   local:
     label: ローカルモック
     baseUrl: http://127.0.0.1:4173
+    # 申込ドメイン (LP とは別オリジン)。ホスト名を変えることで
+    # Cookie が共有されない実サイトの状況を再現している。
+    applicationBaseUrl: http://localhost:4174
     readOnly: false
     startLocalServer: true
 
   staging:
     label: ステージング
-    # 例: https://staging.example.com  (.env の STAGING_BASE_URL に設定)
+    # 例: https://staging.example.jp  (.env の STAGING_BASE_URL に設定)
     baseUrl: ${STAGING_BASE_URL}
+    # 例: https://staging-application.example-insurance.jp
+    applicationBaseUrl: ${STAGING_APPLICATION_BASE_URL}
     readOnly: false
     startLocalServer: false
     # Basic 認証が必要な場合のみ設定 (値は Secrets から渡す)
@@ -27,8 +32,10 @@ environments:
 
   production:
     label: 本番
-    # 例: https://www.example.com  (.env の PRODUCTION_BASE_URL に設定)
+    # 例: https://www.example.jp  (.env の PRODUCTION_BASE_URL に設定)
     baseUrl: ${PRODUCTION_BASE_URL}
+    # 例: https://application.example-insurance.jp
+    applicationBaseUrl: ${PRODUCTION_APPLICATION_BASE_URL}
     # 本番では読み取りと画面遷移のみ。フォーム送信/申込完了はコードレベルで禁止される
     readOnly: true
     startLocalServer: false

@@ -99,11 +99,14 @@ export class PageMonitor {
       const url = request.url();
       if (this.isIgnoredUrl(url)) return;
       if (errorsConfig.network.ignoreThirdParty && !isSameOrigin(url, baseUrl)) return;
+      const failureText = request.failure()?.errorText ?? 'unknown';
+      // 画面遷移によって中断されたリクエストはサーバー異常ではないため除外する
+      if (errorsConfig.network.ignoreAbortedRequests && /ERR_ABORTED/i.test(failureText)) return;
       this.requestFailures.push({
         url,
         method: request.method(),
         resourceType: request.resourceType(),
-        failure: request.failure()?.errorText ?? 'unknown',
+        failure: failureText,
         documentUrl: this.safeUrl(),
       });
     };

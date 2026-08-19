@@ -107,7 +107,8 @@ export class QaSession {
       const isTimeout = /Timeout|timed out/i.test(message);
       this.findings.add({
         category: isRedirectLoop ? 'redirect-loop' : isTimeout ? 'timeout' : 'network-error',
-        severity: 'high',
+        // 重大度はカテゴリ既定値に従う (リダイレクトループは Critical)
+        severity: isRedirectLoop ? undefined : 'high',
         title: isRedirectLoop
           ? 'リダイレクトループによりページを表示できません'
           : isTimeout
@@ -214,6 +215,14 @@ export class QaSession {
     if (pageConfig.checks.includes('links')) await this.checkLinks();
     if (pageConfig.checks.includes('text')) await this.auditText(pageConfig);
     if (pageConfig.checks.includes('errors')) this.collectMonitorFindings();
+  }
+
+  /** 証跡 (経路記録など) を JSON としてレポートに添付する */
+  async attachJson(name: string, payload: unknown): Promise<void> {
+    await this.testInfo.attach(name, {
+      body: JSON.stringify(payload, null, 2),
+      contentType: 'application/json',
+    });
   }
 
   add(finding: FindingInput): void {

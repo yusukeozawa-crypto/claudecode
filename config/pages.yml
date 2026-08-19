@@ -19,15 +19,15 @@ sitemap:
     checks: [layout, errors, links, visual, text]
 
 pages:
-  - id: top
-    name: トップページ
-    path: /
+  - id: lp
+    name: 共通LP
+    path: /lp/
     agencyAware: true          # 代理店コードによる表示差分があるページ
     checks: [layout, errors, links, visual, text]
     # 必ず存在すべき要素 (data-testid)
-    requiredTestIds: [main-visual, application-button]
+    requiredTestIds: [default-hero, common-benefits]
     # 重なり・はみ出しを検査する主要要素
-    primaryTestIds: [site-header, main-visual, application-button, site-footer]
+    primaryTestIds: [site-header, default-hero, common-benefits, site-footer]
 
   - id: product
     name: 商品詳細
@@ -53,14 +53,22 @@ pages:
     requiredTestIds: [faq-list]
     primaryTestIds: [site-header, faq-list, site-footer]
 
-  - id: application
-    name: 申込導線 (入力画面)
-    path: /application.html
+  # 代理店専用 LP (リダイレクト先)。直接アクセスした場合の表示も検査する。
+  - id: partner-a002
+    name: 代理店専用LP (A002)
+    path: /partner/a002/
     agencyAware: true
-    # 申込画面はフォーム入力を伴うため視覚差分・文言チェックのみに限定する
-    checks: [layout, errors, visual, text]
-    requiredTestIds: [application-form]
-    primaryTestIds: [site-header, application-form, site-footer]
+    checks: [layout, errors, links, visual, text]
+    requiredTestIds: [partner-exclusive-hero, partner-exclusive-offer]
+    primaryTestIds: [site-header, partner-exclusive-hero, site-footer]
+
+  - id: partner-a003
+    name: 代理店専用LP (A003)
+    path: /partner/a003/
+    agencyAware: true
+    checks: [layout, errors, links, visual, text]
+    requiredTestIds: [partner-exclusive-hero, partner-exclusive-offer]
+    primaryTestIds: [site-header, partner-exclusive-hero, site-footer]
 
   - id: agency-only
     name: 代理店専用表示ページ

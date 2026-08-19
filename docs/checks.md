@@ -231,7 +231,12 @@ AI API は使用せず、まず表示テキストを抽出して保存し、ル�
 
 ---
 
-## 6. 検出ロジックの自己検査 (`tests/self-check/detectors.spec.ts`)
+## 6. 代理店ごとの検査
+
+代理店コードに関する検査 (表示・リダイレクト・別ドメイン申込引き継ぎ・セキュリティ) は
+[agency-code-scenarios.md](agency-code-scenarios.md) を参照。
+
+## 7. 検出ロジックの自己検査 (`tests/self-check/detectors.spec.ts`)
 
 意図的に壊したページ (`fixtures/mock-site/broken/`) に対して、
 各検出ロジックが実際に反応することを確認する。`local` 環境でのみ実行。
@@ -239,10 +244,17 @@ AI API は使用せず、まず表示テキストを抽出して保存し、ル�
 | 検査 | 使用ページ | 確認内容 |
 |---|---|---|
 | 横スクロール・重なり | `overflow.html` | `horizontal-scroll` と重なりが検出される |
-| 誤検知 (表示崩れ) | `index.html` | 正常なページで検知が 0 件 |
+| 誤検知 (表示崩れ) | `/lp/` | 正常なページで検知が 0 件 |
 | JavaScript エラー | `js-error.html` | `console.error` と `pageerror` が記録される |
 | 画像読み込みエラー | `broken-image.html` | `naturalWidth === 0` と 404 が検出される |
 | リンク切れ | `broken-link.html` | 404 / 500 / リダイレクトループが検出される |
 | 表記揺れ | `typos.html` | 表記揺れ・誤字・正式名称・禁止表現・体裁が検出され、除外語は誤検知しない |
-| 誤検知 (表記) | `index.html` | 正常なページで指摘が 0 件 |
+| 誤検知 (表記) | `/lp/` | 正常なページで指摘が 0 件 |
 | 重大度ゲート | — | Low / Medium では失敗せず、Critical / High で失敗する |
+| 遷移方式の判定 | — | HTTP 3xx / meta refresh / JavaScript / SPA / なし を判別できる |
+| 別代理店へのリダイレクト | — | 想定外の最終 URL が Critical として検出される |
+| リダイレクトループ | — | Critical として検出される |
+| URL への個人情報付加 | — | 個人情報らしいパラメータが Critical として検出される |
+| 別代理店の情報表示 | `/lp/` を改変 | 代理店名の誤表示・別代理店情報の表示が検出される |
+| セクションの表示崩れ | `/lp/` を改変 | 表示すべき非表示 / 非表示すべき表示が検出される |
+| トークンのマスキング | — | 検知結果の本文・URL からトークンが除去される |

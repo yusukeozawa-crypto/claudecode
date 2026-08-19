@@ -1,7 +1,9 @@
 # ============================================================
-# 代理店コード仕様 (すべて仮置き。実サイトに合わせて書き換える)
-#   - テストコードはこのファイルの値のみを参照する
-#   - セクション判定は data-testid を優先して使用する
+# 代理店コードの「共通の仕組み」設定
+#
+#   代理店ごとの期待結果 (LP・リダイレクト・表示内容・申込引き継ぎ) は
+#   config/agencies.yml で管理する。このファイルは全代理店に共通する
+#   仕組み (パラメータ名・保存先・共通セレクタ) のみを扱う。
 # ============================================================
 
 # URL パラメータ名
@@ -13,73 +15,31 @@ storage:
   # 保存キー (Cookie 名 / localStorage キー)
   key: agency_code
 
-# 判定に使う要素。値は既定で data-testid として解決される。
+# 全代理店に共通する判定要素。値は既定で data-testid として解決される。
 # "css=" / "text=" を先頭に付けると任意のセレクタも使用できる。
 selectors:
-  defaultSection: default-section
-  agencySection: agency-section
   agencyName: agency-name
-  agencyContact: agency-contact
-  applicationButton: application-button
+  agencyPhone: agency-phone
+  agencyBanner: agency-banner
+  agencyLogo: agency-logo
   fallbackNotice: fallback-notice
+  ctaPrimary: cta-primary
 
-# テストに使用する代理店コード (テスト用コードのみを記載すること)
-codes:
-  - code: A001
-    valid: true
-    label: 有効コード
-    expectedName: テスト保険代理店A
-    expectedContact: 0120-000-001
-  - code: B002
-    valid: true
-    label: 別の有効コード
-    expectedName: テスト保険代理店B
-    expectedContact: 0120-000-002
-  - code: INVALID
-    valid: false
-    label: 無効コード
-
-# 条件ごとの期待表示。visible / hidden は selectors のキー名または data-testid 値。
-expectations:
-  # 代理店コードなし
-  none:
-    visible: [defaultSection]
-    hidden: [agencySection]
-    texts: {}
-  # 有効な代理店コードあり
-  valid:
-    visible: [agencySection, agencyName, agencyContact]
-    hidden: [defaultSection]
-    # 期待文言はコードごとの expectedName / expectedContact で個別に検証する
-    texts: {}
-  # 無効な代理店コードあり (フォールバック表示)
-  invalid:
-    visible: [defaultSection, fallbackNotice]
-    hidden: [agencySection]
-    texts:
-      fallbackNotice: 代理店情報を確認できませんでした
-
-# 申込導線への引き継ぎ
+# 申込フローに共通する設定
 application:
-  # 申込ボタンから遷移するページ (pages.yml の id)
-  targetPageId: application
-  # 申込 URL に代理店コードが URL パラメータとして付与されるべきか
-  expectParamInUrl: true
-  # hidden 項目に引き継がれるべき場合の指定 (不要なら null)
-  hiddenField:
-    testId: application-agency-code
-    # name 属性でも検証する (null 可)
-    name: agency_code
-  # 申込 API に代理店コードが送信される場合の検査対象 (不要なら requests: [] )
-  requests:
-    - urlPattern: "**/api/application*"
-      # リクエストボディ(JSON) または クエリで参照するキー
-      field: agency_code
-      # 本番では送信を伴う操作を行わないため検査をスキップする
-      skipWhenReadOnly: true
+  # 申込側で代理店を確認するための API (recognition の type: api で使用)
+  sessionApiPattern: "**/api/session*"
+  # 絶対に発生させてはならないリクエスト (申込完了・データ送信)。
+  # 検知した場合は Critical として報告し、リクエスト自体を遮断する。
+  forbiddenRequestPatterns:
+    - "**/entry/complete*"
+    - "**/api/application/submit*"
+  # 申込完了ボタン (押してはならない要素)
+  forbiddenTestIds:
+    - application-submit
 
 # ページ遷移後のコード保持を検証する遷移パス (pages.yml の id)
 persistenceFlow:
-  - top
+  - lp
   - product
   - price

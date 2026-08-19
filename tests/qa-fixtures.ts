@@ -12,7 +12,8 @@ import { test as base, expect, type APIRequestContext, type Page } from '@playwr
 import { loadConfig } from '../utils/config';
 import { QaSession } from '../utils/qa-session';
 import { resolvePages } from '../utils/page-source';
-import type { PageConfig, QaConfig } from '../utils/types';
+import { guardAgainstCompletion } from '../utils/handoff';
+import type { FindingInput, PageConfig, QaConfig } from '../utils/types';
 
 /** 読み取り専用環境で許可する HTTP メソッド */
 const READ_ONLY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -22,6 +23,9 @@ export interface QaFixtures {
   qaPages: PageConfig[];
   qa: QaSession;
 }
+
+/** 申込完了リクエストの遮断で記録された違反 (テスト間で共有しない) */
+const completionViolations = new WeakMap<Page, FindingInput[]>();
 
 export const test = base.extend<QaFixtures>({
   // ---- 設定 (テストごとに同じインスタンスをキャッシュ利用) ----
@@ -34,8 +38,15 @@ export const test = base.extend<QaFixtures>({
     await use(await resolvePages(qaConfig, request));
   },
 
-  // ---- 本番環境の安全装置: 書き込み系リクエストを遮断する ----
+  // ---- 安全装置 ----
   page: async ({ page, qaConfig }, use) => {
+    // (1) 申込完了・データ送信のリクエストは全環境で遮断する
+    completionViolations.set(page, []);
+    await guardAgainstCompletion(page, qaConfig, (finding) => {
+      completionViolations.get(page)?.push(finding);
+    });
+
+    // (2) 読み取り専用環境では書き込み系リクエストを遮断する
     if (qaConfig.environment.readOnly) {
       await page.route('**/*', async (route) => {
         const method = route.request().method().toUpperCase();
@@ -69,6 +80,11 @@ export const test = base.extend<QaFixtures>({
     });
 
     await use(session);
+
+    // 申込完了リクエストの遮断が発生していれば Critical として記録する
+    for (const violation of completionViolations.get(page) ?? []) {
+      session.add(violation);
+    }
 
     // テスト本体の後に必ず実行される: 結果の添付 + 重大度ゲート
     session.monitor.detach();

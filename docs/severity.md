@@ -11,9 +11,12 @@
 
 | 種別 | 具体例 |
 |---|---|
-| `agency-display` | 代理店の誤表示 (別代理店の名称・連絡先が表示される、表示すべきセクションが出ない) |
-| `agency-persistence` | 代理店コードの欠落 (保存されない、ページ遷移で失われる) |
-| `agency-handoff` | 申込への誤引き継ぎ (申込 URL / hidden 項目 / API に別のコードが渡る、渡らない) |
+| `agency-display` | 代理店の誤表示 (別代理店の名称・電話番号・バナーが表示される、表示すべきセクションが非表示、非表示にすべきセクションが表示) |
+| `agency-persistence` | 代理店コードの欠落 (保存されない、ページ遷移で失われる、Cookie と localStorage の不一致) |
+| `agency-handoff` | 申込への誤引き継ぎ (引き継がれない、申込側で別代理店として認識される、申込先ドメインが仕様と異なる、申込完了リクエストの発生) |
+| `agency-redirect` | 別代理店の LP へリダイレクトされた、最終 URL が仕様と異なる |
+| `redirect-loop` | リダイレクトループ (HTTP レベル / ブラウザレベル) |
+| `security` | open redirect、任意の外部ドメインへの遷移、URL パラメータの HTML 出力、URL への個人情報付加 |
 
 ### High — CI 失敗
 
@@ -23,7 +26,7 @@
 | `broken-link` | 主要リンク切れ (内部リンクの 4xx / 5xx) |
 | `network-error` | ページ自体の 4xx / 5xx、API の失敗 |
 | `timeout` | ページ・リンクのタイムアウト |
-| `redirect-loop` | リダイレクトループ |
+| `agency-redirect` (一部) | リダイレクト回数・中間 URL が仕様と異なる |
 | `layout` (一部) | 必須要素の欠落、空白画面 — 申込導線の停止に相当する |
 | `config` | 設定不備で検査が成立しない |
 
@@ -36,6 +39,8 @@
 | `image-error` | 画像欠損 |
 | `broken-link` (外部) | 外部リンクの 4xx / 5xx |
 | `text-rule` (禁止表現) | 使用禁止表現 — 法務観点で必ず確認する必要があるため Low より上げる |
+| `redirect-mechanism` | 仕様と異なる遷移方式 (HTTP 3xx / JS / meta refresh / SPA の違い) — 警告 |
+| `security` (一部) | URL に不要なパラメータが付加されている |
 
 ### Low — 記録のみ (CI 継続)
 

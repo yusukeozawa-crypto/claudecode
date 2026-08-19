@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type {
-  AgencyFile, DevicesFile, EnvironmentsFile, ErrorsFile, LayoutFile,
+  AgenciesFile, AgencyFile, DevicesFile, EnvironmentsFile, ErrorsFile, LayoutFile,
   PagesFile, QaConfig, RuntimeFile, TextRulesFile, VisualFile,
 } from './types';
 
@@ -77,6 +77,7 @@ export function loadConfig(): QaConfig {
   }
   // 末尾スラッシュを正規化
   environment.baseUrl = environment.baseUrl.replace(/\/+$/, '');
+  environment.applicationBaseUrl = (environment.applicationBaseUrl ?? '').replace(/\/+$/, '');
   if (!environment.httpCredentials?.username || !environment.httpCredentials?.password) {
     environment.httpCredentials = null;
   }
@@ -88,6 +89,7 @@ export function loadConfig(): QaConfig {
     devices: readYaml<DevicesFile>('devices.yml'),
     runtime: readYaml<RuntimeFile>('runtime.yml'),
     agency: readYaml<AgencyFile>('agency.yml'),
+    agencies: readYaml<AgenciesFile>('agencies.yml'),
     pages: readYaml<PagesFile>('pages.yml'),
     layout: readYaml<LayoutFile>('layout.yml'),
     visual: readYaml<VisualFile>('visual.yml'),
@@ -115,17 +117,54 @@ function validateConfig(config: QaConfig): void {
   if (!config.agency.paramName) {
     problems.push('config/agency.yml: paramName が未設定です');
   }
-  if (!config.agency.codes.some((c) => c.valid)) {
-    problems.push('config/agency.yml: 有効な代理店コードが 1 つもありません');
+  if (!config.environment.applicationBaseUrl) {
+    problems.push(
+      `config/environments.yml: 環境「${config.environmentName}」の applicationBaseUrl が空です (申込ドメインを設定してください)`,
+    );
+  }
+  const agencies = config.agencies.agencies ?? [];
+  if (agencies.length === 0) {
+    problems.push('config/agencies.yml: agencies が空です');
+  }
+  const seenCodes = new Set<string>();
+  for (const agency of agencies) {
+    if (seenCodes.has(agency.code)) problems.push(`config/agencies.yml: 代理店コードが重複しています: ${agency.code}`);
+    seenCodes.add(agency.code);
+    if (!agency.entryPath) problems.push(`config/agencies.yml: ${agency.code} の entryPath が未設定です`);
+    if (!agency.expectedFinalPath) problems.push(`config/agencies.yml: ${agency.code} の expectedFinalPath が未設定です`);
+    if (agency.redirected && agency.expectedFinalPath === agency.entryPath) {
+      problems.push(`config/agencies.yml: ${agency.code} は redirected: true ですが expectedFinalPath が entryPath と同一です`);
+    }
+    if (!agency.redirected && agency.expectedFinalPath !== agency.entryPath) {
+      problems.push(`config/agencies.yml: ${agency.code} は redirected: false ですが expectedFinalPath が entryPath と異なります`);
+    }
+    if (!agency.application?.expectedPath) {
+      problems.push(`config/agencies.yml: ${agency.code} の application.expectedPath が未設定です`);
+    }
+    if (!agency.application?.expectedCode) {
+      problems.push(`config/agencies.yml: ${agency.code} の application.expectedCode が未設定です`);
+    }
+    if ((agency.application?.recognition ?? []).length === 0) {
+      problems.push(
+        `config/agencies.yml: ${agency.code} の application.recognition が空です (URL だけで合格にしないため 1 つ以上必要)`,
+      );
+    }
+    const overlap = agency.visibleSections.filter((section) => agency.hiddenSections.includes(section));
+    if (overlap.length > 0) {
+      problems.push(`config/agencies.yml: ${agency.code} の visibleSections と hiddenSections が重複しています: ${overlap.join(', ')}`);
+    }
+  }
+  for (const invalid of config.agencies.invalidCodes ?? []) {
+    if (seenCodes.has(invalid.code)) {
+      problems.push(`config/agencies.yml: ${invalid.code} が agencies と invalidCodes の両方に定義されています`);
+    }
   }
   const pageIds = new Set(config.pages.pages.map((p) => p.id));
   if (config.pages.source === 'config') {
     for (const id of config.agency.persistenceFlow) {
       if (!pageIds.has(id)) problems.push(`config/agency.yml: persistenceFlow の未知のページ id: ${id}`);
     }
-    if (!pageIds.has(config.agency.application.targetPageId)) {
-      problems.push(`config/agency.yml: application.targetPageId の未知のページ id: ${config.agency.application.targetPageId}`);
-    }
+
   }
   if (problems.length > 0) {
     throw new Error(`設定に不備があります:\n - ${problems.join('\n - ')}`);
@@ -163,6 +202,17 @@ export function resolveAgencySelector(config: QaConfig, key: string): string {
 /** data-testid を CSS セレクタにする */
 export function testId(value: string): string {
   return resolveSelector(value);
+}
+
+/** 申込ドメインの絶対 URL を組み立てる */
+export function applicationUrl(config: QaConfig, applicationPath: string): string {
+  return new URL(applicationPath, `${config.environment.applicationBaseUrl}/`).toString();
+}
+
+/** 代理店仕様の申込先ホスト (未指定なら環境の申込ドメイン) */
+export function expectedApplicationHost(config: QaConfig, expectedDomain: string | null | undefined): string {
+  if (expectedDomain) return expectedDomain.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  return new URL(config.environment.applicationBaseUrl).host;
 }
 
 /** ページの絶対 URL を組み立てる */

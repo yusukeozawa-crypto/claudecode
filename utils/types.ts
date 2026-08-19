@@ -6,9 +6,12 @@
 export type Severity = 'critical' | 'high' | 'medium' | 'low';
 
 export type FindingCategory =
-  | 'agency-display'      // 代理店コードによる表示・非表示
+  | 'agency-display'      // 代理店コードによる表示・非表示 (誤表示を含む)
   | 'agency-persistence'  // ページ遷移後のコード保持
   | 'agency-handoff'      // 申込画面への引き継ぎ
+  | 'agency-redirect'     // 代理店ごとのリダイレクト仕様
+  | 'redirect-mechanism'  // 仕様と異なる遷移方式 (警告)
+  | 'security'            // open redirect / XSS / 情報漏えい
   | 'layout'              // 表示崩れ
   | 'horizontal-scroll'   // 横スクロール
   | 'broken-link'         // リンク切れ
@@ -83,6 +86,8 @@ export interface QaRecord {
 export interface EnvironmentConfig {
   label: string;
   baseUrl: string;
+  /** 申込ドメイン (LP とは別ドメイン) */
+  applicationBaseUrl: string;
   readOnly: boolean;
   startLocalServer?: boolean;
   httpCredentials?: { username: string; password: string } | null;
@@ -127,36 +132,118 @@ export interface RuntimeFile {
   failOnSeverities: Severity[];
 }
 
-// ---------- config/agency.yml ----------
-export interface AgencyCodeSpec {
-  code: string;
-  valid: boolean;
-  label: string;
-  expectedName?: string;
-  expectedContact?: string;
-}
-export interface AgencyExpectation {
-  visible: string[];
-  hidden: string[];
-  texts: Record<string, string>;
-}
+// ---------- config/agency.yml (共通の仕組み) ----------
 export interface AgencyFile {
   paramName: string;
   storage: { type: 'cookie' | 'localStorage' | 'both'; key: string };
   selectors: Record<string, string>;
-  codes: AgencyCodeSpec[];
-  expectations: {
-    none: AgencyExpectation;
-    valid: AgencyExpectation;
-    invalid: AgencyExpectation;
-  };
   application: {
-    targetPageId: string;
-    expectParamInUrl: boolean;
-    hiddenField?: { testId: string; name?: string | null } | null;
-    requests: Array<{ urlPattern: string; field: string; skipWhenReadOnly?: boolean }>;
+    sessionApiPattern: string;
+    /** 絶対に発生させてはならないリクエスト (申込完了・データ送信) */
+    forbiddenRequestPatterns: string[];
+    /** 押してはならない要素 */
+    forbiddenTestIds: string[];
   };
   persistenceFlow: string[];
+}
+
+// ---------- config/agencies.yml (代理店ごとの個別仕様) ----------
+export type RedirectMechanism = 'none' | 'http' | 'js' | 'meta-refresh' | 'spa' | 'unknown';
+
+/** リダイレクト経路の記録結果 (utils/redirect.ts が生成する) */
+export interface RedirectTrace {
+  entryUrl: string;
+  finalUrl: string;
+  hops: Array<{ url: string; status: number | null; location: string | null; kind: 'http' | 'document' | 'history' }>;
+  httpRedirectCount: number;
+  documentRequestCount: number;
+  historyChangeCount: number;
+  metaRefreshTargets: string[];
+  mechanism: RedirectMechanism;
+  loopDetected: boolean;
+}
+
+export type HandoffMethod = 'query' | 'hidden' | 'post' | 'api' | 'server-session' | 'token' | 'none';
+
+/** 申込ページ側で「正しい代理店として認識されている」ことの確認方法 */
+export type RecognitionCheck =
+  | { type: 'text'; testId: string; expected: string }
+  | { type: 'hidden'; testId: string; expected: string }
+  | { type: 'storage'; storageType: 'localStorage' | 'sessionStorage' | 'cookie'; key: string; expected: string }
+  | { type: 'api'; urlPattern: string; field: string; expected: string };
+
+export interface ApplicationStep {
+  testId: string;
+  expectedPath: string;
+}
+
+export interface AgencyApplicationSpec {
+  /** null の場合は environments.yml の applicationBaseUrl のホストを使用する */
+  expectedDomain: string | null;
+  expectedPath: string;
+  handoffMethod: HandoffMethod;
+  handoffParam: string;
+  expectedCode: string;
+  recognition: RecognitionCheck[];
+  steps: ApplicationStep[];
+}
+
+/** 代理店 1 件ぶんの期待結果 */
+export interface AgencySpec {
+  code: string;
+  label: string;
+  entryPath: string;
+  expectedFinalPath: string;
+  redirected: boolean;
+  redirectMechanism: RedirectMechanism;
+  expectedRedirectCount: number;
+  expectedRedirectPaths: string[];
+  visibleSections: string[];
+  hiddenSections: string[];
+  expectedTexts: Record<string, string>;
+  expectedAssets: Record<string, string>;
+  cta: { testId: string; expectedText?: string | null };
+  application: AgencyApplicationSpec;
+}
+
+/** 無効コード / コードなしの期待結果 */
+export interface FallbackExpectation {
+  entryPath: string;
+  expectedFinalPath: string;
+  redirected: boolean;
+  redirectMechanism: RedirectMechanism;
+  visibleSections: string[];
+  hiddenSections: string[];
+  expectedTexts: Record<string, string>;
+  expectStored: boolean;
+  application: {
+    expectedDomain?: string | null;
+    expectedPath: string;
+    expectDefaultRoute: boolean;
+    defaultRouteTestId: string;
+    forbiddenTestIds: string[];
+  };
+}
+
+export interface AgenciesFile {
+  agencies: AgencySpec[];
+  invalidCodes: Array<{ code: string; label: string }>;
+  invalidExpectation: FallbackExpectation;
+  noCodeExpectation: FallbackExpectation;
+  redirect: {
+    maxRedirects: number;
+    allowedQueryParams: string[];
+    forbiddenQueryParamKeywords: string[];
+    piiValuePatterns: string[];
+  };
+  security: {
+    redirectParamNames: string[];
+    externalProbeUrl: string;
+    allowedRedirectOrigins: string[];
+    xssPayloads: string[];
+    maskParamNames: string[];
+    maskValuePatterns: string[];
+  };
 }
 
 // ---------- config/pages.yml ----------
@@ -220,6 +307,8 @@ export interface ErrorsFile {
     failStatuses: number[];
     ignoreUrlPatterns: string[];
     ignoreThirdParty: boolean;
+    /** 画面遷移で中断されたリクエスト (net::ERR_ABORTED) を無視するか */
+    ignoreAbortedRequests: boolean;
   };
   links: {
     enabled: boolean;
@@ -278,6 +367,7 @@ export interface QaConfig {
   devices: DevicesFile;
   runtime: RuntimeFile;
   agency: AgencyFile;
+  agencies: AgenciesFile;
   pages: PagesFile;
   layout: LayoutFile;
   visual: VisualFile;

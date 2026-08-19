@@ -5,19 +5,29 @@ PC / SP の両方で以下を自動検知します。
 
 | # | 検知内容 | 実装 |
 |---|---|---|
-| 1 | 代理店コードによるセクションの表示・非表示 | `tests/agency/agency-code.spec.ts` |
-| 2 | ページ遷移後の代理店コード保持 | 同上 (シナリオ4) |
-| 3 | 申込画面への代理店コード引き継ぎ | 同上 (シナリオ5) |
-| 4 | 表示崩れ (はみ出し・重なり・空白画面) | `utils/layout.ts` |
-| 5 | 横スクロール | 同上 |
-| 6 | リンク切れ・リダイレクトループ | `utils/links.ts` |
-| 7 | 画像読み込みエラー | `utils/layout.ts` / `utils/monitors.ts` |
-| 8 | JavaScript エラー (console.error / pageerror) | `utils/monitors.ts` |
-| 9 | 誤字脱字・表記揺れの候補抽出 | `utils/text-rules.ts` |
-| 10 | スクリーンショット保存・基準画像比較 | `utils/screenshots.ts` |
+| 1 | 代理店コードごとのセクション表示・非表示 | `tests/agency/agency-display.spec.ts` |
+| 2 | ページ遷移後の代理店コード保持 | 同上 |
+| 3 | 代理店ごとの LP リダイレクト (経路・方式・ループ) | `tests/agency/agency-redirect.spec.ts` |
+| 4 | 別ドメインの申込ページへの引き継ぎ | `tests/agency/agency-handoff.spec.ts` |
+| 5 | 代理店コード起因のセキュリティ (open redirect / XSS / 情報漏えい) | `tests/security/agency-security.spec.ts` |
+| 6 | 表示崩れ (はみ出し・重なり・空白画面) | `utils/layout.ts` |
+| 7 | 横スクロール | 同上 |
+| 8 | リンク切れ・リダイレクトループ | `utils/links.ts` |
+| 9 | 画像読み込みエラー | `utils/layout.ts` / `utils/monitors.ts` |
+| 10 | JavaScript エラー (console.error / pageerror) | `utils/monitors.ts` |
+| 11 | 誤字脱字・表記揺れの候補抽出 | `utils/text-rules.ts` |
+| 12 | スクリーンショット保存・基準画像比較 | `utils/screenshots.ts` |
 
-**サイト固有の値はテストコードに一切書かれていません。** 対象 URL・端末・代理店コード・
-表示条件・文言ルールはすべて `config/*.yml` で管理します。
+**サイト固有の値はテストコードに一切書かれていません。** 対象 URL・端末・
+**代理店ごとの個別仕様**・表示条件・文言ルールはすべて `config/*.yml` で管理します。
+
+### 代理店コードは「有無」では判定しません
+
+代理店コードごとに、最初に表示する LP・リダイレクトの有無と遷移先・表示/非表示セクション・
+代理店名・電話番号・バナー・CTA の文言と遷移先・申込先ドメイン・引き継ぐ値がすべて異なります。
+その差異は `config/agencies.yml` で管理し、**1 件追加すればその代理店のテストが自動生成されます**
+(代理店ごとにテストコードを複製しません)。詳細は
+[docs/agency-code-scenarios.md](docs/agency-code-scenarios.md)。
 
 ---
 
@@ -62,9 +72,16 @@ npm run report              # レポートをブラウザで閲覧 (http://127.0
 
 ```bash
 # .env
-STAGING_BASE_URL=https://staging.example.com
-PRODUCTION_BASE_URL=https://www.example.com
+# LP ドメイン
+STAGING_BASE_URL=https://staging.example.jp
+PRODUCTION_BASE_URL=https://www.example.jp
+# 申込ドメイン (LP とは別ドメイン)
+STAGING_APPLICATION_BASE_URL=https://staging-application.example-insurance.jp
+PRODUCTION_APPLICATION_BASE_URL=https://application.example-insurance.jp
 ```
+
+> LP と申込ページは別ドメインであるため、両方の URL が必要です。
+> 通常の Cookie は共有されないため、引き継ぎ方式は `npm run discover` で実測して確認します。
 
 ```bash
 npm test                    # 既定環境 (config/environments.yml の defaultEnvironment)
@@ -87,7 +104,11 @@ QA_ENV=staging npx playwright test
 | `npm run test:production` | 本番環境で全テストを実行 (読み取り・画面遷移のみ) |
 | `npm run test:pc` | PC (1440×900) のみ実行 |
 | `npm run test:sp` | SP (390×844 / モバイル UA) のみ実行 |
-| `npm run test:agency` | 代理店コードのテストのみ実行 |
+| `npm run test:agency` | 代理店ごとのテスト (表示 / リダイレクト / 引き継ぎ) を実行 |
+| `npm run test:redirect` | 代理店ごとの LP リダイレクトのみ実行 |
+| `npm run test:handoff` | 別ドメイン申込ページへの引き継ぎのみ実行 |
+| `npm run test:security` | セキュリティ検査のみ実行 |
+| `npm run discover` | **実サイトの仕様調査** (引き継ぎ方式・リダイレクト経路を実測して記録) |
 | `npm run test:visual` | スクリーンショット比較のみ実行 |
 | `npm run test:crawl` | 基本巡回のみ実行 |
 | `npm run test:health` | リンク切れ・エラー検知のみ実行 |
@@ -96,7 +117,8 @@ QA_ENV=staging npx playwright test
 | `npm run report` | 生成済みレポートをローカルで閲覧 |
 | `npm run gate` | 重大度ゲートの判定のみ実行 (CI 用) |
 | `npm run typecheck` | 型チェック |
-| `npm run mock:serve` | モックサイトを単体起動 |
+| `npm run mock:serve` | モックサイト (LP ドメイン) を単体起動 |
+| `npm run mock:serve:application` | モックサイト (申込ドメイン) を単体起動 |
 | `npm run clean` | レポート・現在画像を削除 (基準画像は残す) |
 
 任意の条件で絞り込む場合は Playwright の引数をそのまま使えます。
@@ -163,53 +185,97 @@ Critical または High が 1 件でもあれば、テストが失敗し終了�
 | `visual` | 基準画像との比較 |
 | `text` | テキスト抽出・表記チェック |
 
-### 代理店コードを追加する
+### 代理店を追加する
 
-`config/agency.yml` の `codes` に追記します。テスト用コードのみを記載してください。
+`config/agencies.yml` の `agencies` に追記します。**これだけでテストが自動追加されます。**
 
 ```yaml
-codes:
-  - code: C003
-    valid: true
-    label: 追加の有効コード
-    expectedName: テスト保険代理店C      # 表示されるべき代理店名
-    expectedContact: 0120-000-003       # 表示されるべき電話番号
+agencies:
+  - code: A004
+    label: 追加の代理店
+    entryPath: /lp/                    # 最初に表示する LP
+    expectedFinalPath: /partner/a004/  # 最終的に表示されるべき URL
+    redirected: true                   # リダイレクトの有無
+    redirectMechanism: http            # none | http | js | meta-refresh | spa
+    expectedRedirectCount: 1
+    expectedRedirectPaths: [/partner/a004/]
+
+    visibleSections: [partner-exclusive-hero, agency-contact]   # 表示すべき
+    hiddenSections: [default-hero, fallback-notice]             # 非表示であるべき
+
+    expectedTexts:
+      agency-name: 株式会社エーフォー
+      agency-phone: 011-0000-0004
+    expectedAssets:
+      agency-banner: /assets/banner-a004.svg
+
+    cta:
+      testId: cta-primary
+      expectedText: お申し込みはこちら
+
+    application:
+      expectedDomain: null             # null なら環境の applicationBaseUrl を使用
+      expectedPath: /entry/
+      handoffMethod: query             # query | hidden | post | api | server-session | token
+      handoffParam: agency_code
+      expectedCode: A004
+      recognition:                     # 申込側で「正しい代理店」と認識されたことの確認方法
+        - type: text
+          testId: application-agency-name
+          expected: 株式会社エーフォー
+        - type: api
+          urlPattern: "**/api/session*"
+          field: agency_code
+          expected: A004
+      steps:
+        - testId: application-next
+          expectedPath: /entry/step2/
 ```
 
-追加したコードは「シナリオ2 (有効コード)」「シナリオ3 (無効コード)」に自動的に含まれます。
+追加した代理店には、次のテストが自動的に生成されます。
 
-### 表示条件を変更する
+- 表示検査 (セクション・代理店名・電話番号・バナー・CTA 文言・保存値)
+- リダイレクト検査 (HTTP ステータス・回数・経路・最終 URL・ループ・PC/SP 一致)
+- 申込引き継ぎ検査 (ドメイン・パス・コード/トークン送信・認識・複数画面・戻る/再読み込み)
+- 他代理店との組み合わせ (再流入・誤帰属)
+- セキュリティ検査 (CTA の遷移先オリジン)
 
-`config/agency.yml` の `selectors` と `expectations` を変更します。
-セレクタは既定で `data-testid` として解決され、`css=` を付ければ任意のセレクタも使えます。
+`recognition` は 1 つ以上必須です (URL にコードが載っていることだけでは合格にしないため)。
+設定に不備があれば実行前にエラーになります。
+
+### 無効コード・コードなしの期待結果を変更する
+
+`config/agencies.yml` の `invalidCodes` / `invalidExpectation` / `noCodeExpectation` を編集します。
 
 ```yaml
-selectors:
-  defaultSection: default-section       # -> [data-testid="default-section"]
-  agencySection: agency-section
-  agencyName: agency-name
-  agencyContact: agency-contact
-  applicationButton: application-button
-  fallbackNotice: fallback-notice
+invalidCodes:
+  - code: INVALID
+    label: 未登録コード
 
-expectations:
-  valid:
-    visible: [agencySection, agencyName, agencyContact]   # 表示されるべき要素
-    hidden: [defaultSection]                              # 非表示であるべき要素
-    texts: {}                                             # 表示されるべき文言
+invalidExpectation:
+  expectedFinalPath: /lp/
+  redirected: false
+  visibleSections: [default-hero, fallback-notice]
+  hiddenSections: [agency-campaign, agency-contact]
+  expectStored: false                  # 保存されないこと
+  application:
+    expectDefaultRoute: true           # 通常経路へフォールバック
+    defaultRouteTestId: application-default-route
+    forbiddenTestIds: [application-agency-info]
 ```
 
-対象サイトが `data-testid` を持たない場合は、まずサイト側に付与することを推奨します。
-やむを得ない場合のみ `css=.agency-box` のように指定してください
-(CSS クラス名や画面上の位置だけに依存した判定は壊れやすくなります)。
+### セキュリティ検査の設定を変更する
 
-### URL パラメータ名・保存先を変更する
+`config/agencies.yml` の `security` / `redirect` を編集します。
 
 ```yaml
-paramName: agency_code          # URL パラメータ名
-storage:
-  type: both                    # cookie | localStorage | both
-  key: agency_code              # Cookie 名 / localStorage キー
+redirect:
+  allowedQueryParams: [agency_code, handoff_token, utm_source]
+  forbiddenQueryParamKeywords: [mail, tel, name, card]   # 個人情報らしいキー
+security:
+  redirectParamNames: [next, redirect_to]                # open redirect 検査対象
+  xssPayloads: ["<img src=x onerror=window.__qa_xss=1>"]
+  maskParamNames: [handoff_token, token, session]         # レポートでマスクする値
 ```
 
 ### 端末を追加する
@@ -314,7 +380,8 @@ throttle:
 │   ├── environments.yml     #   対象環境 (本番 / ステージング / ローカル)
 │   ├── devices.yml          #   PC / SP・ブラウザ
 │   ├── pages.yml            #   テスト対象ページ
-│   ├── agency.yml           #   代理店コード仕様
+│   ├── agencies.yml         #   ★ 代理店ごとの個別仕様 (LP・リダイレクト・表示・申込引き継ぎ)
+│   ├── agency.yml           #   代理店コードの共通の仕組み (パラメータ名・保存先・共通セレクタ)
 │   ├── layout.yml           #   表示崩れの閾値
 │   ├── visual.yml           #   スクリーンショット比較
 │   ├── errors.yml           #   エラー検知・除外リスト
@@ -323,17 +390,24 @@ throttle:
 ├── tests/                   # テストコード
 │   ├── qa-fixtures.ts       #   共通フィクスチャ (検知結果の集約・本番の安全装置)
 │   ├── crawl/               #   基本巡回 (PC / SP)
-│   ├── agency/              #   代理店コード 7 シナリオ
+│   ├── agency/              #   代理店ごとの表示 / リダイレクト / 申込引き継ぎ
+│   ├── security/            #   代理店コード起因のセキュリティ検査
 │   ├── health/              #   リンク切れ
 │   ├── visual/              #   スクリーンショット比較
 │   ├── text/                #   誤字脱字・表記揺れ
+│   ├── tools/               #   実サイトの仕様調査ツール (npm run discover)
 │   └── self-check/          #   検出ロジックの自己検査 (ネガティブテスト)
 ├── utils/                   # 共通処理
 │   ├── config.ts            #   設定読み込み・環境変数展開・検証
 │   ├── types.ts             #   型定義
 │   ├── findings.ts          #   検知結果の集約・重大度ゲート
 │   ├── qa-session.ts        #   1 テスト分の検査セッション
-│   ├── agency.ts            #   代理店コードの共通処理
+│   ├── agency.ts            #   代理店ごとの表示検証
+│   ├── agency-entry.ts      #   代理店コードでの流入 (リダイレクト完了待ち)
+│   ├── redirect.ts          #   リダイレクト経路の記録・遷移方式の判定
+│   ├── handoff.ts           #   別ドメイン申込ページへの引き継ぎ検証
+│   ├── security.ts          #   open redirect / パラメータ注入の検査
+│   ├── secrets.ts           #   秘密情報 (トークン) のマスキング
 │   ├── layout.ts            #   表示崩れ・横スクロール・画像
 │   ├── links.ts             #   リンク切れ・リダイレクトループ
 │   ├── monitors.ts          #   console / pageerror / ネットワーク監視
@@ -345,6 +419,8 @@ throttle:
 │   ├── patterns.ts          #   glob・正規表現の照合
 │   └── throttle.ts          #   待機・並列制御
 ├── fixtures/mock-site/      # テストデータ (検証用モックサイト)
+│   ├── server.mjs           #   LP ドメイン (代理店ごとのリダイレクト・表示)
+│   └── application-server.mjs  # 申込ドメイン (別オリジン・引き継ぎ受け取り)
 ├── reporters/               # HTML レポート生成
 ├── scripts/                 # ゲート判定・レポート閲覧・クリーンアップ
 ├── reports/                 # レポート出力 (Git 管理外)
@@ -374,8 +450,10 @@ throttle:
 
 | Secret | 用途 |
 |---|---|
-| `STAGING_BASE_URL` | ステージングの URL |
-| `PRODUCTION_BASE_URL` | 本番の URL |
+| `STAGING_BASE_URL` | ステージングの LP ドメイン URL |
+| `PRODUCTION_BASE_URL` | 本番の LP ドメイン URL |
+| `STAGING_APPLICATION_BASE_URL` | ステージングの申込ドメイン URL |
+| `PRODUCTION_APPLICATION_BASE_URL` | 本番の申込ドメイン URL |
 | `STAGING_BASIC_USER` | Basic 認証のユーザー名 (必要な場合のみ) |
 | `STAGING_BASIC_PASS` | Basic 認証のパスワード (必要な場合のみ) |
 
@@ -407,6 +485,14 @@ CI 上に基準画像が無い場合はその回で作成され、比較は行�
 - リクエスト間隔と並列実行数を `config/runtime.yml` で制御し、外部サイトへ過剰な
   リクエストを送りません。リンク検査には 1 ページあたりの上限があります
   (`config/errors.yml` の `links.maxLinksPerPage`)。
+- **申込完了リクエストは全環境で遮断します。** `config/agency.yml` の
+  `application.forbiddenRequestPatterns` に一致するリクエストが発生した場合、
+  フィクスチャが遮断し Critical として報告します。
+- **一時トークン・セッション ID はレポートに出力しません。** すべての検知結果に
+  マスキング処理が自動適用されます (`utils/secrets.ts`)。
+- 代理店コード起因のセキュリティ (open redirect、任意ドメインへの遷移、
+  URL パラメータの HTML 出力、URL への個人情報付加) を検査します
+  (`npm run test:security`)。
 
 ---
 
@@ -463,7 +549,8 @@ aiCheck:
 | ドキュメント | 内容 |
 |---|---|
 | [docs/specification.md](docs/specification.md) | ツール全体の仕様 |
-| [docs/agency-code-scenarios.md](docs/agency-code-scenarios.md) | 代理店コード 7 シナリオの詳細 |
+| [docs/agency-code-scenarios.md](docs/agency-code-scenarios.md) | 代理店ごとの個別仕様・リダイレクト・申込引き継ぎ・セキュリティ |
+| [docs/handoff-discovery.md](docs/handoff-discovery.md) | 実サイトの仕様調査ツール (npm run discover) |
 | [docs/checks.md](docs/checks.md) | 各検査項目の判定ロジックと閾値 |
 | [docs/severity.md](docs/severity.md) | 重大度の分類基準 |
 | [docs/operations.md](docs/operations.md) | 運用手順 (実サイト適用・トラブルシューティング) |
@@ -476,10 +563,20 @@ aiCheck:
 検出ロジック自体を検査するネガティブテストを同梱しています
 (`tests/self-check/detectors.spec.ts`)。
 
-意図的に壊したページ (`fixtures/mock-site/broken/`) に対して、
-横スクロール・要素の重なり・JavaScript エラー・画像読み込みエラー・リンク切れ・
-リダイレクトループ・表記揺れがそれぞれ検出されることを確認し、
-併せて正常なページで誤検知が出ないことも確認しています。
+意図的に壊したページ (`fixtures/mock-site/broken/`) と、検証用に組み立てた経路データに対して、
+次がそれぞれ検出されることを確認しています。
+
+- 横スクロール・要素の重なり・画像読み込みエラー
+- JavaScript エラー (console.error / pageerror)
+- リンク切れ・リダイレクトループ
+- 表記揺れ・誤字・使用禁止表現
+- 遷移方式の判定 (HTTP 3xx / meta refresh / JavaScript / SPA)
+- 別代理店の LP へのリダイレクト・リダイレクトループ (Critical)
+- 別代理店の情報表示・セクションの表示崩れ (Critical)
+- URL への個人情報・不要パラメータの付加 (Critical)
+- レポートへの一時トークン出力の防止
+
+併せて、正常なページで誤検知が出ないことも確認しています。
 
 ```bash
 npx playwright test --grep @selfcheck

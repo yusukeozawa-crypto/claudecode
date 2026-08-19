@@ -26,6 +26,8 @@ export interface ImageInfo {
   naturalWidth: number;
   naturalHeight: number;
   displayed: boolean;
+  /** src 属性が設定されているか (未設定なら読み込み対象がない) */
+  hasSrc: boolean;
   alt: string;
 }
 
@@ -104,11 +106,18 @@ export async function collectImages(page: Page): Promise<ImageInfo[]> {
     Array.from(document.images).map((img) => {
       const rect = img.getBoundingClientRect();
       const style = window.getComputedStyle(img);
+      const srcAttribute = img.getAttribute('src') ?? '';
       return {
         src: img.currentSrc || img.src,
         naturalWidth: img.naturalWidth,
         naturalHeight: img.naturalHeight,
-        displayed: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0,
+        displayed:
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          !img.hasAttribute('hidden') &&
+          rect.width > 0 &&
+          rect.height > 0,
+        hasSrc: srcAttribute.trim().length > 0,
         alt: img.alt ?? '',
       };
     }),
@@ -263,7 +272,10 @@ export async function runLayoutChecks(
   if (layout.images.enabled) {
     const images = await collectImages(page);
     for (const image of images) {
-      if (!image.src) continue;
+      // src 未設定 (これから設定される代理店バナー等) は読み込み対象がないため対象外
+      if (!image.hasSrc || !image.src) continue;
+      // 非表示の画像はユーザーに見えないため表示崩れとして扱わない
+      if (!image.displayed) continue;
       if (matchesAnyGlob(image.src, layout.images.ignoreUrlPatterns)) continue;
       if (image.naturalWidth === 0) {
         findings.push({

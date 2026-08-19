@@ -2,36 +2,66 @@
 
 ## mock-site/
 
-QA ツール自体の動作確認用モックサイト。`local` 環境で自動起動する
+QA ツール自体の動作確認用モックサイト。`local` 環境で **2 つのサーバー** が自動起動する
 (`playwright.config.ts` の `webServer`)。実サイトの準備なしに全テストを実行できる。
 
+| サーバー | 既定 URL | 役割 |
+|---|---|---|
+| `server.mjs` | http://127.0.0.1:4173 | LP ドメイン |
+| `application-server.mjs` | http://localhost:4174 | 申込ドメイン (**別オリジン**) |
+
+ホスト名を変えているため、LP 側の Cookie は申込側へ共有されない
+(実サイトと同じ「別ドメインへの引き継ぎ」を再現している)。
+
 ```bash
-npm run mock:serve      # 単体起動 (http://127.0.0.1:4173)
+npm run mock:serve                # LP ドメインのみ起動
+npm run mock:serve:application    # 申込ドメインのみ起動
 ```
 
-### 正常系ページ
+### 代理店マスタ (`agency-master.mjs`)
 
-`config/pages.yml` の既定定義と対応している。
+LP 側と申込側の双方が参照する「サイト仕様」データ。**検査対象 (SUT) 側の実装**であり、
+テストの期待値は `config/agencies.yml` で管理する。
 
-| ファイル | 対応する id | 内容 |
+| コード | リダイレクト | 引き継ぎ方式 | 表示 |
+|---|---|---|---|
+| `A001` | なし (`/lp/` のまま) | URL クエリ (`agency_code`) | 共通 LP に代理店セクション |
+| `A002` | **HTTP 302** → `/partner/a002/` | **一時トークン** (`handoff_token`) | 代理店専用 LP |
+| `A003` | **meta refresh** → `/partner/a003/` | **hidden + POST** | 代理店専用 LP |
+
+3 種類のリダイレクト方式と 3 種類の引き継ぎ方式を意図的に用意しており、
+検出ロジックが方式の違いを判別できることを確認できる。
+
+### LP ドメインのページ
+
+| パス | 対応する id | 内容 |
 |---|---|---|
-| `index.html` | `top` | トップページ (メインビジュアル・申込ボタン・カルーセル) |
-| `product.html` | `product` | 商品詳細 |
-| `price.html` | `price` | 保険料 (表) |
-| `faq.html` | `faq` | FAQ |
-| `application.html` | `application` | 申込入力画面 (hidden 項目つき) |
-| `agency.html` | `agency-only` | 代理店専用表示ページ |
-| `sitemap.xml` | — | `source: sitemap` の動作確認用 |
+| `/` | — | `/lp/` へ 302 |
+| `/lp/` | `lp` | 共通 LP (代理店セクション・CTA) |
+| `/partner/a002/` | `partner-a002` | A002 専用 LP |
+| `/partner/a003/` | `partner-a003` | A003 専用 LP |
+| `/product.html` | `product` | 商品詳細 |
+| `/price.html` | `price` | 保険料 |
+| `/faq.html` | `faq` | FAQ |
+| `/agency.html` | `agency-only` | 代理店専用表示ページ |
+| `/sitemap.xml` | — | `source: sitemap` の動作確認用 |
 
-### 代理店コードの実装 (`assets/agency.js`)
+代理店コンテキスト (表示セクション・代理店名・電話番号・バナー・CTA) は
+サーバーが `window.__AGENCY_CONTEXT__` として埋め込み、`assets/agency.js` が描画する
+(実サイトのサーバーサイドレンダリングを模したもの)。
+URL パラメータの値は `textContent` 経由でのみ設定し、HTML へそのまま出力しない。
 
-`config/agency.yml` の仮置き仕様をそのまま実装している。
+### 申込ドメインのページ
 
-1. URL パラメータ `agency_code` を受け取ると Cookie と localStorage に保存する
-2. 保存済みのコードはページ遷移後も引き継ぐ (サイト内リンクにも付与する)
-3. 有効コード (`A001` / `B002`) なら代理店セクションを表示し既定セクションを隠す
-4. 無効コードは保存せず、フォールバック表示を出す
-5. 申込画面へは URL パラメータと hidden 項目で引き継ぐ
+| パス | 内容 |
+|---|---|
+| `/entry/` | 申込 1/3。クエリ / トークン / POST のいずれかでコードを受け取り、自ドメインのセッション Cookie に保存 |
+| `/entry/step2/` | 申込 2/3 (セッションから代理店を復元) |
+| `/entry/confirm/` | 申込 3/3 |
+| `/api/session` | 申込側が認識している代理店を返す (`agency_code` / `agency_name`) |
+| `/entry/complete` | 申込完了。**テストからは呼ばれない** (フィクスチャが遮断する) |
+
+無効なコードを受け取った場合はセッションを作らず、通常経路 (`application-default-route`) を表示する。
 
 ### 検出ロジック検査用ページ (`broken/`)
 
@@ -45,11 +75,10 @@ npm run mock:serve      # 単体起動 (http://127.0.0.1:4173)
 | `broken-link.html` | 404 / 500 / リダイレクトループへのリンク |
 | `typos.html` | 表記揺れ・誤字・正式名称の誤表記・使用禁止表現・全角英数字 |
 
-サーバー側 (`server.mjs`) も検査用エンドポイントを提供する。
+LP サーバー側も検査用エンドポイントを提供する。
 
 | パス | 応答 |
 |---|---|
-| `/api/application` | 申込 API のモック (200) |
 | `/server-error` | 500 |
 | `/redirect-loop-a` / `/redirect-loop-b` | 相互に 302 (リダイレクトループ) |
 

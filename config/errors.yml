@@ -29,6 +29,10 @@ network:
     - "**/*.yahoo.co.jp/**"
   # 自ドメイン以外のリクエスト失敗を無視するか
   ignoreThirdParty: true
+  # 画面遷移によって中断されたリクエスト (net::ERR_ABORTED) を無視するか。
+  # リダイレクトを伴うページでは、遷移時に読み込み中のリクエストが必ず中断されるため
+  # 既定で無視する (サーバー側の異常ではない)。
+  ignoreAbortedRequests: true
 
 links:
   enabled: true

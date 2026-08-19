@@ -8,6 +8,7 @@
  *   low      … 誤字脱字、表記揺れ、軽微な画像差分
  */
 import type { TestInfo } from '@playwright/test';
+import { maskFinding } from './secrets';
 import type { Finding, FindingCategory, FindingInput, QaConfig, Severity } from './types';
 
 export type { FindingInput };
@@ -23,13 +24,19 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
 
 /** カテゴリごとの既定の重大度 */
 export const DEFAULT_SEVERITY: Record<FindingCategory, Severity> = {
+  // 代理店に関する誤りは売上・信頼に直結するため Critical
   'agency-display': 'critical',
   'agency-persistence': 'critical',
   'agency-handoff': 'critical',
+  'agency-redirect': 'critical',
+  // 仕様と異なる遷移方式は「警告」として報告する (CI は失敗させない)
+  'redirect-mechanism': 'medium',
+  security: 'critical',
   'js-error': 'high',
   'broken-link': 'high',
   timeout: 'high',
-  'redirect-loop': 'high',
+  // リダイレクトループは Critical
+  'redirect-loop': 'critical',
   'network-error': 'high',
   layout: 'medium',
   'horizontal-scroll': 'medium',
@@ -72,7 +79,7 @@ export class FindingCollector {
   }
 
   add(input: FindingInput): Finding {
-    const finding: Finding = {
+    const raw: Finding = {
       ...input,
       severity: input.severity ?? DEFAULT_SEVERITY[input.category],
       url: input.url ?? this.context.url ?? this.context.baseUrl,
@@ -82,6 +89,8 @@ export class FindingCollector {
       browserId: input.browserId ?? this.context.browserId,
       agencyCode: input.agencyCode ?? this.context.agencyCode,
     };
+    // 一時トークン・セッション ID などの秘密情報はレポートに出力しない
+    const finding = maskFinding(raw, this.config);
     this.items.push(finding);
     return finding;
   }

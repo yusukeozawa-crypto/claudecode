@@ -1,163 +1,218 @@
-# 代理店コード シナリオ仕様
+# 代理店ごとの個別仕様 テスト仕様
 
-対象実装: `tests/agency/agency-code.spec.ts` / `utils/agency.ts`
-設定ファイル: `config/agency.yml`
+対象実装: `tests/agency/*.spec.ts` / `utils/agency*.ts` / `utils/redirect.ts` / `utils/handoff.ts`
+設定ファイル: **`config/agencies.yml`** (代理店ごとの期待結果) / `config/agency.yml` (共通の仕組み)
 
-## 前提となる仕様 (すべて設定で変更可能)
+## 0. 基本方針
 
-| 項目 | 設定キー | 既定値 (仮置き) |
+**代理店コードが存在するかどうかだけで判定しない。** 代理店コードごとに次がすべて異なり、
+その差異を `config/agencies.yml` で管理する。
+
+| 期待結果 | 設定キー |
+|---|---|
+| 最初に表示する LP | `entryPath` |
+| リダイレクトの有無 | `redirected` |
+| リダイレクト先 URL | `expectedFinalPath` / `expectedRedirectPaths` |
+| リダイレクト方式 | `redirectMechanism` |
+| 表示するセクション | `visibleSections` |
+| 非表示にするセクション | `hiddenSections` |
+| 表示する代理店名 | `expectedTexts.agency-name` |
+| 表示する電話番号 | `expectedTexts.agency-phone` |
+| 表示するバナー・ロゴ | `expectedAssets` |
+| CTA の文言 | `cta.expectedText` |
+| CTA の遷移先 | `application.expectedDomain` / `expectedPath` |
+| 申込先ドメイン | `application.expectedDomain` |
+| 申込ページに引き継ぐ値 | `application.handoffMethod` / `handoffParam` / `expectedCode` |
+
+**代理店設定を 1 件追加すれば、その代理店のテストが自動的に追加される。**
+代理店ごとにテストコードを複製しない (テストは設定から生成される)。
+
+## 1. 自動生成されるテストの組み合わせ
+
+`config/agencies.yml` の内容から、次の組み合わせが自動生成される。
+
+| テストファイル | 生成されるテスト |
+|---|---|
+| `agency-display.spec.ts` | 全代理店 × 表示検査 / 無効コード × 各件 / コードなし / 全代理店 × ページ遷移後の保持 / 代理店の全順列 × 再流入 / 全代理店 × 保存値削除 / リダイレクトのある代理店 × 専用LPへの直接アクセス |
+| `agency-redirect.spec.ts` | 全代理店 × リダイレクト検査 / コードなし / 無効コード × 各件 / PC・SP のルール一致 |
+| `agency-handoff.spec.ts` | 全代理店 × 申込引き継ぎ / 全代理店 × 誤帰属検査 / コードなし / 無効コード × 各件 |
+| `agency-security.spec.ts` | 流入 LP × open redirect / 流入 LP × パラメータ注入 / 全代理店 × CTA 遷移先 / マスキング |
+
+PC / SP は project (`chromium-pc` / `chromium-sp`) により両方で実行される。
+現在の構成 (代理店 3 件 + 無効コード 3 件 + PC/SP) で **177 テスト**。
+
+## 2. LP のリダイレクト検査 (`@redirect`)
+
+各代理店コードについて 10 項目を検査する。
+
+| # | 検査項目 | 実装 |
 |---|---|---|
-| URL パラメータ名 | `paramName` | `agency_code` |
-| 保存先 | `storage.type` | `both` (Cookie と localStorage) |
-| 保存キー | `storage.key` | `agency_code` |
-| 有効コード | `codes[].valid: true` | `A001`, `B002` |
-| 無効コード | `codes[].valid: false` | `INVALID` |
+| 1 | 流入 URL | `buildEntryUrl()` — `entryPath` + 代理店コード |
+| 2 | HTTP ステータス | `probeHttpChain()` — 3xx を 1 ホップずつ手動追跡 |
+| 3 | リダイレクト回数 | `verifyRedirectTrace()` — `expectedRedirectCount` と比較 |
+| 4 | リダイレクト途中の URL | `expectedRedirectPaths` を経路に含むか |
+| 5 | 最終 URL | `expectedFinalPath` と一致するか (Critical) |
+| 6 | 最終ページの代理店情報 | `verifySections()` / `verifyTexts()` |
+| 7 | リダイレクト後のコード保持 | `verifyStoredCode()` |
+| 8 | 不要なパラメータ・個人情報の付加 | `verifyUrlHygiene()` |
+| 9 | リダイレクトループ | HTTP レベルとブラウザレベルの両方で検出 (Critical) |
+| 10 | PC と SP で同じルール | 端末ごとに context を作り最終 URL と方式を比較 |
 
-### 判定に使う要素 (data-testid)
+### 経路の記録方法
 
-| 用途 | 設定キー | 既定値 |
+`page.url()` による最終 URL 確認だけでは不十分なため、次を併用する。
+
+- **`request` / `response` イベント** — メインフレームのドキュメント要求と
+  レスポンスのステータス・`location` ヘッダーを記録 (`RedirectTracker`)
+- **`framenavigated` イベント** — ドキュメント要求を伴わない URL 変更 (SPA) を記録
+- **HTTP レベルの追跡** — `APIRequestContext` で `maxRedirects: 0` を指定し、
+  1 ホップずつ辿ってステータス・中間 URL・レスポンス本文の meta refresh を取得
+
+### 遷移方式の判定
+
+| 判定結果 | 判定条件 |
+|---|---|
+| `http` | HTTP 3xx (301 / 302 / 303 / 307 / 308) が 1 回以上 |
+| `meta-refresh` | レスポンス本文または DOM に `<meta http-equiv="refresh">` |
+| `js` | 3xx なし・meta refresh なしで、ドキュメント要求が 2 回以上 |
+| `spa` | ドキュメント要求なしで `framenavigated` による URL 変更 |
+| `none` | 流入 URL と最終 URL が同一 |
+
+`redirectMechanism` と実際の方式が異なる場合は **警告 (Medium)** として報告する
+(遷移先自体が正しければ CI は失敗させない。実装方式の変更を検知するのが目的)。
+
+> meta refresh は遷移後の DOM には残らないため、HTTP レスポンス本文から検出した
+> 遷移先をヒントとして経路判定に渡している (`build(entry, max, metaRefreshHints)`)。
+
+## 3. 別ドメインの申込ページへの引き継ぎ検査 (`@handoff`)
+
+LP ドメインと申込ドメインは別ドメインであり、通常の Cookie は共有されない。
+**引き継ぎ方法を推測せず、実際のネットワーク通信を記録して検証する。**
+
+| # | 検査項目 | 実装 |
 |---|---|---|
-| 既定セクション | `selectors.defaultSection` | `default-section` |
-| 代理店セクション | `selectors.agencySection` | `agency-section` |
-| 代理店名 | `selectors.agencyName` | `agency-name` |
-| 代理店の連絡先 | `selectors.agencyContact` | `agency-contact` |
-| 申込ボタン | `selectors.applicationButton` | `application-button` |
-| フォールバック表示 | `selectors.fallbackNotice` | `fallback-notice` |
+| 1 | 遷移先ドメイン | `verifyApplicationDestination()` (Critical) |
+| 2 | 遷移先パス | 同上 (Critical) |
+| 3 | コード / トークンの送信 | `HandoffRecorder` が申込ドメイン宛の通信を記録 |
+| 4 | 申込側が認識した代理店 | `verifyRecognition()` — 表示・hidden・storage・API |
+| 5 | 数画面進めても保持 | `verifyApplicationPersistence()` — `application.steps` |
+| 6 | 再読み込み・戻る後も保持 | 同上 (`reload()` / `goBack()`) |
+| 7 | コード欠落時の誤帰属なし | `verifyFallbackHandoff()` (Critical) |
+| 8 | 無効コード時のフォールバック | 同上 (Critical) |
+| 9 | 別代理店に置き換わっていない | `verifyRecognition()` + 申込側 API の応答 |
+| 10 | 申込完了処理を実行しない | フィクスチャが完了リクエストを遮断 (Critical) |
 
-### 条件ごとの期待表示 (`expectations`)
+### 認識確認の方法 (URL だけでは合格にしない)
 
-| 状態 | 表示されるべき | 非表示であるべき | 期待文言 |
-|---|---|---|---|
-| `none` (コードなし) | `defaultSection` | `agencySection` | — |
-| `valid` (有効コード) | `agencySection`, `agencyName`, `agencyContact` | `defaultSection` | コードごとの `expectedName` / `expectedContact` |
-| `invalid` (無効コード) | `defaultSection`, `fallbackNotice` | `agencySection` | `fallbackNotice` に「代理店情報を確認できませんでした」 |
+`application.recognition` に 1 つ以上の確認方法を指定する (設定検証で必須)。
 
----
+```yaml
+recognition:
+  - type: text                      # 画面に表示された代理店名
+    testId: application-agency-name
+    expected: 株式会社エーワン保険サービス
+  - type: hidden                     # hidden 項目
+    testId: application-agency-code
+    expected: A001
+  - type: storage                    # Cookie / localStorage
+    storageType: localStorage
+    key: agency_code
+    expected: A001
+  - type: api                        # サーバーが返した代理店識別情報
+    urlPattern: "**/api/session*"
+    field: agency_code
+    expected: A001
+```
 
-## シナリオ一覧
+### 引き継ぎ方式
 
-### シナリオ1: 代理店コードなし
+| `handoffMethod` | 内容 | 検証 |
+|---|---|---|
+| `query` | 申込 URL のクエリパラメータ | クエリに `handoffParam` = コードがあるか |
+| `hidden` | フォームの hidden 項目 | hidden 項目の値 + POST ボディ |
+| `post` | POST 送信 | POST ボディに `handoffParam` があるか |
+| `api` | API 経由 | XHR / fetch の発生と内容 |
+| `server-session` | サーバー側セッション | トークン / セッション Cookie の存在 |
+| `token` | 一時トークン | **トークン値は比較せず**、存在と復元結果を検証 |
 
-対象: `agencyAware: true` の全ページ
+観測された方式が設定と異なる場合は警告 (Medium) を出し、
+`npm run discover` で実仕様を確認するよう促す。
 
-| 確認項目 | 期待結果 |
+### 一時トークンの扱い
+
+- トークン文字列そのものは固定値比較しない (毎回変わる)
+- 「トークンが送信されていること」と「申込側で復元された代理店コード」を検証する
+- トークン値はレポート・ログに出力しない (`utils/secrets.ts` がマスキング)
+
+### 申込完了の防止
+
+`config/agency.yml` の `application.forbiddenRequestPatterns` に一致するリクエストは、
+**全環境で** フィクスチャが遮断し Critical として報告する。
+テストは `application.steps` に定義された遷移のみを行い、完了ボタンは押さない。
+
+## 4. 無効コード / コードなし
+
+| 設定 | 内容 |
 |---|---|
-| 表示 | 既定セクションが表示され、代理店セクションは非表示 |
-| 保存値 | Cookie / localStorage に代理店コードが保存されていない |
-| エラー | JavaScript エラー・4xx/5xx が発生しない |
+| `invalidCodes` | 無効コードの一覧 (未登録・大文字小文字違いなど) |
+| `invalidExpectation` | 無効コード時の期待表示・保存有無・申込側フォールバック |
+| `noCodeExpectation` | コードなし時の期待表示・保存有無・申込側フォールバック |
 
-検知時の重大度: **Critical** (`agency-display` / `agency-persistence`)
+いずれの場合も **どの代理店の情報も表示されないこと** を全代理店の
+`expectedTexts` の値でページ全体を走査して確認する (誤帰属検出)。
 
-### シナリオ2: 有効な代理店コードあり
+## 5. セキュリティ検査 (`@security`)
 
-対象: `agencyAware: true` の全ページ × 有効コード全件
+| 検査項目 | 実装 | 重大度 |
+|---|---|---|
+| open redirect が発生しない | `checkOpenRedirect()` — `redirectParamNames` に外部 URL を渡す | Critical |
+| 任意の外部ドメインへ遷移できない | `checkExternalNavigationTargets()` — CTA の遷移先オリジン | Critical |
+| 無効コードで他代理店の情報が出ない | `verifyFallback()` / `verifyNoOtherAgencyInfo()` | Critical |
+| URL パラメータを HTML へそのまま出力しない | `checkParamInjection()` — ペイロードが innerHTML に生で現れないか | Critical |
+| JavaScript が実行できる値を受け付けない | 同上 — `window.__qa_xss` とダイアログを監視 | Critical |
+| ログ・レポートに秘密トークンを出さない | `utils/secrets.ts` — 全 Finding に自動適用 | — |
+| 一時トークンをレポート上でマスキング | `maskParamNames` / `maskValuePatterns` | — |
 
-| 確認項目 | 期待結果 |
+## 6. 重大度 (すべて Critical → CI 失敗)
+
+| 事象 | 検出箇所 |
 |---|---|
-| 表示 | 代理店セクションが表示され、既定セクションは非表示 |
-| 表示内容 | 代理店名が `expectedName`、連絡先が `expectedContact` と一致 |
-| 保存値 | 保存先に当該コードが保存されている |
-| 保存の整合性 | `storage.type: both` の場合、Cookie と localStorage の値が一致 |
-| 証跡 | フルページスクリーンショットを保存 |
+| 別代理店の LP へリダイレクトされた | `verifyRedirectTrace()` (`agency-redirect`) |
+| 別代理店の名称・電話番号・バナーが表示された | `verifyTexts()` / `verifyAssets()` / `verifyNoOtherAgencyInfo()` |
+| 表示すべきセクションが非表示 | `verifySections()` |
+| 非表示にすべきセクションが表示 | `verifySections()` |
+| 申込ページへ代理店情報が引き継がれない | `verifyHandoffTransport()` / `verifyRecognition()` |
+| 申込ページで別代理店として認識された | `verifyRecognition()` |
+| 無効コードが有効な代理店として処理された | `verifyFallback()` / `verifyFallbackHandoff()` |
+| リダイレクトループ | `verifyHttpChain()` / `verifyRedirectTrace()` / `QaSession.goto()` |
+| 申込先ドメインが仕様と異なる | `verifyApplicationDestination()` |
 
-代理店名が別の代理店のものになっていた場合は「代理店の誤表示」として **Critical**。
+## 7. 実サイトへの適用手順
 
-### シナリオ3: 無効な代理店コードあり
+実サイトの仕様は推測せず、実際の通信から特定する。
 
-対象: `agencyAware: true` の全ページ × 無効コード全件
+```bash
+# 1. 対象環境の URL を .env に設定 (LP ドメインと申込ドメインの両方)
+#    STAGING_BASE_URL / STAGING_APPLICATION_BASE_URL
 
-| 確認項目 | 期待結果 |
-|---|---|
-| 表示 | 既定セクション + フォールバック表示が表示され、代理店セクションは非表示 |
-| 期待文言 | フォールバック表示に指定文言が含まれる |
-| 保存値 | 無効コードは保存されない |
-| 証跡 | フルページスクリーンショットを保存 |
+# 2. 仕様調査ツールで実際の挙動を記録する
+QA_ENV=staging npm run discover
 
-### シナリオ4: 有効コードで流入後、別ページへ遷移
+# 3. 出力を確認して config/agencies.yml に反映する
+cat reports/discovery/suggested-agencies.yml
+cat reports/discovery/A001.json
 
-対象: `persistenceFlow` に列挙したページ (既定: `top` → `product` → `price`)
+# 4. 代理店テストを実行する
+QA_ENV=staging npm run test:agency
+```
 
-2 通りの遷移方法をどちらも検証する。
+`npm run discover` が記録する内容:
 
-| 遷移方法 | 確認項目 |
-|---|---|
-| (a) サイト内リンクをクリック | 遷移後も保存値が維持され、代理店表示が継続する |
-| (b) URL パラメータなしで直接遷移 | 保存値から代理店表示が復元される |
+- 流入 URL / 最終 URL / リダイレクト経路 / 遷移方式
+- CTA 候補 (別ドメインを指すリンク・フォーム・申込らしいボタン)
+- 申込ドメイン宛の全リクエスト (**キー名のみ**。値は出力しない)
+- 申込ページの hidden 項目名・localStorage キー・Cookie 名・`data-testid` 一覧
+- 申込側 API の応答キー
+- `config/agencies.yml` へ反映するための推奨値
 
-(b) は「Cookie / localStorage による保持が実際に機能しているか」を検証するため、
-URL パラメータに依存しない形で確認する。
-
-検知時の重大度: **Critical** (`agency-persistence`)
-
-### シナリオ5: 有効コードで流入後、申込画面へ遷移
-
-流入ページから申込ボタンをクリックして申込画面へ遷移し、4 点を確認する。
-
-| # | 確認項目 | 設定キー | 期待結果 |
-|---|---|---|---|
-| 1 | 申込 URL への引き継ぎ | `application.expectParamInUrl` | 申込 URL に `agency_code=<コード>` が付与される |
-| 2 | hidden 項目への引き継ぎ | `application.hiddenField` | hidden 項目の値が当該コード、`name` 属性が期待どおり |
-| 3 | 保存値の保持 | `storage` | 申込画面でも保存値が維持されている |
-| 4 | 申込 API への引き継ぎ | `application.requests[]` | リクエストの指定フィールドに当該コードが含まれる |
-
-**申込完了は行わない。** #4 の検査では `page.route()` でリクエストを捕捉し、
-内容を検査した上でモックレスポンスを返す (サーバーには到達しない)。
-`skipWhenReadOnly: true` かつ読み取り専用環境の場合は検査自体をスキップし、
-スキップした事実を Low として記録する。
-
-検知時の重大度: **Critical** (`agency-handoff`)
-
-### シナリオ6: 別の代理店コードで再流入
-
-| 確認項目 | 期待結果 |
-|---|---|
-| 表示内容 | 後から流入したコードの代理店名・連絡先に切り替わる |
-| 保存値 | 後から流入したコードで上書きされている |
-| 残存確認 | 前の代理店名が画面に残っていない |
-
-有効コードが 1 件しか設定されていない場合はスキップされる。
-
-### シナリオ7: Cookie または localStorage を削除して再訪問
-
-| 確認項目 | 期待結果 |
-|---|---|
-| 保存値 | 削除後の再訪問で保存値が存在しない |
-| 表示 | 既定表示 (コードなしの状態) に戻る |
-
-削除は `clearStoredCode()` が Cookie と localStorage / sessionStorage の両方を対象に行う。
-
-### 設定の妥当性チェック (`@config`)
-
-- 設定された各コードの有効・無効判定が `codes[].valid` と一致しているか
-- 有効コードに `expectedName` が設定されているか
-  (未設定の場合は代理店名の表示内容を検証できないため Medium で報告)
-
----
-
-## 保存値の検証ロジック
-
-`storage.type` に応じて「保持されているコード」を決定する。
-
-| `storage.type` | 判定対象 |
-|---|---|
-| `cookie` | Cookie の値 |
-| `localStorage` | localStorage の値 |
-| `both` | Cookie を優先し、無ければ localStorage。さらに両者の不一致も検出する (High) |
-
-Cookie / localStorage の値はログに出力しない。期待値との比較結果のみをレポートに記録する。
-
----
-
-## 実サイトへの適用手順
-
-1. サイト側の該当要素に `data-testid` を付与する (推奨)
-2. `config/agency.yml` の `selectors` を実際の値に合わせる
-3. `paramName` / `storage` を実装に合わせる
-4. `codes` にテスト用コードと期待表示 (代理店名・連絡先) を設定する
-5. `expectations` を実際の表示仕様に合わせる
-6. `application` の引き継ぎ方式 (URL / hidden / API) を実装に合わせる
-7. `persistenceFlow` に遷移確認したいページ id を並べる
-8. `npm run test:agency` で確認する
-
-`data-testid` を付与できない場合は `css=` 接頭辞で任意セレクタを指定できるが、
-CSS クラス名の変更で壊れやすくなるため推奨しない。
+詳細は [handoff-discovery.md](handoff-discovery.md) を参照。
