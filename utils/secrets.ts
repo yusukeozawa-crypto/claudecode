@@ -1,21 +1,50 @@
 /**
- * 秘密情報のマスキング。
+ * 秘密情報・個人情報のマスキング。
  *
- * 一時トークン・セッション ID・認証情報をレポートやログに出力しない。
+ * 一時トークン・セッション ID・認証情報に加え、URL に付加された個人情報
+ * (メールアドレス・電話番号など) をレポートやログに出力しない。
+ * 「URL に個人情報が含まれている」ことは検知結果として報告するが、
+ * その値自体はレポートへ出力しない (レポートは CI の Artifact になるため)。
+ *
  * FindingCollector が全ての検知結果に対してこの処理を適用する。
  */
 import type { Finding, QaConfig } from './types';
 
 const MASK = '***MASKED***';
 
-/** URL のクエリパラメータのうち、秘密扱いの値をマスクする */
+/** マスク対象のパラメータ名 (秘密情報 + 個人情報らしいキー) */
+function maskedParamNames(config: QaConfig): string[] {
+  return [
+    ...config.agencies.security.maskParamNames,
+    ...config.agencies.redirect.forbiddenQueryParamKeywords,
+  ].map((name) => name.toLowerCase());
+}
+
+/** 値そのものが個人情報に見える場合に使用するパターン */
+function piiValuePatterns(config: QaConfig): string[] {
+  return config.agencies.redirect.piiValuePatterns;
+}
+
+/**
+ * URL のクエリパラメータのうち、秘密扱い・個人情報らしい値をマスクする。
+ * キー名での判定に加え、値のパターン (メールアドレス等) でも判定する。
+ */
 export function maskUrl(url: string, config: QaConfig): string {
-  const maskParams = config.agencies.security.maskParamNames.map((name) => name.toLowerCase());
+  const maskParams = maskedParamNames(config);
+  const valuePatterns = piiValuePatterns(config);
   try {
     const parsed = new URL(url);
     let changed = false;
-    for (const key of Array.from(parsed.searchParams.keys())) {
-      if (maskParams.some((name) => key.toLowerCase().includes(name))) {
+    for (const [key, value] of Array.from(parsed.searchParams.entries())) {
+      const byKey = maskParams.some((name) => key.toLowerCase().includes(name));
+      const byValue = valuePatterns.some((pattern) => {
+        try {
+          return new RegExp(pattern).test(value);
+        } catch {
+          return false;
+        }
+      });
+      if (byKey || byValue) {
         parsed.searchParams.set(key, MASK);
         changed = true;
       }
@@ -32,8 +61,11 @@ export function maskText(text: string | undefined, config: QaConfig): string | u
   let masked = text;
   const security = config.agencies.security;
 
-  // key=value 形式 (URL / クエリ / ログ) のマスキング
-  for (const name of security.maskParamNames) {
+  // key=value 形式 (URL / クエリ / ログ) のマスキング。
+  // 個人情報らしいキー (mail / tel など) も対象にする。
+  // 値のパターン (電話番号など) は本文には適用しない
+  // — 代理店の電話番号は期待値としてレポートに表示する必要があるため。
+  for (const name of maskedParamNames(config)) {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     masked = masked.replace(new RegExp(`([?&"'\\s]|^)(${escaped}[\\w-]*)\\s*[=:]\\s*"?([^"'&\\s,}]+)"?`, 'gi'),
       (_match, prefix: string, key: string) => `${prefix}${key}=${MASK}`);

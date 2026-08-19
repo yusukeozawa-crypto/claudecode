@@ -8,7 +8,7 @@
  *   low      … 誤字脱字、表記揺れ、軽微な画像差分
  */
 import type { TestInfo } from '@playwright/test';
-import { maskFinding } from './secrets';
+import { maskFinding, maskUrl } from './secrets';
 import type { Finding, FindingCategory, FindingInput, QaConfig, Severity } from './types';
 
 export type { FindingInput };
@@ -112,7 +112,10 @@ export class FindingCollector {
   /** レポート生成用に結果を添付し、重大度ゲートを適用する */
   async flush(testInfo: TestInfo): Promise<void> {
     const payload = {
-      context: this.context,
+      // 検査文脈の URL も出力前にマスクする。
+      // 個人情報や一時トークンが URL に付いていた場合、
+      // それ自体は検知結果として報告するが値はレポートへ出力しない。
+      context: { ...this.context, url: this.context.url ? maskUrl(this.context.url, this.config) : this.context.url },
       environment: this.config.environmentName,
       environmentLabel: this.config.environment.label,
       baseUrl: this.config.environment.baseUrl,

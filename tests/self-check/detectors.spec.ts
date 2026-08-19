@@ -17,7 +17,7 @@ import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
-import { maskUrl } from '../../utils/secrets';
+import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
 import type { FindingCategory, RedirectTrace } from '../../utils/types';
@@ -295,6 +295,34 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
         shownFindings.some((finding) => finding.title.includes('非表示にすべきセクションが表示されています')),
         '非表示にすべきセクションの表示が検出されること',
       ).toBe(true);
+    }
+  });
+
+  test('URL に付加された個人情報がレポートに出力されない', async () => {
+    const base = `${config.environment.baseUrl}/lp/?${config.agency.paramName}=X001`;
+
+    // キー名による判定 (forbiddenQueryParamKeywords)
+    const withMailKey = maskUrl(`${base}&mail=someone@example.com`, config);
+    expect(withMailKey, 'メールアドレスの値が残らないこと').not.toContain('someone@example.com');
+    expect(withMailKey, '代理店コードは残ること').toContain(`${config.agency.paramName}=X001`);
+
+    // 値のパターンによる判定 (piiValuePatterns) — キー名が無害でも値で検出する
+    const withMailValue = maskUrl(`${base}&ref=someone@example.com`, config);
+    expect(withMailValue, '値がメールアドレスならマスクすること').not.toContain('someone@example.com');
+
+    // 本文中の key=value も対象
+    const inText = maskText(`遷移先: ${base}&tel=090-1234-5678`, config);
+    expect(inText, '本文中の電話番号がマスクされること').not.toContain('090-1234-5678');
+
+    // 期待値として表示したい代理店の電話番号は本文中で維持される
+    const agencyPhone = Object.values(config.agencies.agencies[0].expectedTexts).find((value) =>
+      /\d{2,4}-\d{3,4}-\d{3,4}/.test(value),
+    );
+    if (agencyPhone) {
+      expect(
+        maskText(`期待: ${agencyPhone}`, config),
+        '代理店の電話番号は期待値として残ること (過剰なマスキングをしない)',
+      ).toContain(agencyPhone);
     }
   });
 
