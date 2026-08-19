@@ -96,8 +96,15 @@ npm run report               # レポートを確認
 
 ### 見た目を意図的に変更したとき
 
+**基準画像を更新する前に、必ず全テストを実行して Critical / High が無いことを確認する。**
+`npm run update:screenshots` は視覚差分のスイートだけを実行するため、
+代理店の誤表示などの不具合が残った状態で更新すると、**その不具合を
+基準画像に焼き付けてしまう** (以降その表示が「正常」として扱われる)。
+
 ```bash
-npm run update:screenshots
+npm test                      # 1. Critical / High が 0 であることを確認
+npm run update:screenshots    # 2. 基準画像を更新
+npm test                      # 3. 差分が消えたことを確認
 git add screenshots/baseline
 git commit -m "chore: 基準画像を更新"
 ```

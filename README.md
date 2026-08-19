@@ -113,7 +113,7 @@ QA_ENV=staging npx playwright test
 | `npm run test:crawl` | 基本巡回のみ実行 |
 | `npm run test:health` | リンク切れ・エラー検知のみ実行 |
 | `npm run test:text` | 誤字脱字・表記揺れチェックのみ実行 |
-| `npm run update:screenshots` | 基準画像を更新 (意図した見た目の変更時) |
+| `npm run update:screenshots` | 基準画像を更新 (意図した見た目の変更時。**更新前に `npm test` で Critical / High が 0 であることを確認する** — 不具合を基準画像に焼き付けないため) |
 | `npm run report` | 生成済みレポートをローカルで閲覧 |
 | `npm run gate` | 重大度ゲートの判定のみ実行 (CI 用) |
 | `npm run typecheck` | 型チェック |
