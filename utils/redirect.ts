@@ -211,12 +211,23 @@ export async function probeHttpChain(
   request: APIRequestContext,
   entryUrl: string,
   maxRedirects: number,
+  isForbidden?: (url: string) => boolean,
 ): Promise<HttpChain> {
   const hops: HttpChainHop[] = [];
   const seen = new Set<string>();
   let currentUrl = entryUrl;
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
+    // 申込完了・データ送信の URL は実際に叩かない (本番で完了処理を踏まないため)
+    if (isForbidden?.(currentUrl)) {
+      return {
+        hops,
+        finalUrl: currentUrl,
+        finalStatus: null,
+        loopDetected: false,
+        error: '禁止対象の URL のため経路確認を中断しました (申込完了・データ送信)',
+      };
+    }
     if (seen.has(currentUrl)) {
       return { hops, finalUrl: currentUrl, finalStatus: null, loopDetected: true };
     }

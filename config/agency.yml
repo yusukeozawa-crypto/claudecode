@@ -31,9 +31,12 @@ application:
   sessionApiPattern: "**/api/session*"
   # 絶対に発生させてはならないリクエスト (申込完了・データ送信)。
   # 検知した場合は Critical として報告し、リクエスト自体を遮断する。
+  # 判定はクエリ/フラグメントを除去し、末尾スラッシュの有無と大文字小文字を
+  # 無視して行われるため、末尾に "*" を付ける必要はない。
+  # "*" を付けると completed-guide.html のような無関係なページまで遮断してしまう。
   forbiddenRequestPatterns:
-    - "**/entry/complete*"
-    - "**/api/application/submit*"
+    - "**/entry/complete"
+    - "**/api/application/submit"
   # 申込完了ボタン (押してはならない要素)
   forbiddenTestIds:
     - application-submit

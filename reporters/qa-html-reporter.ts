@@ -14,7 +14,8 @@ import type {
 } from '@playwright/test/reporter';
 import { SEVERITY_LABEL, SEVERITY_ORDER, sortBySeverity } from '../utils/findings';
 import { loadConfig, PROJECT_ROOT } from '../utils/config';
-import type { Finding, QaRecord, Severity } from '../utils/types';
+import { maskText } from '../utils/secrets';
+import type { Finding, QaConfig, QaRecord, Severity } from '../utils/types';
 
 const REPORT_DIR = path.join(PROJECT_ROOT, 'reports');
 const HTML_PATH = path.join(REPORT_DIR, 'qa-report.html');
@@ -45,12 +46,15 @@ export default class QaHtmlReporter implements Reporter {
   private projectNames: string[] = [];
   /** ゲートの判定基準 (config/runtime.yml の failOnSeverities) */
   private failOnSeverities: Severity[] = ['critical', 'high'];
+  /** マスキングに使う設定 (読み込みに失敗した場合は null) */
+  private qaConfig: QaConfig | null = null;
 
   onBegin(config: FullConfig): void {
     this.startedAt = new Date();
     this.projectNames = config.projects.map((project) => project.name);
     try {
       const qaConfig = loadConfig();
+      this.qaConfig = qaConfig;
       this.environmentName = qaConfig.environmentName;
       this.environmentLabel = qaConfig.environment.label;
       this.baseUrl = qaConfig.environment.baseUrl;
@@ -106,7 +110,11 @@ export default class QaHtmlReporter implements Reporter {
       durationMs: result.duration,
       startedAt: result.startTime.toISOString(),
       findings: parsed?.findings ?? [],
-      errorMessage: result.error?.message,
+      // Playwright のエラーメッセージには遷移先 URL がそのまま含まれる
+      // (トークン・個人情報を含み得る) ため、保存前にマスクする
+      errorMessage: this.qaConfig
+        ? maskText(result.error?.message, this.qaConfig)
+        : result.error?.message,
       attachedScreenshots: screenshots,
     });
   }
@@ -236,7 +244,7 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
         .join('');
       return `
       <tr class="sev-${finding.severity}" data-severity="${finding.severity}" data-device="${escapeHtml(finding.deviceId)}" data-page="${escapeHtml(finding.pageId ?? '')}">
-        <td><span class="badge badge-${finding.severity}">${SEVERITY_LABEL[finding.severity]}</span></td>
+        <td><span class="badge badge-${escapeHtml(finding.severity)}">${SEVERITY_LABEL[finding.severity]}</span></td>
         <td>${escapeHtml(finding.category)}</td>
         <td>${escapeHtml(finding.pageName ?? finding.pageId ?? '-')}</td>
         <td>${escapeHtml(finding.deviceId?.toUpperCase() ?? '-')}<br><span class="muted">${escapeHtml(finding.browserId ?? '')}</span></td>

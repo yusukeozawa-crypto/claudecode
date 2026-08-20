@@ -13,7 +13,7 @@ import { detectTextIssues, textIssuesToFindings } from './text-rules';
 import { runAiTextCheck } from './ai-text-checker';
 import { sleep } from './throttle';
 import { pageUrl } from './config';
-import { maskText } from './secrets';
+import { maskText, maskUrl } from './secrets';
 import type { FindingInput, PageConfig, QaConfig } from './types';
 
 export interface GotoOptions {
@@ -178,7 +178,9 @@ export class QaSession {
     saveExtractedText(this.config, {
       pageId: pageConfig.id,
       pageName: pageConfig.name,
-      url: this.page.url(),
+      // 抽出結果は reports/text 配下に保存され Artifact にも載るため、
+      // URL に含まれるトークン・個人情報をマスクする
+      url: maskUrl(this.page.url(), this.config),
       deviceId: context.deviceId,
       browserId: context.browserId,
       environment: this.config.environmentName,

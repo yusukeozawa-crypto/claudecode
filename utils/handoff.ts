@@ -20,8 +20,9 @@
  * 一時トークン方式の場合、トークン文字列そのものは比較せず、
  * 「トークンが存在すること」と「申込側で復元された代理店」を検証する。
  */
-import type { Page, Request } from '@playwright/test';
+import type { BrowserContext, Page, Request } from '@playwright/test';
 import { expectedApplicationHost, resolveSelector } from './config';
+import { maskUrl } from './secrets';
 import { matchesAnyGlob } from './patterns';
 import type {
   AgencySpec, FallbackExpectation, FindingInput, HandoffMethod, QaConfig, RecognitionCheck,
@@ -188,12 +189,38 @@ export class HandoffRecorder {
 
 /**
  * 申込完了・データ送信のリクエストかどうか。
- * 遮断そのものは tests/qa-fixtures.ts の単一 route ハンドラが行う
- * (route は後から登録したハンドラが優先されるため、ハンドラを分けられない)。
+ *
+ * これは「本番で申込を完了させない」最後の防衛線なので、
+ * URL の形が少し違うだけで判定を漏らしてはならない。
+ * 次を正規化してから照合する。
+ *   - クエリ / フラグメントを除去 (`?next=/thanks` のように値に "/" が入ると
+ *     glob の "*" ([^/]*) が一致しなくなる)
+ *   - 末尾スラッシュの有無を両方試す
+ *   - 大文字小文字を無視する
  */
 export function isForbiddenRequest(url: string, config: QaConfig): boolean {
   const patterns = config.agency.application.forbiddenRequestPatterns;
-  return patterns.length > 0 && matchesAnyGlob(url, patterns);
+  if (patterns.length === 0) return false;
+
+  const candidates = new Set<string>([url]);
+
+  let withoutQuery = url;
+  try {
+    const parsed = new URL(url);
+    withoutQuery = `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    withoutQuery = url.split('#')[0].split('?')[0];
+  }
+  candidates.add(withoutQuery);
+  candidates.add(withoutQuery.replace(/\/+$/, ''));
+  candidates.add(`${withoutQuery.replace(/\/+$/, '')}/`);
+
+  const lowerPatterns = patterns.map((pattern) => pattern.toLowerCase());
+  for (const candidate of candidates) {
+    if (matchesAnyGlob(candidate, patterns)) return true;
+    if (matchesAnyGlob(candidate.toLowerCase(), lowerPatterns)) return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +352,71 @@ export async function verifyHandoffStatically(
   }
 
   return findings;
+}
+
+/**
+ * 安全装置をページに設置する。
+ *
+ * route は「後から登録したハンドラが優先」されるため、判定は 1 つのハンドラで行う。
+ * フィクスチャのページだけでなく、テストが独自に作った context / page にも
+ * 設置する必要がある (route は Page 単位で、新しいタブや別 context には効かない)。
+ */
+export async function installRequestGuards(
+  page: Page,
+  config: QaConfig,
+  onViolation?: (finding: FindingInput) => void,
+): Promise<void> {
+  const readOnly = config.environment.readOnly;
+  const hasForbidden = config.agency.application.forbiddenRequestPatterns.length > 0;
+  if (!readOnly && !hasForbidden) return;
+
+  await page.route('**/*', async (route) => {
+    const request = route.request();
+    const url = request.url();
+    const method = request.method().toUpperCase();
+
+    if (hasForbidden && isForbiddenRequest(url, config)) {
+      onViolation?.({
+        category: 'agency-handoff',
+        severity: 'critical',
+        title: '申込完了・データ送信のリクエストが発生しました',
+        expected: '申込完了処理を実行しないこと',
+        actual: `${method} ${url} を遮断しました`,
+        url: page.url(),
+      });
+      await route.abort('blockedbyclient');
+      return;
+    }
+
+    if (readOnly && !READ_ONLY_METHODS.has(method)) {
+      // URL に一時トークンや個人情報が含まれ得るためマスクして出力する
+      console.warn(`[qa] 読み取り専用環境のため ${method} リクエストを遮断しました: ${maskUrl(url, config)}`);
+      await route.abort('blockedbyclient');
+      return;
+    }
+
+    await route.continue();
+  });
+}
+
+/** 読み取り専用環境で許可する HTTP メソッド */
+export const READ_ONLY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/**
+ * 新しく作った context の全ページ (既存 + 今後開かれるタブ) に安全装置を設置する。
+ * CTA が target="_blank" で開く場合も遮断されるようにする。
+ */
+export async function installContextGuards(
+  context: BrowserContext,
+  config: QaConfig,
+  onViolation?: (finding: FindingInput) => void,
+): Promise<void> {
+  for (const existing of context.pages()) {
+    await installRequestGuards(existing, config, onViolation);
+  }
+  context.on('page', (opened) => {
+    void installRequestGuards(opened, config, onViolation);
+  });
 }
 
 /** CTA をクリックして申込ドメインへ遷移する */

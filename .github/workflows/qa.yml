@@ -147,6 +147,13 @@ jobs:
     env:
       # 対象環境: 手動実行では入力値、それ以外は staging を既定にする
       QA_ENV: ${{ github.event.inputs.environment || 'staging' }}
+      # 実サイト対象の実行ではトレースを取得しない。
+      # トレースには Authorization ヘッダー・一時トークン・Cookie・
+      # リクエストボディが平文で含まれ、マスキングの対象外であるため、
+      # Artifact に載せると秘密情報を配布することになる。
+      # 障害調査でトレースが必要な場合は、この値を一時的に変更し
+      # Artifact の取り扱いに注意すること。
+      QA_TRACE: 'off'
       # 検査対象 URL・認証情報は GitHub Secrets から取得する (ログには出力しない)
       STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
       PRODUCTION_BASE_URL: ${{ secrets.PRODUCTION_BASE_URL }}
@@ -224,6 +231,9 @@ jobs:
             reports/qa-report.json
             reports/playwright-report/
             reports/text/
+            # トレースは QA_TRACE=off で生成されないが、
+            # 万一生成された場合も Artifact には含めない
+            !reports/**/trace.zip
           retention-days: 30
           if-no-files-found: warn
 
@@ -236,6 +246,8 @@ jobs:
           path: |
             screenshots/
             reports/test-results/
+            # トレースには通信内容が平文で含まれるため除外する
+            !reports/test-results/**/trace.zip
           retention-days: 30
           if-no-files-found: warn
 

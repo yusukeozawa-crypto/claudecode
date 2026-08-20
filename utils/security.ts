@@ -42,9 +42,13 @@ export async function checkOpenRedirect(
     let finalOrigin = '';
     try {
       await page.goto(target, { waitUntil: 'load', timeout: 20000 });
+      // JavaScript / meta refresh による遷移は load 後に発生することがある。
+      // 直後に URL を読むだけでは、遅延して起きる open redirect を見逃す。
+      await page
+        .waitForURL((url) => !permitted.includes(url.origin), { timeout: 2000 })
+        .catch(() => undefined);
       finalOrigin = new URL(page.url()).origin;
     } catch (error) {
-      // 遷移そのものが失敗した場合は外部への遷移は発生していない
       const message = error instanceof Error ? error.message : String(error);
       if (/net::ERR_NAME_NOT_RESOLVED|ERR_CONNECTION/i.test(message)) {
         findings.push({
@@ -57,6 +61,16 @@ export async function checkOpenRedirect(
         });
         continue;
       }
+      // 検査できなかったことを記録する (黙って合格にしない)
+      findings.push({
+        category: 'security',
+        severity: 'medium',
+        title: `open redirect の検査を完了できませんでした: ${paramName}`,
+        expected: 'ページが表示され、検査が実行できること',
+        actual: message.split('\n')[0],
+        url: target,
+        detail: '検査未実施のため、この項目は「問題なし」とは言えません',
+      });
       continue;
     }
 
@@ -79,6 +93,19 @@ export async function checkOpenRedirect(
  * URL パラメータの値が HTML へそのまま出力されないこと、
  * および JavaScript が実行されないことを確認する。
  */
+/** 反射検出用のマーカー (DOM に要素が生成されたことを判定する) */
+const PROBE_MARKER = 'qa-injection-probe';
+
+/**
+ * URL パラメータの値が HTML へそのまま出力されないこと、
+ * および JavaScript が実行されないことを確認する。
+ *
+ * 検出方法についての注意:
+ *   innerHTML とペイロード文字列の一致で判定してはならない。
+ *   ブラウザは HTML を再シリアライズするため、実際に生の HTML が
+ *   注入されていても文字列一致しない (偽陰性になる)。
+ *   ここでは「ペイロードから要素が生成されたか」を DOM 検索で判定する。
+ */
 export async function checkParamInjection(
   page: Page,
   config: QaConfig,
@@ -87,78 +114,102 @@ export async function checkParamInjection(
   const findings: FindingInput[] = [];
   const security = config.agencies.security;
 
-  for (const payload of security.xssPayloads) {
-    const target = pageUrl(config, entryPath, { [config.agency.paramName]: payload });
+  // 代理店コードのパラメータに加え、リダイレクト用パラメータも試す
+  const paramNames = Array.from(
+    new Set([config.agency.paramName, ...security.redirectParamNames]),
+  );
 
-    // ダイアログが開いた場合も JavaScript 実行とみなす
-    let dialogOpened = false;
-    const dialogHandler = async (dialog: { dismiss: () => Promise<void> }) => {
-      dialogOpened = true;
-      await dialog.dismiss().catch(() => undefined);
-    };
-    page.on('dialog', dialogHandler);
+  for (const paramName of paramNames) {
+    for (const payload of security.xssPayloads) {
+      // マーカー付きの要素生成ペイロードを併用する。
+      // 要素が生成されたかどうかは DOM 検索で確実に判定できる。
+      const markedPayload = payload.includes('<')
+        ? payload.replace(/<(\w+)/, `<$1 data-${PROBE_MARKER}="1"`)
+        : payload;
+      const target = pageUrl(config, entryPath, { [paramName]: markedPayload });
 
-    try {
-      await page.goto(target, { waitUntil: 'load', timeout: 20000 });
-    } catch {
+      let dialogOpened = false;
+      const dialogHandler = async (dialog: { dismiss: () => Promise<void> }) => {
+        dialogOpened = true;
+        await dialog.dismiss().catch(() => undefined);
+      };
+      page.on('dialog', dialogHandler);
+
+      try {
+        await page.goto(target, { waitUntil: 'load', timeout: 20000 });
+      } catch (error) {
+        page.off('dialog', dialogHandler);
+        // 検査できなかったことを記録する (黙って合格にしない)
+        findings.push({
+          category: 'security',
+          severity: 'medium',
+          title: `パラメータ注入の検査を完了できませんでした: ${paramName}`,
+          expected: 'ページが表示され、検査が実行できること',
+          actual: String(error).split('\n')[0],
+          url: target,
+          detail: '検査未実施のため、この項目は「問題なし」とは言えません',
+        });
+        continue;
+      }
+
+      // (1) JavaScript が実行されていないこと
+      const executed = await page
+        .evaluate(() => Boolean((window as unknown as { __qa_xss?: unknown }).__qa_xss))
+        .catch(() => false);
       page.off('dialog', dialogHandler);
-      continue;
-    }
 
-    // (1) JavaScript が実行されていないこと (ペイロードは window.__qa_xss を立てる)
-    const executed = await page
-      .evaluate(() => Boolean((window as unknown as { __qa_xss?: unknown }).__qa_xss))
-      .catch(() => false);
-    page.off('dialog', dialogHandler);
-
-    if (executed || dialogOpened) {
-      findings.push({
-        category: 'security',
-        severity: 'critical',
-        title: 'URL パラメータの値から JavaScript が実行されました',
-        expected: 'パラメータ値がスクリプトとして実行されないこと',
-        actual: dialogOpened ? 'ダイアログが表示されました' : 'ペイロードが実行されました',
-        url: target,
-        detail: `使用したペイロード: ${payload}`,
-      });
-    }
-
-    // (2) ペイロードが HTML としてそのまま出力されていないこと
-    //     ペイロード文字列が innerHTML に「そのまま」現れた場合のみ違反とする。
-    //     ページに <script> タグが存在するだけで検出してしまわないよう、
-    //     タグ単位ではなくペイロード全体で判定する。
-    const reflectedRaw = await page
-      .evaluate((value: string) => document.documentElement.innerHTML.includes(value), payload)
-      .catch(() => false);
-
-    if (reflectedRaw) {
-      findings.push({
-        category: 'security',
-        severity: 'critical',
-        title: 'URL パラメータの値が HTML へそのまま出力されています',
-        expected: 'パラメータ値をエスケープして出力すること (&lt; などに変換)',
-        actual: 'ペイロードが HTML 内にそのまま現れました',
-        url: target,
-        detail: `使用したペイロード: ${payload}`,
-      });
-    }
-
-    // (3) 危険な値を有効な代理店として扱っていないこと
-    const bodyText = ((await page.locator('body').textContent()) ?? '').replace(/\s+/g, ' ');
-    for (const agency of config.agencies.agencies) {
-      const matched = Object.values(agency.expectedTexts ?? {}).find(
-        (value) => value && bodyText.includes(value),
-      );
-      if (matched) {
+      if (executed || dialogOpened) {
         findings.push({
           category: 'security',
           severity: 'critical',
-          title: '不正な値を代理店コードとして受け付けています',
-          expected: '不正な値では代理店情報を表示しないこと',
-          actual: `${agency.code} の情報「${matched}」が表示されました`,
+          title: `URL パラメータの値から JavaScript が実行されました: ${paramName}`,
+          expected: 'パラメータ値がスクリプトとして実行されないこと',
+          actual: dialogOpened ? 'ダイアログが表示されました' : 'ペイロードが実行されました',
           url: target,
           detail: `使用したペイロード: ${payload}`,
         });
+      }
+
+      // (2) ペイロードから要素が生成されていないこと (= 生の HTML が出力されている)
+      const injected = await page
+        .evaluate((marker: string) => {
+          const byMarker = document.querySelector(`[data-${marker}]`) !== null;
+          // マーカーを付けられないペイロード用: script / img[onerror] の増加を見る
+          const suspicious = Array.from(document.querySelectorAll('script, img[onerror], svg[onload]'))
+            .some((element) => (element.getAttribute('onerror') ?? element.getAttribute('onload') ?? '').includes('__qa_xss'));
+          return byMarker || suspicious;
+        }, PROBE_MARKER)
+        .catch(() => false);
+
+      if (injected) {
+        findings.push({
+          category: 'security',
+          severity: 'critical',
+          title: `URL パラメータの値が HTML としてそのまま出力されています: ${paramName}`,
+          expected: 'パラメータ値をエスケープして出力すること (&lt; などに変換)',
+          actual: 'ペイロードから要素が生成されました (DOM に出現)',
+          url: target,
+          detail: `使用したペイロード: ${payload}`,
+        });
+      }
+
+      // (3) 危険な値を有効な代理店として扱っていないこと
+      const bodyText = ((await page.locator('body').textContent()) ?? '').replace(/\s+/g, ' ');
+      for (const agency of config.agencies.agencies) {
+        const matched = Object.values(agency.expectedTexts ?? {}).find(
+          (value) => value && bodyText.includes(value),
+        );
+        if (matched) {
+          findings.push({
+            category: 'security',
+            severity: 'critical',
+            title: '不正な値を代理店コードとして受け付けています',
+            expected: '不正な値では代理店情報を表示しないこと',
+            actual: `${agency.code} の情報「${matched}」が表示されました`,
+            url: target,
+            detail: `使用したペイロード: ${payload}`,
+          });
+        }
       }
     }
   }

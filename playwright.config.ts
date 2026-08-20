@@ -53,8 +53,12 @@ export default defineConfig({
     baseURL: environment.baseUrl,
     navigationTimeout: runtime.timeouts.navigation,
     actionTimeout: runtime.timeouts.action,
-    // トレースには通信内容 (トークン等) が含まれる。config/runtime.yml で変更できる。
-    trace: isCi() ? runtime.traceCi : runtime.trace,
+    // トレースには通信内容 (Authorization ヘッダー・一時トークン・Cookie・
+    // リクエストボディ) がそのまま含まれ、マスキングの対象外である。
+    // 実サイトを対象にする実行では QA_TRACE=off を指定して取得しない
+    // (CI の Artifact は repo の読み取り権限があれば誰でも取得できる)。
+    trace: (process.env.QA_TRACE as 'off' | 'on' | 'retain-on-failure' | 'on-first-retry' | undefined)
+      ?? (isCi() ? runtime.traceCi : runtime.trace),
     screenshot: 'only-on-failure',
     video: 'off',
     ignoreHTTPSErrors: false,

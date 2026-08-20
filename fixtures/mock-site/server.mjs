@@ -160,7 +160,15 @@ async function serveHtml(res, filePath, injected) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = decodeURIComponent(url.pathname);
+  let pathname;
+  try {
+    pathname = decodeURIComponent(url.pathname);
+  } catch {
+    // 不正なパーセントエンコーディング (/% など) で落ちないようにする
+    res.writeHead(400, { 'content-type': MIME['.html'] });
+    res.end('<h1>400 Bad Request</h1>');
+    return;
+  }
   const cookies = readCookies(req);
 
   // ---------- 検出ロジックの自己検査用エンドポイント ----------
@@ -174,6 +182,21 @@ const server = http.createServer(async (req, res) => {
       `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>遅延応答</title></head>` +
         `<body><h1 data-testid="slow-page">遅延応答ページ</h1>` +
         `<p>このページは ${delay}ms 待ってから応答します (タイムアウト検知の検証用)。</p></body></html>`,
+    );
+    return;
+  }
+
+  // 意図的に脆弱なエンドポイント (反射型 XSS の検出ロジックの検証用)。
+  // 受け取った値をエスケープせず HTML に出力する。
+  // 検査対象サイトの脆弱性を「見逃さない」ことを確認するために存在する。
+  if (pathname === '/broken/reflect') {
+    const raw = url.searchParams.get(PARAM_NAME) ?? '';
+    res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' });
+    res.end(
+      `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>反射テスト</title></head>` +
+        `<body><h1 data-testid="reflect-page">入力値の反射 (検証用)</h1>` +
+        // エスケープせずに出力する (これが検出されるべき脆弱性)
+        `<p>入力: ${raw}</p></body></html>`,
     );
     return;
   }
@@ -249,7 +272,15 @@ const server = http.createServer(async (req, res) => {
 
     const filePath = normalized === '/lp/'
       ? path.join(ROOT, 'lp/index.html')
-      : path.join(ROOT, normalized.replace(/^\/+/, ''), 'index.html');
+      : path.resolve(ROOT, normalized.replace(/^\/+/, ''), 'index.html');
+
+    // ROOT の外へ出るパス (..%2f など) を拒否する。
+    // pathname は decodeURIComponent 済みなので、ここで必ず確認する。
+    if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) {
+      res.writeHead(403, { 'content-type': MIME['.html'] });
+      res.end('<h1>403 Forbidden</h1>');
+      return;
+    }
 
     try {
       await serveHtml(res, filePath, {

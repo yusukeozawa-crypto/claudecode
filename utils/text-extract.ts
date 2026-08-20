@@ -94,8 +94,16 @@ export async function extractText(page: Page, config: QaConfig): Promise<{ title
   }, excludeSelectors);
 }
 
+/**
+ * CSV セルの先頭が =, +, -, @ の場合、表計算ソフトが数式として解釈する。
+ * 対象ページのテキストがそのまま数式になるのを防ぐ。
+ */
+function neutralizeFormula(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 function csvEscape(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`;
+  return `"${neutralizeFormula(value).replace(/"/g, '""')}"`;
 }
 
 /** 抽出結果を JSON / CSV に保存する。戻り値は保存したファイルパス */

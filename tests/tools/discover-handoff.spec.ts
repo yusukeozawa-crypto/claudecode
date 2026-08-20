@@ -23,6 +23,7 @@ import { agencySpecs } from '../../utils/agency';
 import { buildEntryUrl, waitForFinalLanding } from '../../utils/agency-entry';
 import { RedirectTracker, describeMechanism, probeHttpChain } from '../../utils/redirect';
 import { maskText, maskUrl } from '../../utils/secrets';
+import { isForbiddenRequest } from '../../utils/handoff';
 import type { HandoffMethod, QaConfig } from '../../utils/types';
 
 const OUTPUT_DIR = path.join(PROJECT_ROOT, 'reports', 'discovery');
@@ -186,7 +187,7 @@ test.describe('仕様調査 @discover', () => {
       page.on('request', onRequest);
 
       // --- リダイレクト経路 ---
-      const httpChain = await probeHttpChain(request, entryUrl, config.agencies.redirect.maxRedirects);
+      const httpChain = await probeHttpChain(request, entryUrl, config.agencies.redirect.maxRedirects, (candidate) => isForbiddenRequest(candidate, config));
       const tracker = new RedirectTracker(page);
       await page.goto(entryUrl, { waitUntil: 'load', timeout: 30000 }).catch((error) => {
         notes.push(`流入 URL を開けませんでした: ${String(error).split('\n')[0]}`);
@@ -341,8 +342,9 @@ test.describe('仕様調査 @discover', () => {
     console.log('\n==================== 仕様調査結果 ====================');
     for (const result of results) {
       console.log(`\n[${result.code}]`);
-      console.log(`  流入 URL   : ${result.entryUrl}`);
-      console.log(`  最終 URL   : ${result.finalUrl}`);
+      // 最終 URL には一時トークンが載ることがあるためマスクして出力する
+      console.log(`  流入 URL   : ${maskUrl(result.entryUrl, config)}`);
+      console.log(`  最終 URL   : ${maskUrl(result.finalUrl, config)}`);
       console.log(`  遷移方式   : ${describeMechanism(result.redirect.mechanism as never)} (HTTP 3xx: ${result.redirect.httpRedirectCount}, meta refresh: ${result.redirect.metaRefreshTargets.length}, SPA: ${result.redirect.historyChangeCount})`);
       console.log(`  引き継ぎ   : ${result.detectedHandoffMethods.join(', ') || '観測なし'}`);
       if (result.applicationPage) {

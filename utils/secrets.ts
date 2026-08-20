@@ -32,27 +32,59 @@ function piiValuePatterns(config: QaConfig): string[] {
 export function maskUrl(url: string, config: QaConfig): string {
   const maskParams = maskedParamNames(config);
   const valuePatterns = piiValuePatterns(config);
+  const secretPatterns = config.agencies.security.maskValuePatterns;
+
+  const matchesPattern = (value: string, patterns: string[]): boolean =>
+    patterns.some((pattern) => {
+      try {
+        return new RegExp(pattern).test(value);
+      } catch {
+        return false;
+      }
+    });
+
+  let result = url;
+
   try {
     const parsed = new URL(url);
-    let changed = false;
+
+    // クエリパラメータ
     for (const [key, value] of Array.from(parsed.searchParams.entries())) {
       const byKey = maskParams.some((name) => key.toLowerCase().includes(name));
-      const byValue = valuePatterns.some((pattern) => {
-        try {
-          return new RegExp(pattern).test(value);
-        } catch {
-          return false;
-        }
-      });
-      if (byKey || byValue) {
-        parsed.searchParams.set(key, MASK);
-        changed = true;
-      }
+      if (byKey || matchesPattern(value, valuePatterns)) parsed.searchParams.set(key, MASK);
     }
-    return changed ? parsed.toString() : url;
+
+    // フラグメント (#handoff_token=... のような引き継ぎもあり得る)
+    if (parsed.hash.length > 1) {
+      const hashParams = new URLSearchParams(parsed.hash.slice(1));
+      let hashChanged = false;
+      for (const [key, value] of Array.from(hashParams.entries())) {
+        const byKey = maskParams.some((name) => key.toLowerCase().includes(name));
+        if (byKey || matchesPattern(value, valuePatterns)) {
+          hashParams.set(key, MASK);
+          hashChanged = true;
+        }
+      }
+      if (hashChanged) parsed.hash = `#${hashParams.toString()}`;
+    }
+
+    result = parsed.toString();
   } catch {
-    return url;
+    /* URL として解釈できない場合はそのまま扱う */
   }
+
+  // パスに埋め込まれたトークン (例: /s/8f14e45f.../confirm) も対象にする。
+  // URL は finding.url としてレポートに出るため、ここを外すと
+  // サーバーセッション方式のトークンが素のまま残る。
+  for (const pattern of secretPatterns) {
+    try {
+      result = result.replace(new RegExp(pattern, 'g'), MASK);
+    } catch {
+      /* 不正な正規表現は無視する */
+    }
+  }
+
+  return result;
 }
 
 /**

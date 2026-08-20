@@ -71,6 +71,9 @@ export function buildProjects(
         use: {
           ...browserDefaults(browser.id),
           ...deviceUse(browser.id, device),
+          // service worker 発のリクエストは route で遮断できないため無効化する。
+          // 本番で申込完了を踏まないための安全装置を素通りさせないこと。
+          serviceWorkers: 'block' as const,
           // ローカルの Chromium 実体を明示指定したい場合のみ使用する。
           // Chromium 以外の project に適用すると起動できなくなるため限定する。
           ...(browser.id === 'chromium' && options.chromiumExecutablePath

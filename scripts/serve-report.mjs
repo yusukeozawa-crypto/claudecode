@@ -8,6 +8,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(process.cwd(), 'reports');
+// ループバックのみで待ち受ける (レポートには対象サイトの URL や
+// 抽出テキストが含まれるため、ネットワークに公開しない)
+const HOST = process.env.QA_REPORT_HOST || '127.0.0.1';
 const PORT = Number(process.env.QA_REPORT_PORT || 9323);
 
 if (!fs.existsSync(path.join(ROOT, 'qa-report.html'))) {
@@ -29,12 +32,19 @@ const MIME = {
 
 http
   .createServer((req, res) => {
-    const requestPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    let requestPath;
+    try {
+      requestPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    } catch {
+      // 不正なパーセントエンコーディング (/% など) でプロセスが落ちないようにする
+      res.writeHead(400).end('Bad Request');
+      return;
+    }
     const relative = requestPath === '/' ? 'qa-report.html' : requestPath.replace(/^\/+/, '');
     const target = path.resolve(ROOT, relative);
 
     // ROOT + セパレータで比較する (reports-backup のような兄弟ディレクトリへの脱出を防ぐ)
-  if (target !== ROOT && !target.startsWith(ROOT + path.sep)) {
+    if (target !== ROOT && !target.startsWith(ROOT + path.sep)) {
       res.writeHead(403).end('Forbidden');
       return;
     }
@@ -47,7 +57,7 @@ http
       res.end(content);
     });
   })
-  .listen(PORT, () => {
+  .listen(PORT, HOST, () => {
     console.log(`QA レポート: http://127.0.0.1:${PORT}/`);
     console.log(`Playwright レポート: http://127.0.0.1:${PORT}/playwright-report/index.html`);
     console.log('終了するには Ctrl+C を押してください。');

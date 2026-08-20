@@ -12,12 +12,8 @@ import { test as base, expect, type APIRequestContext, type Page } from '@playwr
 import { loadConfig } from '../utils/config';
 import { QaSession } from '../utils/qa-session';
 import { resolvePages } from '../utils/page-source';
-import { isForbiddenRequest } from '../utils/handoff';
-import { maskUrl } from '../utils/secrets';
+import { installContextGuards } from '../utils/handoff';
 import type { FindingInput, PageConfig, QaConfig } from '../utils/types';
-
-/** 読み取り専用環境で許可する HTTP メソッド */
-const READ_ONLY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export interface QaFixtures {
   qaConfig: QaConfig;
@@ -40,49 +36,13 @@ export const test = base.extend<QaFixtures>({
   },
 
   // ---- 安全装置 ----
-  //   Playwright の route は「後から登録したハンドラが優先」される。
-  //   2 つに分けると先に登録した側が呼ばれなくなるため、1 つのハンドラで
-  //   両方の判定を行う (分けていたために、本番環境で申込完了の遮断が
-  //   機能していなかった)。
+  //   route は Page 単位でしか効かないため、context 全体 (既存ページ +
+  //   今後開かれるタブ) に設置する。CTA が target="_blank" で開く場合も遮断する。
   page: async ({ page, qaConfig }, use) => {
     completionViolations.set(page, []);
-    const readOnly = qaConfig.environment.readOnly;
-    const hasForbiddenPatterns = qaConfig.agency.application.forbiddenRequestPatterns.length > 0;
-
-    if (readOnly || hasForbiddenPatterns) {
-      await page.route('**/*', async (route) => {
-        const request = route.request();
-        const url = request.url();
-        const method = request.method().toUpperCase();
-
-        // (1) 申込完了・データ送信のリクエストは全環境で遮断する
-        if (hasForbiddenPatterns && isForbiddenRequest(url, qaConfig)) {
-          completionViolations.get(page)?.push({
-            category: 'agency-handoff',
-            severity: 'critical',
-            title: '申込完了・データ送信のリクエストが発生しました',
-            expected: '申込完了処理を実行しないこと',
-            actual: `${method} ${url} を遮断しました`,
-            url: page.url(),
-          });
-          await route.abort('blockedbyclient');
-          return;
-        }
-
-        // (2) 読み取り専用環境では書き込み系リクエストを遮断する
-        if (readOnly && !READ_ONLY_METHODS.has(method)) {
-          // URL に一時トークンや個人情報が含まれ得るためマスクして出力する
-          console.warn(
-            `[qa] 読み取り専用環境のため ${method} リクエストを遮断しました: ${maskUrl(url, qaConfig)}`,
-          );
-          await route.abort('blockedbyclient');
-          return;
-        }
-
-        await route.continue();
-      });
-    }
-
+    await installContextGuards(page.context(), qaConfig, (finding) => {
+      completionViolations.get(page)?.push(finding);
+    });
     await use(page);
   },
 

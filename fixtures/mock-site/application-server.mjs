@@ -17,11 +17,12 @@ import { escapeHtml, getAgency, resolveHandoffToken } from './agency-master.mjs'
 
 const PORT = Number(process.env.MOCK_APPLICATION_PORT || 4174);
 /**
- * 既定では全インターフェースで待ち受ける。
+ * 既定では全インターフェースで待ち受ける (ローカル検証用のモックのため)。
  * 申込ドメインの URL はホスト名 (localhost) で指定されるため、
  * 環境によって localhost が ::1 (IPv6) に解決されることがある。
  * 127.0.0.1 だけに bind すると、その環境で接続できなくなる
  * (GitHub Actions の ubuntu-latest は /etc/hosts に ::1 localhost を持つ)。
+ * ネットワークに公開したくない場合は MOCK_APPLICATION_HOST=127.0.0.1 を指定する。
  */
 const HOST = process.env.MOCK_APPLICATION_HOST || undefined;
 
@@ -30,6 +31,10 @@ const SESSION_COOKIE = 'app_session';
 
 /** サーバー側セッション (実サイトの Redis / DB セッションにあたる) */
 const sessions = new Map();
+/** セッション数の上限 (無制限に増やさない) */
+const MAX_SESSIONS = 500;
+/** リクエストボディの上限 (バイト) */
+const MAX_BODY_BYTES = 64 * 1024;
 
 /** 申込フローの画面定義 */
 const STEPS = [
@@ -50,7 +55,12 @@ function readCookies(req) {
 
 async function readBody(req) {
   const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
+  let total = 0;
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > MAX_BODY_BYTES) break;
+    chunks.push(chunk);
+  }
   return Buffer.concat(chunks).toString('utf8');
 }
 
@@ -165,7 +175,14 @@ function renderPage({ step, agency, agencyCode, handoffMethod }) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = decodeURIComponent(url.pathname);
+  let pathname;
+  try {
+    pathname = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400, { 'content-type': 'text/html; charset=utf-8' });
+    res.end('<h1>400 Bad Request</h1>');
+    return;
+  }
   const cookies = readCookies(req);
   const body = req.method === 'POST' ? await readBody(req) : '';
 
@@ -208,6 +225,12 @@ const server = http.createServer(async (req, res) => {
       if (!sessionId || !sessions.has(sessionId)) {
         sessionId = randomUUID();
         headers['set-cookie'] = `${SESSION_COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Lax`;
+      }
+      // 古いセッションから削除して上限を保つ
+      while (sessions.size >= MAX_SESSIONS) {
+        const oldest = sessions.keys().next().value;
+        if (oldest === undefined) break;
+        sessions.delete(oldest);
       }
       sessions.set(sessionId, { code: incoming.code, method: incoming.method });
     } else if (incoming.code) {

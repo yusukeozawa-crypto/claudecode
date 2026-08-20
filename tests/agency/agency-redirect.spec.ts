@@ -25,6 +25,7 @@ import {
 } from '../../utils/redirect';
 
 import { deviceUse } from '../../utils/projects';
+import { installContextGuards, isForbiddenRequest } from '../../utils/handoff';
 
 const config = loadConfig();
 const specs = agencySpecs(config);
@@ -48,7 +49,7 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
       qa.findings.setContext({ agencyCode: spec.code, url: target });
 
       // --- (2) HTTP レベルの経路 (ブラウザを介さずに 3xx を 1 ホップずつ追跡) ---
-      const httpChain = await probeHttpChain(request, target, maxRedirects);
+      const httpChain = await probeHttpChain(request, target, maxRedirects, (candidate) => isForbiddenRequest(candidate, config));
       qa.addAll(
         verifyHttpChain(httpChain, {
           code: spec.code,
@@ -142,7 +143,7 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
     const expectation = config.agencies.noCodeExpectation;
     const target = entryUrl(expectation.entryPath, null);
 
-    const httpChain = await probeHttpChain(request, target, maxRedirects);
+    const httpChain = await probeHttpChain(request, target, maxRedirects, (candidate) => isForbiddenRequest(candidate, config));
     qa.addAll(
       verifyHttpChain(httpChain, {
         code: null,
@@ -255,6 +256,9 @@ test.describe('リダイレクトルールの端末間一致 @agency @redirect',
         const context = await browser.newContext(
           deviceUse(browserId, device) as Parameters<typeof browser.newContext>[0],
         );
+        // フィクスチャ外で作った context にも安全装置を設置する
+        // (route は Page 単位のため、設置しないと本番で無防備になる)
+        await installContextGuards(context, config, (finding) => qa.add(finding));
         const devicePage = await context.newPage();
         const tracker = new RedirectTracker(devicePage);
 
