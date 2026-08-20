@@ -20,6 +20,30 @@ function broken(mutate: (draft: QaConfig) => void): QaConfig {
   return draft;
 }
 
+/**
+ * 検証用の申込仕様。
+ *
+ * 実サイトの設定では application が null (申込導線の検査をしない) のこともある。
+ * 「設定に不備があれば検出できる」ことの検証は、
+ * 読み込んだ設定の中身に依存させず、ここで組み立てた値で行う。
+ */
+function withApplication(draft: QaConfig): QaConfig {
+  const agency = draft.agencies.agencies[0];
+  agency.application = {
+    expectedDomain: null,
+    expectedPath: '/entry/',
+    handoffMethod: 'query',
+    handoffParam: 'agency_code',
+    expectedCode: agency.code,
+    recognition: [{ type: 'hidden', testId: 'application-agency-code', expected: agency.code }],
+    steps: [],
+  };
+  if (!draft.environment.applicationBaseUrl) {
+    draft.environment.applicationBaseUrl = 'https://application.example.test';
+  }
+  return draft;
+}
+
 function expectError(draft: QaConfig, expectedFragment: string): void {
   let message = '';
   try {
@@ -69,6 +93,9 @@ test.describe('設定検証の自己検査 @selfcheck', () => {
     // URL にコードが載っているだけで合格にしないため、1 つ以上必須
     expectError(
       broken((draft) => {
+        // 実サイトの設定では application が null のこともあるため、
+        // 検証用の申込仕様を用意してから recognition を空にする
+        withApplication(draft);
         const application = draft.agencies.agencies[0].application;
         if (application) application.recognition = [];
       }),
@@ -89,8 +116,11 @@ test.describe('設定検証の自己検査 @selfcheck', () => {
   test('表示・非表示セクションの重複を検出する', async () => {
     expectError(
       broken((draft) => {
+        // 実サイトの設定ではセクションが未設定 (空) のこともあるため、
+        // 検証用の値をここで用意する
         const agency = draft.agencies.agencies[0];
-        agency.hiddenSections = [...agency.hiddenSections, agency.visibleSections[0]];
+        agency.visibleSections = ['section-a', 'section-b'];
+        agency.hiddenSections = ['section-c', 'section-a'];
       }),
       '重複',
     );
@@ -105,9 +135,10 @@ test.describe('設定検証の自己検査 @selfcheck', () => {
     );
   });
 
-  test('申込ドメインの未設定を検出する', async () => {
+  test('申込導線を検査する設定なのに申込ドメインが無い場合を検出する', async () => {
     expectError(
       broken((draft) => {
+        withApplication(draft);
         draft.environment.applicationBaseUrl = '';
       }),
       'applicationBaseUrl',
@@ -143,6 +174,10 @@ test.describe('セレクタ解決の自己検査 @selfcheck', () => {
 });
 
 test.describe('安全装置の自己検査 @selfcheck', () => {
+  // モックサイトの申込ドメイン (/entry/ など) を使うため local 環境でのみ実行する。
+  // 実サイトに対して実行すると、存在しない URL を開こうとして失敗する。
+  test.skip(config.environmentName !== 'local', 'モックサイトを使用するため local 環境でのみ実行します');
+
   test('申込完了・データ送信のリクエストが遮断される', async ({ page, qaConfig }) => {
     // route ハンドラを 2 つに分けていた頃は、読み取り専用環境で
     // この遮断が機能していなかった。単一ハンドラ化の回帰防止。

@@ -189,6 +189,7 @@ npm run test:staging        # ステージング対象
 npm run test:production     # 本番対象（読み取り専用・申込完了しない）
 npm run test:agency         # 代理店テストのみ
 npm run discover            # 実仕様の調査
+npm run findings            # 検知内容を文字で出力（共有・相談用に貼れる）
 npm run report              # Playwright の詳細レポート（原因追跡用）
 npm run clean               # レポートを削除（基準画像は残る）
 ```

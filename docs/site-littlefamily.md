@@ -13,6 +13,8 @@
 | 共通 LP (ステージング) | `https://lp.littlefamily-ssi-stg.com/lp/service/` |
 | 専用 LP (ステージング) | `https://lp.littlefamily-ssi-stg.com/lp/service-premium/` |
 | コーポレートサイト | `https://www.littlefamily-ssi.com/` / `https://www.littlefamily-ssi-stg.com/` |
+| 申込ドメイン (ステージング) | `https://days.littlefamily-ssi-stg.com` |
+| 申込の入口 (ステージング) | `/solicitation/step1` |
 | ステージングの認証 | Basic 認証 (`.env` の `STAGING_BASIC_USER` / `STAGING_BASIC_PASS`) |
 | 代理店コード数 | 214 件 (`config/agency-master.tsv`) |
 
@@ -91,7 +93,7 @@ $env:QA_AGENCY_SEED="m3k8xq-a71f9c"; npm run test:agency
 | 共通セレクタ | `agency.yml` の `selectors` | 仮の値 | 一致する要素が無い間、それを使う検査は「検出なし」になる |
 | 代理店コードの保存先 | `agency.yml` の `storage` | `none` | 保存値の検査を行わない |
 | 描画完了の判定 | `agency.yml` の `readyIndicator` | `none` | 待たずに検査する (クライアント描画なら取りこぼす可能性) |
-| 申込ページの URL・引き継ぎ方式 | `agency-profiles.yml` の `application` | `null` | **申込導線の検査を一切行わない** |
+| 申込への引き継ぎ方式 | `agency-profiles.yml` の `application` | `null` | **申込導線の検査を一切行わない** |
 | 申込完了 URL (押してはならない操作) | `agency.yml` の `forbiddenRequestPatterns` | 仮の値 | 申込導線の検査を有効にする前に必ず実物に合わせる |
 
 ### 実測の手順
@@ -120,7 +122,26 @@ cat reports/discovery/suggested-agencies.yml
 - URL に個人情報や不要なパラメータが付いていないか
 - open redirect / URL パラメータの HTML への出力
 
-## 5. コーポレートサイト
+## 5. 申込導線 (days ドメイン)
+
+申込は LP とは別ドメイン (`days.littlefamily-ssi-stg.com`)、入口は
+`/solicitation/step1` であることが分かっている。ただし
+**代理店コードをどう引き継いでいるかが未確認**のため、
+`application` は `null` のまま (検査していない)。
+
+有効にするには次が必要。
+
+1. 引き継ぎ方式 — URL クエリ / hidden 項目 / POST / 一時トークン / サーバーセッション
+2. 申込側で「その代理店として認識されている」ことの確認方法
+   (表示される代理店名、hidden 項目、Cookie、API 応答 など)
+3. **申込完了 URL** — 本番で絶対に押してはならない操作。
+   `config/agency.yml` の `forbiddenRequestPatterns` に設定する
+
+1 と 2 は `npm run discover` で実測できる。
+3 は実測に頼らず、実装を確認して設定すること
+(誤って申込を完了させると取り消せない)。
+
+## 6. コーポレートサイト
 
 `www.littlefamily-ssi.com` は LP とは別ホストのため、`config/pages.yml` には
 入れられない (`baseUrl` 配下ではない)。検査する場合は

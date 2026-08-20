@@ -175,22 +175,43 @@ function writeEnvValues(updates) {
   fs.writeFileSync(ENV_PATH, `${rewritten.join('\n').replace(/\n+$/, '')}\n`, 'utf8');
 }
 
-function isHttpUrl(value) {
+/**
+ * 入力された URL からドメイン部分 (オリジン) だけを取り出す。
+ *
+ * .env に入れるのはドメインまで。検査するページのパスは
+ * config/pages.yml が持つため、パスを含めて入れると二重になり
+ * 「どこを検査しているのか」が分かりにくくなる。
+ */
+function parseOrigin(value) {
+  let url;
   try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
+    url = new URL(value);
   } catch {
-    return false;
+    return null;
   }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+  const droppedPath = url.pathname !== '/' && url.pathname !== '' ? url.pathname : null;
+  const droppedQuery = url.search !== '' ? url.search : null;
+  return { origin: url.origin, droppedPath, droppedQuery };
 }
 
 /** URL を 1 件聞く (空入力・不正な形式はやり直し) */
-async function askUrl(prompt, label, current) {
+async function askUrl(prompt, label, current, pathOwner) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const hint = current ? ` [現在: ${current}]` : '';
     const answer = await prompt.ask(`    ${label}${hint}: `);
     if (answer === '' && current) return current;
-    if (isHttpUrl(answer)) return answer.replace(/\/+$/, '');
+    const parsed = answer === '' ? null : parseOrigin(answer);
+    if (parsed) {
+      if (parsed.droppedPath || parsed.droppedQuery) {
+        // 黙って捨てると「入れたのに使われていない」と誤解されるため必ず伝える
+        print(`      → ドメイン部分のみを使用します: ${parsed.origin}`);
+        if (parsed.droppedPath) {
+          print(`         ${parsed.droppedPath} は ${pathOwner} 側で管理します`);
+        }
+      }
+      return parsed.origin;
+    }
     if (answer === '') {
       print('    URL を入力してください。');
     } else {
@@ -241,12 +262,22 @@ async function ensureEnvConfigured(target, prompt) {
   }
 
   print();
-  const lpUrl = await askUrl(prompt, 'LP の URL', current.get(lpKey));
+  const lpUrl = await askUrl(
+    prompt,
+    'LP の URL',
+    current.get(lpKey),
+    '検査するページの設定 (config/pages.yml)',
+  );
   if (!lpUrl) {
     print('    入力を確認できませんでした。中止します。');
     return false;
   }
-  const appUrl = await askUrl(prompt, '申込ページの URL', current.get(appKey));
+  const appUrl = await askUrl(
+    prompt,
+    '申込ページの URL',
+    current.get(appKey),
+    '代理店ごとの申込設定 (application.expectedPath)',
+  );
   if (!appUrl) {
     print('    入力を確認できませんでした。中止します。');
     return false;
