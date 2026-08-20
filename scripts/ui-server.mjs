@@ -42,6 +42,17 @@ const ENV_KEYS = {
   production: { base: 'PRODUCTION_BASE_URL', application: 'PRODUCTION_APPLICATION_BASE_URL', user: 'PRODUCTION_BASIC_USER', pass: 'PRODUCTION_BASIC_PASS' },
 };
 
+/**
+ * 検査する代理店の件数。
+ *   導入中は「最小」で動作を確定させ、問題がなくなってから増やす。
+ *   設定ファイルを書き換えず、実行ごとに選べるようにしている。
+ */
+const SIZES = {
+  min: { label: '最小 (パターンごと 1 社)', env: { QA_AGENCY_PER_PROFILE: '1' } },
+  standard: { label: '標準 (パターンごと 3 社)', env: { QA_AGENCY_PER_PROFILE: '3' } },
+  all: { label: '全件 (211 社・時間がかかります)', env: { QA_AGENCY_SCOPE: 'all' } },
+};
+
 /** 検査以外の操作 */
 const ACTIONS = {
   update: { label: '最新版に更新', script: 'update' },
@@ -273,6 +284,7 @@ function state() {
     findings: report ? findingGroups(report.records ?? []) : [],
     log: logLines.slice(-40),
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),
+    sizes: Object.entries(SIZES).map(([key, value]) => ({ key, label: value.label })),
     env: envStatus(),
     history: historyList(),
     hasReport: fs.existsSync(path.join(REPORT_DIR, 'qa-report.html')),
@@ -280,10 +292,12 @@ function state() {
 }
 
 /** npm script を実行する。script 名は固定リストのみ */
-function startRun(kind, key) {
+function startRun(kind, key, size = 'min') {
   if (current) return { ok: false, error: 'すでに実行中です' };
   const entry = kind === 'test' ? TARGETS[key] : ACTIONS[key];
   if (!entry) return { ok: false, error: '不明な操作です' };
+  const sizeEntry = SIZES[size];
+  if (!sizeEntry) return { ok: false, error: '不明な件数の指定です' };
 
   logLines = [`[開始] ${entry.label}`];
   // 前回の進行状況を消す (古い結果が残って混乱しないように)
@@ -291,7 +305,8 @@ function startRun(kind, key) {
 
   const child = spawn('npm', ['run', entry.script], {
     cwd: root,
-    env: withBinPath(path.join(root, 'node_modules', '.bin')),
+    // 件数の指定は環境変数で渡す (設定ファイルは書き換えない)
+    env: { ...withBinPath(path.join(root, 'node_modules', '.bin')), ...(kind === 'test' ? sizeEntry.env : {}) },
     shell: process.platform === 'win32',
     // 「止める」で確実に停止させるため、子孫まとめて終了できるようにする
     // (npm だけを終了しても、その先の検査プロセスが残ってしまう)
@@ -384,7 +399,11 @@ export const server = http.createServer((req, res) => {
     return;
   }
   if (req.method === 'POST' && url.pathname === '/api/run') {
-    const result = startRun(url.searchParams.get('kind') ?? 'test', url.searchParams.get('key') ?? '');
+    const result = startRun(
+      url.searchParams.get('kind') ?? 'test',
+      url.searchParams.get('key') ?? '',
+      url.searchParams.get('size') ?? 'min',
+    );
     sendJson(res, result.ok ? 200 : 409, result);
     return;
   }

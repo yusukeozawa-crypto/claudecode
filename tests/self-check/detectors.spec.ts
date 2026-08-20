@@ -18,7 +18,7 @@ import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
-import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
+import { agencyPairs, resolvePerProfile, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { describeApplicationLinks, installRequestGuards, observeApplicationLinks } from '../../utils/handoff';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
@@ -1116,6 +1116,33 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     const own = findings.find((finding) => /own script broke/.test(finding.actual ?? ''));
     expect(own, '自社コードのエラーは記録されること').toBeTruthy();
     expect(own?.severity, '自社コードのエラーは既定 (High) のままであること').toBeUndefined();
+  });
+
+  test('検査する件数を実行ごとに変えられる (最小から始めて増やす)', async () => {
+    // 導入中は最小の件数で「ツールが正しく動くか」を確定させたい。
+    // 設定ファイルを書き換えずに切り替えられる必要がある。
+    const original = process.env.QA_AGENCY_PER_PROFILE;
+    try {
+      delete process.env.QA_AGENCY_PER_PROFILE;
+      expect(resolvePerProfile(3), '指定が無ければ設定値を使うこと').toBe(3);
+
+      process.env.QA_AGENCY_PER_PROFILE = '1';
+      expect(resolvePerProfile(3), '指定があれば設定値より優先すること').toBe(1);
+
+      process.env.QA_AGENCY_PER_PROFILE = '5';
+      expect(resolvePerProfile(1), '増やす方向にも効くこと').toBe(5);
+
+      for (const invalid of ['0', '-1', '1.5', 'all', 'abc']) {
+        process.env.QA_AGENCY_PER_PROFILE = invalid;
+        expect(
+          () => resolvePerProfile(3),
+          `不正な指定は理由を示して止めること: ${invalid}`,
+        ).toThrow(/QA_AGENCY_PER_PROFILE/);
+      }
+    } finally {
+      if (original === undefined) delete process.env.QA_AGENCY_PER_PROFILE;
+      else process.env.QA_AGENCY_PER_PROFILE = original;
+    }
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

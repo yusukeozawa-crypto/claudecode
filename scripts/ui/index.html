@@ -114,6 +114,12 @@
 
   <section>
     <h2>検査する</h2>
+    <div class="row" style="margin-bottom: 12px;">
+      <label>検査する代理店の件数
+        <select id="size"></select>
+      </label>
+      <span class="muted" id="size-note">まずは最小で動作を確認し、問題がなくなってから増やしてください。</span>
+    </div>
     <div class="targets" id="targets"></div>
     <div class="actions">
       <button class="small" data-action="update">最新版に更新</button>
@@ -228,7 +234,9 @@
     }).join('');
     Array.prototype.forEach.call(container.querySelectorAll('[data-target]'), function (button) {
       button.addEventListener('click', function () {
-        post('/api/run?kind=test&key=' + encodeURIComponent(button.getAttribute('data-target')));
+        var size = document.getElementById('size').value || 'min';
+        post('/api/run?kind=test&size=' + encodeURIComponent(size) +
+          '&key=' + encodeURIComponent(button.getAttribute('data-target')));
       });
     });
   }
@@ -439,6 +447,12 @@
         document.getElementById('env-label').textContent =
           state.summary ? (state.summary.environmentLabel || '') + ' / ' + (state.summary.baseUrl || '') : '';
         latestEnv = state.env || {};
+        var sizeSelect = document.getElementById('size');
+        if (sizeSelect.options.length === 0 && (state.sizes || []).length > 0) {
+          sizeSelect.innerHTML = state.sizes.map(function (size) {
+            return '<option value="' + text(size.key) + '">' + text(size.label) + '</option>';
+          }).join('');
+        }
         // URL が 1 つも登録されていない = まず設定が必要なので開いておく
         var anyConfigured = Object.keys(latestEnv).some(function (key) {
           return key !== 'local' && latestEnv[key] && latestEnv[key].configured;

@@ -16,7 +16,7 @@
 # ============================================================
 scope:
   mode: sample
-  perProfile: 3
+  perProfile: 1
   always:
     - littlefamily01
     - littlefamily03

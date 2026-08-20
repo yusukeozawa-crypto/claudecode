@@ -87,6 +87,23 @@ await check('固定リスト以外の操作は実行しない', async () => {
   }
 });
 
+await check('不明な件数の指定は実行しない', async () => {
+  for (const size of ['huge', '1; rm -rf /', '']) {
+    const { status, body } = await json(
+      `/api/run?kind=test&key=local&size=${encodeURIComponent(size)}`,
+      { method: 'POST' },
+    );
+    assert.equal(status, 409, `${size || '(空)'} は拒否されること`);
+    assert.equal(body.ok, false);
+  }
+});
+
+await check('件数の選択肢が返る', async () => {
+  const { body } = await json('/api/state');
+  const keys = (body.sizes ?? []).map((size) => size.key);
+  assert.deepEqual(keys, ['min', 'standard', 'all'], '最小 / 標準 / 全件を返すこと');
+});
+
 await check('reports の外のファイルは返さない', async () => {
   for (const target of ['%2e%2e%2fpackage.json', '..%2f..%2f.env', '%2e%2e%2f%2e%2e%2fconfig%2fagency.yml']) {
     const response = await fetch(`${base}/reports/${target}`);

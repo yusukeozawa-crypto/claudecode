@@ -72,6 +72,23 @@ function shuffle<T>(items: T[], random: () => number): T[] {
  *   QA_AGENCY_SCOPE=all   … 抽選せず全件を検査する
  *   QA_AGENCY_SEED=<値>   … 過去の実行と同じ組み合わせを再現する
  */
+/**
+ * パターンごとの検査件数を決める。
+ *
+ * QA_AGENCY_PER_PROFILE で実行ごとに変えられる。
+ * 導入時は最小 (1) で動作確認し、問題がなくなってから増やす運用のため。
+ * 設定ファイルを書き換えずに切り替えられる必要がある。
+ */
+export function resolvePerProfile(configured: number): number {
+  const requested = process.env.QA_AGENCY_PER_PROFILE?.trim();
+  if (requested === undefined || requested === '') return Math.max(0, Number(configured));
+  const value = Number(requested);
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error(`QA_AGENCY_PER_PROFILE には 1 以上の整数を指定してください (指定値: ${requested})`);
+  }
+  return value;
+}
+
 export function agencySpecs(config: QaConfig): AgencySpec[] {
   const all = config.agencies.agencies;
   const scope = config.agencies.scope;
@@ -82,7 +99,7 @@ export function agencySpecs(config: QaConfig): AgencySpec[] {
     throw new Error(`QA_AGENCY_SCOPE には sample か all を指定してください (指定値: ${requested})`);
   }
 
-  const perProfile = Math.max(0, Number(scope.perProfile ?? 2));
+  const perProfile = resolvePerProfile(scope.perProfile ?? 2);
   const always = new Set(scope.always ?? []);
   const random = createRandom(agencySeed());
 
