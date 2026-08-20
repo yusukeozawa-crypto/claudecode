@@ -18,7 +18,7 @@
  */
 import { test } from '../qa-fixtures';
 import { loadConfig } from '../../utils/config';
-import { agencySpecs, readStoredCode, verifySections, verifyStoredCode, verifyTexts } from '../../utils/agency';
+import { agencySpecs, expectedStoredCode, readStoredCode, verifySections, verifyStoredCode, verifyTexts } from '../../utils/agency';
 import {
   RedirectTracker, describeMechanism, probeHttpChain, verifyHttpChain,
   verifyRedirectTrace, verifyUrlHygiene,
@@ -110,7 +110,7 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
       // --- (7) リダイレクト後も保持されている代理店コード ---
       const stored = await readStoredCode(page, config);
       qa.addAll(
-        verifyStoredCode(stored, config, spec.code, {
+        verifyStoredCode(stored, config, expectedStoredCode(spec), {
           url: trace.finalUrl,
           label: `${spec.code}: リダイレクト後`,
         }),

@@ -182,4 +182,58 @@ test.describe('表示の一貫性 @agency @consistency', () => {
       qa.collectMonitorFindings();
     });
   }
+  // ------------------------------------------------------------------
+  // 3. コードなしと同じ表示になるはずのパターン
+  //    支店コードのように「コードを付けても何も変わらない」ものを検査する。
+  //    差分が出た場合、仕様変更 (支店コードが有効になった) か
+  //    不具合のどちらとも断定できないため Medium で報告する。
+  // ------------------------------------------------------------------
+  for (const profile of config.agencies.sameAsNoCodeProfiles ?? []) {
+    const member = groups.get(profile)?.[0];
+    if (!member) continue;
+
+    test(`${profile} はコードなしと同じ表示になる`, async ({ qa, page }) => {
+      test.slow();
+      // 基準はコードなしの LP
+      const baselineUrl = buildEntryUrl(config, member.entryPath, null);
+      if (!(await qa.goto({ url: baselineUrl, agencyCode: null }))) return;
+      const baseline = await capturePageSignatureStable(page);
+      if (!baseline) return;
+
+      const signature = await captureFor(qa, page, member);
+      if (!signature) return;
+
+      const difference = evaluateDisplayDifference(baseline, signature, ignoreKeys);
+      if (!difference.differs) {
+        qa.add({
+          category: 'agency-display',
+          severity: 'low',
+          title: `[確認OK] ${profile} (${member.code}) はコードなしと同じ表示です`,
+          expected: 'コードなしの表示と一致すること',
+          actual: `表示ブロック ${difference.sharedBlocks.length} 件・文言ともに一致`,
+          url: signature.url,
+        });
+      } else {
+        qa.add({
+          category: 'agency-display',
+          severity: 'medium',
+          title: `${member.code}: コードなしと表示が異なります (${profile})`,
+          expected: `${profile} はコードなしと同じ表示になること`,
+          actual:
+            (difference.blocksDiffer
+              ? `ブロック — コードなしだけ: ${describeKeys(difference.onlyInA)} / ${member.code} だけ: ${describeKeys(difference.onlyInB)}`
+              : 'ブロックの構成は同一') +
+            ' | ' +
+            (difference.textDiffers
+              ? `文言 — コードなしだけ: ${describeLines(difference.textOnlyInA)} / ${member.code} だけ: ${describeLines(difference.textOnlyInB)}`
+              : '文言は同一'),
+          url: signature.url,
+          detail:
+            '支店コードが有効になった (仕様変更) か、表示が意図せず変わった可能性があります。' +
+            '仕様変更であれば config/agency-profiles.yml の sameAsNoCodeProfiles から外してください。',
+        });
+      }
+      qa.collectMonitorFindings();
+    });
+  }
 });

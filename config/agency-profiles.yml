@@ -61,13 +61,26 @@ displayMustDiffer:
 #   キャンペーン枠など) を入れる。data-testid / css= セレクタで書く。
 displayIgnoreKeys: []
 
+#   コードなしの表示と一致するはずのパターン。
+#   支店コードは現状「何も変化しない」ため、通常 LP と同じ表示になる。
+#   ここに差分が出た場合は、仕様変更か不具合のどちらか
+#   (どちらとも断定できないため Medium で報告する)。
+sameAsNoCodeProfiles:
+  - branch-code
+
 # ---------- 割り当てルール (上から順に最初に一致したものを採用) ----------
 assign:
-  # A0010 だけ命名規則が他と異なる (littlefamily で始まらない)。
-  # コードの扱いに命名依存のバグがあれば出るため、
-  # 独立したパターンとして必ず検査対象に含める。
+  # A0010 (Amazon) は検査対象外。
+  # 運用側の確認により、通常 LP のままで代理店としての切り替えを行わない。
   - match: { code: A0010 }
-    profile: legacy-code-format
+    exclude: true
+    reason: Amazon 用のため検査対象外 (通常 LP のまま)
+  # 支店コード (末尾が brNN)。
+  #   運用側の確認により、現状は **通常 LP のままで何も変化しない**。
+  #   カカクコムの支店コード (littlefamily03brNN) もリダイレクトしない。
+  #   そのため親コードの分類 (みらやく可否・カカクコム) より前に判定する。
+  - match: { codeMatches: "br[0-9]+$" }
+    profile: branch-code
   - match: { code: littlefamily01 }
     profile: direct
   - match: { codePrefix: littlefamily03 }
@@ -138,11 +151,17 @@ profiles:
     cta: null
     application: null
 
-  # 旧命名規則のコード (littlefamily で始まらない)。
-  # 期待される挙動は みらやく × と同じだが、
-  # 命名依存の不具合を毎回検査するため分類を分けている。
-  legacy-code-format:
-    label: 旧命名規則コード (みらやく掲載不可)
+  # 支店コード (末尾が brNN)。
+  #   現状は代理店コードとして扱われず、通常 LP のまま何も変化しない
+  #   (募集代理店の表記も出ない)。実測 2026-08 / 運用側の確認済み。
+  #   親コードがカカクコムでも専用 LP へのリダイレクトは起きない。
+  #   sameAsNoCodeProfiles に入れているため、
+  #   コードなしとの差分が出たら報告される (仕様変更の検知)。
+  branch-code:
+    label: 支店コード (通常LPのまま変化なし)
+    # サイト側で代理店コードとして扱われない。
+    # 保存・引き継ぎ・代理店表示のいずれも期待しない。
+    recognized: false
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
     redirected: false

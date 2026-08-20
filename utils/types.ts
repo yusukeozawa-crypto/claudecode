@@ -225,6 +225,13 @@ export interface AgencySpec {
   redirected: boolean;
   /** 挙動パターン名 (抽選のグループ分けに使う) */
   profile?: string;
+  /**
+   * サイト側で代理店コードとして認識されるか。
+   * false = 受け取っても何もしない (支店コードなど)。
+   * 保存・引き継ぎ・代理店表示のいずれも期待しない。
+   * 省略時は true。
+   */
+  recognized?: boolean;
   redirectMechanism: RedirectMechanism;
   /**
    * 期待するリダイレクト回数。
@@ -300,6 +307,11 @@ export interface AgenciesFile {
   displayMustDiffer?: string[][];
   /** 表示比較から除外する鍵 (実行ごとに出入りする要素) */
   displayIgnoreKeys?: string[];
+  /**
+   * コードなしの表示と一致するはずのパターン名。
+   * 支店コードのように「コードを付けても何も変わらない」ものを検査する。
+   */
+  sameAsNoCodeProfiles?: string[];
   agencies: AgencySpec[];
   invalidCodes: Array<{ code: string; label: string }>;
   invalidExpectation: FallbackExpectation;

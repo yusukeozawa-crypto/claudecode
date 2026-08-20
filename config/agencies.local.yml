@@ -28,6 +28,13 @@ displayIgnoreKeys:
   - cta-form
   - cta-form-submit
 
+# コードなしと同じ表示になるはずの分類。
+#   実サイトの支店コード (末尾 brNN) は代理店コードとして扱われず、
+#   通常 LP のまま何も変わらない。その挙動を検査する仕組みの動作確認として、
+#   モックにも同じ性質のコード (A001BR01) を用意している。
+sameAsNoCodeProfiles:
+  - branch
+
 agencies:
   # ----------------------------------------------------------
   # A001: リダイレクトなし / 共通 LP に代理店セクションを表示 / クエリ引き継ぎ
@@ -224,6 +231,38 @@ agencies:
 # 無効な代理店コード (フォールバック仕様)
 #   無効コードが有効な代理店として処理されたら Critical
 # ============================================================
+  # ----------------------------------------------------------
+  # A001BR01: 支店コード相当。
+  #   代理店コードとして認識されず、通常 LP のまま何も変わらない
+  #   (実サイトの末尾 brNN のコードと同じ挙動)。
+  #   sameAsNoCodeProfiles により「コードなしと同じ表示」を検査する。
+  # ----------------------------------------------------------
+  - code: A001BR01
+    label: 支店コード (通常LPのまま変化なし)
+    profile: branch
+    # サイト側で代理店コードとして扱われない。
+    # 保存・引き継ぎ・代理店表示のいずれも期待しない。
+    recognized: false
+    entryPath: /lp/
+    expectedFinalPath: /lp/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections:
+      - default-hero
+      - common-benefits
+      - default-contact
+    hiddenSections:
+      - agency-campaign
+      - agency-contact
+      # コードとして扱われないため、無効コードの案内も出さない
+      - fallback-notice
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+
 invalidCodes:
   - code: INVALID
     label: 未登録コード

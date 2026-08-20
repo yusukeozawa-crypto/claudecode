@@ -217,6 +217,14 @@ export function effectiveStoredCode(stored: StoredAgencyCode, config: QaConfig):
   }
 }
 
+/**
+ * この代理店コードが保存されるべきか。
+ * サイト側で認識されないコード (支店コードなど) は保存されないのが正しい。
+ */
+export function expectedStoredCode(spec: { code: string; recognized?: boolean }): string | null {
+  return spec.recognized === false ? null : spec.code;
+}
+
 /** 保存値の検査を行う設定か (none は行わない) */
 export function storageChecksEnabled(config: QaConfig): boolean {
   return config.agency.storage.type !== 'none';

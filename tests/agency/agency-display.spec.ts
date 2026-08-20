@@ -19,7 +19,7 @@ import { pageById, pagesFromConfig } from '../../utils/page-source';
 import {
   agencyPairs, agencySpecs, clearStoredCode, invalidCodes, readStoredCode, storageLabel,
   verifyAssets, verifyCtaText, verifyFallback, verifyNoOtherAgencyInfo,
-  verifySections, verifyStoredCode, verifyTexts, storageChecksEnabled,
+  verifySections, verifyStoredCode, verifyTexts, storageChecksEnabled, expectedStoredCode,
 } from '../../utils/agency';
 import { enterAsAgency, enterPath, enterWithFallback } from '../../utils/agency-entry';
 
@@ -46,7 +46,7 @@ test.describe('代理店ごとの表示 @agency', () => {
 
       const stored = await readStoredCode(page, config);
       qa.addAll(
-        verifyStoredCode(stored, config, spec.code, {
+        verifyStoredCode(stored, config, expectedStoredCode(spec), {
           url: page.url(),
           label: `${spec.code} で流入`,
         }),
@@ -118,7 +118,7 @@ test.describe('代理店ごとの表示 @agency', () => {
 
         const stored = await readStoredCode(page, config);
         qa.addAll(
-          verifyStoredCode(stored, config, spec.code, {
+          verifyStoredCode(stored, config, expectedStoredCode(spec), {
             url: page.url(),
             label: `${spec.code}: ${nextPage.name} へパラメータなしで遷移`,
           }),
@@ -151,7 +151,12 @@ test.describe('代理店ごとの表示 @agency', () => {
       qa.addAll(await verifyNoOtherAgencyInfo(page, config, second.code, label));
 
       const stored = await readStoredCode(page, config);
-      qa.addAll(verifyStoredCode(stored, config, second.code, { url: page.url(), label }));
+      // 後から入ったコードがサイト側で扱われない場合 (支店コードなど)、
+      // 保存値は前のコードのまま残るのが正しい挙動。
+      // 「保存されていないこと」を期待すると、正常なサイトを不具合として報告してしまう。
+      const expectedAfterSecond =
+        second.recognized === false ? expectedStoredCode(first) : expectedStoredCode(second);
+      qa.addAll(verifyStoredCode(stored, config, expectedAfterSecond, { url: page.url(), label }));
       qa.collectMonitorFindings();
     });
   }

@@ -118,6 +118,15 @@ function buildCta(code, agency) {
   }
 }
 
+/**
+ * 支店コードか (末尾が BRnn)。
+ * 実サイトの支店コード (末尾 brNN) は代理店コードとして扱われず、
+ * 通常 LP のまま何も変わらない。その挙動を再現するために区別する。
+ */
+function isBranchCode(code) {
+  return typeof code === 'string' && /BR\d+$/i.test(code);
+}
+
 /** ページに埋め込む代理店コンテキストを組み立てる */
 function buildContext({ pathname, code, fromUrl }) {
   const agency = getAgency(code);
@@ -128,7 +137,10 @@ function buildContext({ pathname, code, fromUrl }) {
     paramName: PARAM_NAME,
     storageKey: STORAGE_KEY,
     activeCode: agency ? code : null,
-    invalidCode: Boolean(code) && !agency,
+    // 支店コード (末尾 BRnn) は「受け取るが何もしない」。
+    // 実サイトの支店コードと同じ挙動 (通常 LP のまま、
+    // 代理店情報もフォールバック案内も出さない) を再現する。
+    invalidCode: Boolean(code) && !agency && !isBranchCode(code),
     fromUrl: Boolean(fromUrl),
     agency: agency
       ? {

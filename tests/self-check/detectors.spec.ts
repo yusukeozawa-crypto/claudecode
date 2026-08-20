@@ -838,6 +838,32 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).not.toContain('blinking');
   });
 
+  test('「コードなしと同じ表示」の検査が差分を見逃さない (見逃しの確認)', async ({ page }) => {
+    const param = config.agency.paramName;
+
+    // コードなしの表示 (基準)
+    await page.goto('/lp/');
+    const baseline = await capturePageSignatureStable(page);
+
+    // 支店コード相当 (受け取るが何もしない) は基準と一致するはず
+    await page.goto(`/lp/?${param}=A001BR01`);
+    const branch = await capturePageSignatureStable(page);
+    expect(
+      evaluateDisplayDifference(baseline!, branch!).differs,
+      '何もしないコードはコードなしと同じ表示になること',
+    ).toBe(false);
+
+    // 無効コード (案内が出る) は差分として検出できるはず
+    await page.goto(`/lp/?${param}=NOSUCHCODE`);
+    const invalid = await capturePageSignatureStable(page);
+    const difference = evaluateDisplayDifference(baseline!, invalid!);
+    expect(difference.differs, '表示が変わったら検出すること').toBe(true);
+    expect(
+      [...difference.onlyInB, ...difference.textOnlyInB].join(' '),
+      '何が変わったか分かること',
+    ).toContain('fallback-notice');
+  });
+
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {
     // みらやくの表示差分はセクションの有無だけでなく、
     // フッターの表記や注釈など文言だけの違いとして現れることもある。

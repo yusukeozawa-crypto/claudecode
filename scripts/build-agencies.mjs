@@ -59,15 +59,23 @@ function readMaster() {
   return rows;
 }
 
-/** 割り当てルールの評価 (上から順に最初に一致したもの) */
-function resolveProfileName(row, assign) {
+/**
+ * 割り当てルールの評価 (上から順に最初に一致したもの)。
+ *   { exclude: true } のルールに一致した場合は検査対象から外す。
+ * 戻り値: { profile } / { exclude: true } / null (一致なし)
+ */
+function resolveAssignment(row, assign) {
   for (const rule of assign) {
     const match = rule.match ?? {};
     if (match.code !== undefined && match.code !== row.code) continue;
     if (match.codePrefix !== undefined && !row.code.startsWith(match.codePrefix)) continue;
+    // 支店コード (末尾が brNN) のように前方一致では書けない条件を扱う
+    if (match.codeMatches !== undefined && !new RegExp(match.codeMatches).test(row.code)) continue;
     if (match.mirayaku !== undefined && match.mirayaku !== row.mirayaku) continue;
     if (match.companyContains !== undefined && !row.company.includes(match.companyContains)) continue;
-    return rule.profile;
+    if (rule.exclude) return { exclude: true, reason: rule.reason ?? '割り当てルールで除外' };
+    if (!rule.profile) throw new Error(`config/agency-profiles.yml: assign に profile も exclude もありません (${row.code})`);
+    return { profile: rule.profile };
   }
   return null;
 }
@@ -79,6 +87,9 @@ function buildAgency(row, profile) {
     label,
     // 実行時の抽選でパターンごとに選ぶために保持する
     profile: row.profile,
+    // サイト側でコードとして扱われないパターン (支店コードなど) は
+    // 保存・引き継ぎ・代理店表示のいずれも期待しない
+    recognized: profile.recognized !== false,
     entryPath: profile.entryPath,
     expectedFinalPath: profile.expectedFinalPath,
     redirected: Boolean(profile.redirected),
@@ -142,11 +153,16 @@ function main() {
       skipped.push({ code: row.code, reason: `mirayaku=${row.mirayaku || '(空欄)'}` });
       continue;
     }
-    const profileName = resolveProfileName(row, assign);
-    if (!profileName) {
+    const assignment = resolveAssignment(row, assign);
+    if (!assignment) {
       skipped.push({ code: row.code, reason: '一致する割り当てルールがありません' });
       continue;
     }
+    if (assignment.exclude) {
+      skipped.push({ code: row.code, reason: assignment.reason });
+      continue;
+    }
+    const profileName = assignment.profile;
     if (!profiles[profileName]) {
       throw new Error(`config/agency-profiles.yml: プロファイル ${profileName} が定義されていません (${row.code})`);
     }
@@ -164,6 +180,7 @@ function main() {
     },
     displayMustDiffer: profilesFile.displayMustDiffer ?? [],
     displayIgnoreKeys: profilesFile.displayIgnoreKeys ?? [],
+    sameAsNoCodeProfiles: profilesFile.sameAsNoCodeProfiles ?? [],
     agencies,
     invalidCodes: profilesFile.invalidCodes ?? [],
     invalidExpectation: buildFallback(profilesFile.invalidExpectation ?? {}),
