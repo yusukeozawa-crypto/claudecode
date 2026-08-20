@@ -4,6 +4,7 @@
  */
 import type { APIRequestContext, Page } from '@playwright/test';
 import { isSameOrigin, matchesAnyGlob } from './patterns';
+import { assertRequestAllowed, isForbiddenRequest } from './handoff';
 import { mapWithConcurrency, sleep } from './throttle';
 import type { FindingInput, QaConfig } from './types';
 
@@ -67,6 +68,12 @@ export async function checkLink(
   link: LinkInfo,
   config: QaConfig,
 ): Promise<LinkResult> {
+  // route が効かない経路なのでここで判定する (禁止 URL・書き込みメソッド)
+  const permission = assertRequestAllowed(link.href, link.isInternal ? 'GET' : config.errors.links.externalMethod, config);
+  if (!permission.allowed) {
+    return { link, status: null, redirectChain: [], error: permission.reason, redirectLoop: false };
+  }
+
   const linksConfig = config.errors.links;
   const method = link.isInternal ? 'GET' : linksConfig.externalMethod;
   const redirectChain: string[] = [];

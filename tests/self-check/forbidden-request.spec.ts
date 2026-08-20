@@ -6,7 +6,7 @@
  */
 import { test, expect } from '../qa-fixtures';
 import { loadConfig } from '../../utils/config';
-import { isForbiddenRequest } from '../../utils/handoff';
+import { installContextGuards, isForbiddenRequest } from '../../utils/handoff';
 import { checkOpenRedirect, checkParamInjection } from '../../utils/security';
 
 const config = loadConfig();
@@ -78,5 +78,51 @@ test.describe('セキュリティ検査の自己検査 @selfcheck', () => {
       safe.filter((finding) => finding.severity === 'critical'),
       `対策済みのページでは検知しないこと (検知: ${JSON.stringify(safe)})`,
     ).toEqual([]);
+  });
+});
+
+test.describe('安全装置の適用範囲の自己検査 @selfcheck', () => {
+  test.skip(config.environmentName !== 'local', 'モックサイトを使用するため local 環境でのみ実行します');
+
+  test('新しいタブ (target=_blank 相当) でも申込完了が遮断される', async ({ page, qaConfig }) => {
+    // route は Page 単位なので、context 全体に設置しないと新しいタブは無防備になる。
+    // レビューで実測された抜け道の回帰防止。
+    const completeUrl = new URL('/entry/complete', `${qaConfig.environment.applicationBaseUrl}/`).toString();
+    const opened = await page.context().newPage();
+
+    try {
+      // 通常のページは開ける (過剰遮断でないこと)
+      const response = await opened.goto(`${qaConfig.environment.baseUrl}/lp/`);
+      expect(response?.ok(), '通常のページは新しいタブでも開けること').toBe(true);
+
+      // 申込完了 URL は遮断される (遮断で遷移が中断されるため最後に確認する)
+      const error = await opened.goto(completeUrl).then(
+        () => null,
+        (reason: unknown) => reason,
+      );
+      expect(error, '新しいタブでも遮断されること').not.toBeNull();
+      expect(String(error), 'クライアント側で遮断されたことが分かること').toMatch(
+        /BLOCKED|blockedbyclient|ERR_BLOCKED/i,
+      );
+    } finally {
+      await opened.close();
+    }
+  });
+
+  test('独自に作った context でも申込完了が遮断される', async ({ browser, qaConfig }) => {
+    const completeUrl = new URL('/entry/complete', `${qaConfig.environment.applicationBaseUrl}/`).toString();
+    const context = await browser.newContext();
+    await installContextGuards(context, qaConfig);
+    const contextPage = await context.newPage();
+
+    try {
+      const error = await contextPage.goto(completeUrl).then(
+        () => null,
+        (reason: unknown) => reason,
+      );
+      expect(error, '独自 context でも遮断されること').not.toBeNull();
+    } finally {
+      await context.close();
+    }
   });
 });

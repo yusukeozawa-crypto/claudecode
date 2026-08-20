@@ -419,6 +419,30 @@ export async function installContextGuards(
   });
 }
 
+/**
+ * API リクエスト (APIRequestContext) 用のガード。
+ *
+ * route はブラウザのリクエストにしか効かないため、
+ * request.fetch / page.request.* はこのヘルパー経由で行う。
+ * 禁止 URL と、読み取り専用環境での書き込みメソッドを拒否する。
+ */
+export function assertRequestAllowed(
+  url: string,
+  method: string,
+  config: QaConfig,
+): { allowed: true } | { allowed: false; reason: string } {
+  if (isForbiddenRequest(url, config)) {
+    return { allowed: false, reason: '申込完了・データ送信の URL のため実行しません' };
+  }
+  if (config.environment.readOnly && !READ_ONLY_METHODS.has(method.toUpperCase())) {
+    return {
+      allowed: false,
+      reason: `読み取り専用環境では ${method.toUpperCase()} リクエストを実行しません`,
+    };
+  }
+  return { allowed: true };
+}
+
 /** CTA をクリックして申込ドメインへ遷移する */
 export async function clickCtaToApplication(
   page: Page,
