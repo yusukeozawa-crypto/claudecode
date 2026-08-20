@@ -196,12 +196,16 @@ function parseOrigin(value) {
   return { origin: url.origin, droppedPath, droppedQuery };
 }
 
-/** URL を 1 件聞く (空入力・不正な形式はやり直し) */
-async function askUrl(prompt, label, current, pathOwner) {
+/**
+ * URL を 1 件聞く (不正な形式はやり直し)。
+ * optional: true の場合は空入力を「設定しない」として受け付ける。
+ */
+async function askUrl(prompt, label, current, pathOwner, optional = false) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const hint = current ? ` [現在: ${current}]` : '';
+    const hint = current ? ` [現在: ${current}]` : optional ? ' [任意]' : '';
     const answer = await prompt.ask(`    ${label}${hint}: `);
     if (answer === '' && current) return current;
+    if (answer === '' && optional) return '';
     const parsed = answer === '' ? null : parseOrigin(answer);
     if (parsed) {
       if (parsed.droppedPath || parsed.droppedQuery) {
@@ -214,7 +218,7 @@ async function askUrl(prompt, label, current, pathOwner) {
       return parsed.origin;
     }
     if (answer === '') {
-      print('    URL を入力してください。');
+      print(optional ? '    URL か、空のまま Enter を入力してください。' : '    URL を入力してください。');
     } else {
       print('    https:// または http:// から始まる URL を入力してください。');
     }
@@ -238,7 +242,8 @@ async function ensureEnvConfigured(target, prompt) {
   const passKey = `${target.prefix}_BASIC_PASS`;
 
   const current = readEnvFile();
-  if (current.get(lpKey) && current.get(appKey)) return true;
+  // 申込ページの URL は任意 (申込導線の検査は代理店設定が入るまで行わない)
+  if (current.get(lpKey)) return true;
 
   print();
   print(line);
@@ -247,7 +252,7 @@ async function ensureEnvConfigured(target, prompt) {
   print();
   print('  入力する内容:');
   print('    ・LP の URL         例) https://staging.example.jp');
-  print('    ・申込ページの URL  例) https://staging-app.example.jp');
+  print('    ・申込ページの URL  申込導線を検査する場合のみ。不要なら空のまま Enter');
   print('    ・Basic 認証の ID とパスワード (不要なら空のまま Enter)');
   print();
   print('  入力した内容は .env に保存されます (Git にはコミットされません)。');
@@ -273,13 +278,16 @@ async function ensureEnvConfigured(target, prompt) {
     print('    入力を確認できませんでした。中止します。');
     return false;
   }
+  // 申込導線の検査は代理店設定 (application) が入るまで行わないため、
+  // 申込ページの URL は任意にしている。
   const appUrl = await askUrl(
     prompt,
     '申込ページの URL',
     current.get(appKey),
     '代理店ごとの申込設定 (application.expectedPath)',
+    true,
   );
-  if (!appUrl) {
+  if (appUrl === null) {
     print('    入力を確認できませんでした。中止します。');
     return false;
   }
@@ -290,7 +298,8 @@ async function ensureEnvConfigured(target, prompt) {
   const basicUser = await prompt.ask('    ID: ');
   const basicPass = basicUser === '' ? '' : await prompt.ask('    パスワード: ');
 
-  const updates = { [lpKey]: lpUrl, [appKey]: appUrl };
+  const updates = { [lpKey]: lpUrl };
+  if (appUrl !== '') updates[appKey] = appUrl;
   if (basicUser !== '') {
     updates[userKey] = basicUser;
     updates[passKey] = basicPass;
@@ -300,7 +309,7 @@ async function ensureEnvConfigured(target, prompt) {
   print();
   print('  .env を保存しました。');
   print(`    ${lpKey}=${lpUrl}`);
-  print(`    ${appKey}=${appUrl}`);
+  print(`    ${appKey}=${appUrl === '' ? '(未設定 — 申込導線の検査は行いません)' : appUrl}`);
   if (basicUser !== '') {
     print(`    ${userKey}=${basicUser}`);
     print(`    ${passKey}=${'*'.repeat(Math.min(basicPass.length, 12))} (画面には表示しません)`);
