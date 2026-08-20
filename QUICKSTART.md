@@ -55,6 +55,17 @@ cd claudecode-main
 `C:\Windows\System32` では書き込みできないため、必ずユーザーフォルダで実行してください
 （PowerShell を「管理者として実行」で開くと System32 から始まります）。
 
+### 2 回目以降の更新（ZIP を手で展開しなくてよい）
+
+ツールのフォルダで次を実行すると、最新版の取得・上書き・`npm install` まで自動で行います。
+
+```powershell
+npm run update
+```
+
+`.env`（対象サイトの URL と認証情報）、`reports/`、`screenshots/` はそのまま残ります。
+`config/` は上書きされるので、設定を手で直した場合は控えを取ってください。
+
 ## 2. 自社サイトに向ける（15分）
 
 ### ① URL を設定

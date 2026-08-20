@@ -10,6 +10,8 @@
     "agencies:build": "node scripts/build-agencies.mjs",
     "clean": "node scripts/clean.mjs",
     "discover": "node scripts/with-env.mjs QA_DISCOVER=1 -- playwright test --grep @discover --project=*-pc --reporter=list",
+    "discover:production": "node scripts/with-env.mjs QA_ENV=production QA_DISCOVER=1 -- playwright test --grep @discover --project=*-pc --reporter=list",
+    "discover:staging": "node scripts/with-env.mjs QA_ENV=staging QA_DISCOVER=1 -- playwright test --grep @discover --project=*-pc --reporter=list",
     "findings": "node scripts/show-findings.mjs",
     "gate": "node scripts/gate.mjs",
     "mock:serve": "node fixtures/mock-site/server.mjs",
@@ -35,6 +37,7 @@
     "test:text": "playwright test --grep @text",
     "test:visual": "playwright test --grep @visual",
     "typecheck": "tsc --noEmit",
+    "update": "node scripts/update.mjs",
     "update:screenshots": "node scripts/update-baselines.mjs"
   },
   "devDependencies": {
