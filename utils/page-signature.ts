@@ -166,3 +166,44 @@ export function diffSignatures(a: PageSignature, b: PageSignature): SignatureDif
     textOnlyInB: b.textLines.filter((line) => !linesA.has(normalizeLine(line))),
   };
 }
+
+/** 表示されているブロックの鍵 (比較対象) */
+export function visibleBlockKeys(signature: PageSignature, ignoreKeys: Iterable<string> = []): string[] {
+  const ignored = new Set(ignoreKeys);
+  return signature.blocks
+    .filter((block) => block.visible && !ignored.has(block.key))
+    .map((block) => block.key)
+    .sort();
+}
+
+export interface BlockComparison {
+  /** 基準にはあるが対象に無い */
+  missing: string[];
+  /** 対象にだけある */
+  extra: string[];
+  /** 双方にある */
+  shared: string[];
+}
+
+/**
+ * 表示されているブロックを比較する。
+ *
+ * 「同じ分類の代理店なら表示が一致するはず」「異なる分類なら相違があるはず」
+ * を検査するための比較。どの要素が代理店によって変わるのかを
+ * 事前に列挙できないサイトでも成立する。
+ */
+export function compareVisibleBlocks(
+  reference: PageSignature,
+  target: PageSignature,
+  ignoreKeys: Iterable<string> = [],
+): BlockComparison {
+  const referenceKeys = visibleBlockKeys(reference, ignoreKeys);
+  const targetKeys = visibleBlockKeys(target, ignoreKeys);
+  const targetSet = new Set(targetKeys);
+  const referenceSet = new Set(referenceKeys);
+  return {
+    missing: referenceKeys.filter((key) => !targetSet.has(key)),
+    extra: targetKeys.filter((key) => !referenceSet.has(key)),
+    shared: referenceKeys.filter((key) => targetSet.has(key)),
+  };
+}

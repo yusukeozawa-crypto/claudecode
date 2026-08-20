@@ -291,6 +291,15 @@ export interface AgencyScope {
 export interface AgenciesFile {
   /** 実行時の抽選設定 (省略時は全件) */
   scope?: AgencyScope;
+  /**
+   * 表示が異なるべきパターンの組み合わせ。
+   * みらやくの表示差分はセクション・フッター・注釈など複数箇所に及び、
+   * どこが変わるかを列挙しきれないため、
+   * 「同じパターンなら一致」「異なるパターンなら相違」で検査する。
+   */
+  displayMustDiffer?: string[][];
+  /** 表示比較から除外する鍵 (実行ごとに出入りする要素) */
+  displayIgnoreKeys?: string[];
   agencies: AgencySpec[];
   invalidCodes: Array<{ code: string; label: string }>;
   invalidExpectation: FallbackExpectation;

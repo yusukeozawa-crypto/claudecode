@@ -15,12 +15,28 @@
 #   実際の通信を記録して確認し、その結果に合わせて調整する。
 # ============================================================
 
+# 表示が異なるべき分類の組み合わせ (表示の一貫性検査)
+displayMustDiffer:
+  - [solo, partner]
+
+# 表示比較から除外する鍵。
+#   実行ごとに出入りする要素 (ABテストの差し込み枠など) や、
+#   表示分類とは無関係な差異を入れる。
+#   A003 は引き継ぎ方式が POST のため送信フォームを持つ。
+#   これは「みらやく相当の表示分類」の違いではないので除外する。
+displayIgnoreKeys:
+  - cta-form
+  - cta-form-submit
+
 agencies:
   # ----------------------------------------------------------
   # A001: リダイレクトなし / 共通 LP に代理店セクションを表示 / クエリ引き継ぎ
   # ----------------------------------------------------------
   - code: A001
     label: リダイレクトなし・クエリ引き継ぎ
+    # 表示の一貫性検査 (@consistency) 用の分類。
+    # A002 / A003 は「代理店専用LP」で同じ表示になるはず。
+    profile: solo
     # 流入 URL (パス)
     entryPath: /lp/
     # 最終的に表示されるべき URL (パス)
@@ -95,6 +111,7 @@ agencies:
   # ----------------------------------------------------------
   - code: A002
     label: HTTP リダイレクト・一時トークン引き継ぎ
+    profile: partner
     entryPath: /lp/
     expectedFinalPath: /partner/a002/
     redirected: true
@@ -153,6 +170,7 @@ agencies:
   # ----------------------------------------------------------
   - code: A003
     label: meta refresh リダイレクト・POST 引き継ぎ
+    profile: partner
     entryPath: /lp/
     expectedFinalPath: /partner/a003/
     redirected: true

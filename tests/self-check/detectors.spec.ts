@@ -16,7 +16,7 @@ import { detectTextIssues } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
-import { capturePageSignatureStable, diffSignatures, toSelectorHint } from '../../utils/page-signature';
+import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, toSelectorHint } from '../../utils/page-signature';
 import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
@@ -641,6 +641,74 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(disappeared, '代理店コードで消えるセクションを検出できること').toContain('default-contact');
     // 設定にそのまま書ける形で出ること
     expect(toSelectorHint(diff.visibleOnlyInB[0]!), 'data-testid はそのまま使える').not.toContain('css=');
+  });
+
+  test('表示の一貫性: 同じ分類なのに違う表示を検出できる / 一致していれば検出しない', async () => {
+    // みらやくの表示差分はセクション・フッター・注釈など複数箇所に及び、
+    // どこが変わるかを列挙しきれない。そのため
+    // 「同じ分類なら一致」「異なる分類なら相違」で検査する。
+    const block = (key: string, visible: boolean) => ({
+      key,
+      keyKind: 'testid' as const,
+      visible,
+      textSample: key,
+      textLength: key.length,
+    });
+    const signature = (keys: Array<[string, boolean]>) => ({
+      url: 'https://example.test/lp/service/',
+      blocks: keys.map(([key, visible]) => block(key, visible)),
+      textLines: [],
+    });
+
+    const reference = signature([
+      ['hero', true],
+      ['mirayaku-section', true],
+      ['footer-mirayaku-note', true],
+      ['footnote-a', true],
+    ]);
+
+    // 一致している場合は検出しない (誤検知の確認)
+    const same = compareVisibleBlocks(reference, signature([
+      ['footnote-a', true],
+      ['hero', true],
+      ['footer-mirayaku-note', true],
+      ['mirayaku-section', true],
+    ]));
+    expect(same.missing, '順番が違っても一致とみなす').toEqual([]);
+    expect(same.extra, '順番が違っても一致とみなす').toEqual([]);
+
+    // フッターの表記だけが違う場合も検出する (セクション名を知らなくても分かる)
+    const footerDiffers = compareVisibleBlocks(reference, signature([
+      ['hero', true],
+      ['mirayaku-section', true],
+      ['footer-default-note', true],
+      ['footnote-a', true],
+    ]));
+    expect(footerDiffers.missing, 'フッターの表記差分を検出する').toEqual(['footer-mirayaku-note']);
+    expect(footerDiffers.extra, 'フッターの表記差分を検出する').toEqual(['footer-default-note']);
+
+    // display: none で残す実装でも「表示されていない」として検出する
+    const hidden = compareVisibleBlocks(reference, signature([
+      ['hero', true],
+      ['mirayaku-section', false],
+      ['footer-mirayaku-note', true],
+      ['footnote-a', true],
+    ]));
+    expect(hidden.missing, 'DOM に残っていても非表示なら検出する').toEqual(['mirayaku-section']);
+
+    // 除外指定した鍵は比較しない (ABテストの差し込み枠など)
+    const ignored = compareVisibleBlocks(
+      reference,
+      signature([
+        ['hero', true],
+        ['mirayaku-section', true],
+        ['footer-mirayaku-note', true],
+        ['footnote-a', true],
+        ['ab-test-slot', true],
+      ]),
+      ['ab-test-slot'],
+    );
+    expect(ignored.extra, '除外した鍵は差分にしない').toEqual([]);
   });
 
   test('数字だけが違うテキストは差分として報告しない (時刻・カウンタの誤検知防止)', async () => {

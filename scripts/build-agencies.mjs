@@ -162,6 +162,8 @@ function main() {
       perProfile: Number(scope.perProfile ?? 2),
       always: scope.always ?? [],
     },
+    displayMustDiffer: profilesFile.displayMustDiffer ?? [],
+    displayIgnoreKeys: profilesFile.displayIgnoreKeys ?? [],
     agencies,
     invalidCodes: profilesFile.invalidCodes ?? [],
     invalidExpectation: buildFallback(profilesFile.invalidExpectation ?? {}),

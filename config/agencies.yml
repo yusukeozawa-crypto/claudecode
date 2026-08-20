@@ -20,6 +20,10 @@ scope:
   always:
     - littlefamily01
     - littlefamily03
+displayMustDiffer:
+  - - mirayaku-visible
+    - mirayaku-hidden
+displayIgnoreKeys: []
 agencies:
   - code: A0010
     label: Amazon — 旧命名規則コード (みらやく掲載不可)
