@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>検出テスト用｜大量のエラーと遮断</title>
+</head>
+<body>
+  <section data-testid="noisy-body" style="height:200px;">大量のエラーを出すページ</section>
+  <script>
+    // 同じ内容のエラーが大量に出るサイトの再現。
+    // 1 件ずつ積むと実行が這うように遅くなるため、まとめられることを確認する。
+    for (var i = 0; i < 120; i++) {
+      console.error('repeated error for dedupe check');
+    }
+    // 読み取り専用環境で遮断される送信の再現 (計測タグの送信に相当)。
+    for (var j = 0; j < 3; j++) {
+      fetch('/api/collect', { method: 'POST', body: 'x' }).catch(function () {});
+    }
+  </script>
+</body>
+</html>

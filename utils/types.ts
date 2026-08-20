@@ -397,6 +397,12 @@ export interface ErrorsFile {
   pageError: { enabled: boolean; ignoreMessages: string[] };
   /** 実行環境側の一時的な通信断 (サイトの不具合ではない) */
   transientNetworkPatterns?: string[];
+  /** このツールの安全装置による遮断 (サイトの不具合ではない) */
+  selfBlockedPatterns?: string[];
+  /** 他社タグのスクリプト内部で起きたエラーの重大度 */
+  thirdPartyScriptSeverity?: Severity;
+  /** 同じ内容のエラーをまとめる上限 (種類の数) */
+  maxDistinctMessages?: number;
   network: {
     enabled: boolean;
     failStatuses: number[];

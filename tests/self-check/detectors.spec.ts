@@ -19,7 +19,7 @@ import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene
 import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
 import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
-import { describeApplicationLinks, observeApplicationLinks } from '../../utils/handoff';
+import { describeApplicationLinks, installRequestGuards, observeApplicationLinks } from '../../utils/handoff';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
@@ -1030,6 +1030,94 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).toBe(true);
   });
 
+  test('安全装置による遮断を不具合として報告しない (自作自演の防止)', async ({ page }) => {
+    // 読み取り専用の環境では、このツールが GET 以外のリクエストを止める。
+    // ブラウザはそれを「読み込み失敗」としてコンソールに出すが、
+    // サイトの不具合ではない。1 件ずつ報告すると数千件になり本当の不具合が埋もれる。
+    const readOnlyConfig = {
+      ...config,
+      environment: { ...config.environment, readOnly: true },
+    };
+    const monitor = new PageMonitor(page, readOnlyConfig);
+    await installRequestGuards(page, readOnlyConfig);
+    await page.goto('/broken/noisy-errors.html');
+    await page.waitForTimeout(1200);
+    monitor.detach();
+
+    const findings = monitor.toFindings();
+
+    // 遮断は「不具合」として出さない
+    const blockedAsError = findings.filter(
+      (finding) => finding.category === 'js-error' && /ERR_BLOCKED_BY_CLIENT/.test(finding.actual ?? ''),
+    );
+    expect(blockedAsError, '遮断を JavaScript エラーとして報告しないこと').toEqual([]);
+
+    // まとめて 1 件の Low として記録する
+    const summary = findings.filter((finding) => finding.title.includes('安全装置'));
+    expect(summary.length, '遮断はまとめて 1 件にすること').toBe(1);
+    expect(summary[0].severity, '安全装置による遮断は Low であること').toBe('low');
+    expect(summary[0].actual, '遮断した件数が分かること').toMatch(/[0-9]+ 件/);
+  });
+
+  test('同じ内容のエラーはまとめる (大量発生でも実行が止まらない)', async ({ page }) => {
+    const monitor = new PageMonitor(page, config);
+    await page.goto('/broken/noisy-errors.html');
+    await page.waitForTimeout(1200);
+    monitor.detach();
+
+    const repeated = monitor.consoleEntries.filter((entry) => entry.text.includes('repeated error for dedupe check'));
+    expect(repeated.length, '同じ内容は 1 件にまとめること').toBe(1);
+    expect(repeated[0].count, '件数を数えること').toBeGreaterThan(50);
+    expect(
+      monitor.consoleEntries.length,
+      `記録する種類に上限を設けること (現在 ${monitor.consoleEntries.length} 種類)`,
+    ).toBeLessThanOrEqual(config.errors.maxDistinctMessages ?? 50);
+
+    const finding = monitor.toFindings().find((entry) => /repeated error/.test(entry.actual ?? ''));
+    expect(finding?.actual, '件数をレポートに出すこと').toContain('同じ内容が');
+  });
+
+  test('他社タグの中のエラーは Critical / High で報告しない', async ({ page }) => {
+    // 計測タグ・解析タグの内部エラーは自社コードの不具合ではない。
+    // 無視もしない (表示を壊すことがあるため記録する)。
+    const monitor = new PageMonitor(page, config);
+    monitor.detach();
+    const documentUrl = `${config.environment.baseUrl}/lp/`;
+
+    monitor.pageErrors.push({
+      message: "Cannot read properties of undefined (reading 'unshift')",
+      stack: "TypeError\n    at <anonymous> (https://www.clarity.ms/tag/uet/97031584:0:579)",
+      url: documentUrl,
+      count: 1,
+    });
+    monitor.consoleEntries.push({
+      level: 'error',
+      text: 'Failed to load resource: 403',
+      url: documentUrl,
+      location: 'https://pagesense-collect.example.jp/pslog.gif:0:0',
+      count: 1,
+    });
+    // 自社ドメインのスクリプトのエラーは従来どおり (既定の重大度)
+    monitor.consoleEntries.push({
+      level: 'error',
+      text: 'Uncaught TypeError: own script broke',
+      url: documentUrl,
+      location: `${config.environment.baseUrl}/assets/agency.js:10:1`,
+      count: 1,
+    });
+
+    const findings = monitor.toFindings();
+    const thirdParty = findings.filter((finding) => finding.title.includes('他社タグ'));
+    expect(thirdParty.length, '他社タグ由来の 2 件が区別されること').toBe(2);
+    for (const finding of thirdParty) {
+      expect(finding.severity, '他社タグのエラーは Low であること').toBe('low');
+    }
+
+    const own = findings.find((finding) => /own script broke/.test(finding.actual ?? ''));
+    expect(own, '自社コードのエラーは記録されること').toBeTruthy();
+    expect(own?.severity, '自社コードのエラーは既定 (High) のままであること').toBeUndefined();
+  });
+
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {
     // みらやくの表示差分はセクションの有無だけでなく、
     // フッターの表記や注釈など文言だけの違いとして現れることもある。
@@ -1192,6 +1280,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       text: `Failed to load resource: net::${patterns[0]}`,
       url: documentUrl,
       location: 'https://example.com/tag.js:0:0',
+      count: 1,
     });
     monitor.requestFailures.push({
       url: 'https://example.com/tag.js',
@@ -1204,8 +1293,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     monitor.consoleEntries.push({
       level: 'error',
       text: 'Uncaught TypeError: undefined is not a function',
-      url: documentUrl,
-    });
+      url: documentUrl, count: 1 });
 
     const findings = monitor.toFindings();
     const transient = findings.filter((finding) => finding.actual?.includes(patterns[0]));
@@ -1226,8 +1314,8 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     monitor.detach();
 
     const errorUrl = `${config.environment.baseUrl}/lp/?${param}=SELFCHECK-URL`;
-    monitor.consoleEntries.push({ level: 'error', text: 'console error', url: errorUrl });
-    monitor.pageErrors.push({ message: 'page error', url: errorUrl });
+    monitor.consoleEntries.push({ level: 'error', text: 'console error', url: errorUrl, count: 1 });
+    monitor.pageErrors.push({ message: 'page error', url: errorUrl, count: 1 });
     monitor.networkErrors.push({
       url: `${config.environment.baseUrl}/missing.json`,
       status: 404,
