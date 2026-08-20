@@ -85,7 +85,12 @@ function buildAgency(row, profile) {
     // null (未実測) は unknown として出力する。
     // unknown は「方式を問わず、実測値をレポートに記録する」の意味。
     redirectMechanism: profile.redirectMechanism ?? 'unknown',
-    expectedRedirectCount: Number(profile.expectedRedirectCount ?? 0),
+    // null (未実測) は照合せず実測値を記録する。
+    // 推測した回数で判定すると正常なサイトを不具合として報告してしまう。
+    expectedRedirectCount:
+      profile.expectedRedirectCount === null || profile.expectedRedirectCount === undefined
+        ? null
+        : Number(profile.expectedRedirectCount),
     expectedRedirectPaths: profile.expectedRedirectPaths ?? [],
     visibleSections: profile.visibleSections ?? [],
     hiddenSections: profile.hiddenSections ?? [],

@@ -73,7 +73,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -944,7 +944,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -960,7 +960,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -976,7 +976,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -992,7 +992,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1008,7 +1008,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1024,7 +1024,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1040,7 +1040,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1056,7 +1056,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1072,7 +1072,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1088,7 +1088,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1104,7 +1104,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1120,7 +1120,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1136,7 +1136,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1152,7 +1152,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1168,7 +1168,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1184,7 +1184,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1200,7 +1200,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1216,7 +1216,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1232,7 +1232,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1248,7 +1248,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1264,7 +1264,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1280,7 +1280,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1296,7 +1296,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1312,7 +1312,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1328,7 +1328,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1344,7 +1344,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1360,7 +1360,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1376,7 +1376,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1392,7 +1392,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1408,7 +1408,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1424,7 +1424,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1440,7 +1440,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1456,7 +1456,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1472,7 +1472,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1488,7 +1488,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1504,7 +1504,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1520,7 +1520,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1536,7 +1536,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1552,7 +1552,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1568,7 +1568,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1584,7 +1584,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1600,7 +1600,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1616,7 +1616,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1632,7 +1632,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1648,7 +1648,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1664,7 +1664,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1680,7 +1680,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1696,7 +1696,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1712,7 +1712,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
@@ -1728,7 +1728,7 @@ agencies:
     expectedFinalPath: /lp/service-premium/
     redirected: true
     redirectMechanism: unknown
-    expectedRedirectCount: 1
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []

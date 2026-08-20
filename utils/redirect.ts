@@ -320,7 +320,7 @@ export interface RedirectExpectation {
   expectedFinalPath: string;
   redirected: boolean;
   redirectMechanism: RedirectMechanism;
-  expectedRedirectCount?: number;
+  expectedRedirectCount?: number | null;
   expectedRedirectPaths?: string[];
 }
 
@@ -380,13 +380,31 @@ export function verifyRedirectTrace(
   if (expectation.expectedRedirectCount !== undefined) {
     const observed = trace.hops.filter((hop) => hop.kind !== 'document' || false).length;
     const totalTransitions = countTransitions(trace);
-    if (totalTransitions !== expectation.expectedRedirectCount) {
+    const breakdown =
+      `HTTP 3xx: ${trace.httpRedirectCount}, ドキュメント要求: ${trace.documentRequestCount}, ` +
+      `SPA: ${trace.historyChangeCount}, meta refresh: ${trace.metaRefreshTargets.length}`;
+    if (expectation.expectedRedirectCount === null) {
+      // 未実測。推測した回数で判定すると正常なサイトを不具合として報告してしまうため、
+      // 照合せず実測値を記録して設定に反映できるようにする。
+      findings.push({
+        category: 'agency-redirect',
+        severity: 'low',
+        title: `${label}: リダイレクト回数が未設定です`,
+        expected: 'config の expectedRedirectCount に実測値を設定すること',
+        actual: `実測値: ${totalTransitions} 回 (${breakdown})`,
+        url,
+        detail:
+          '経路: ' +
+          [trace.entryUrl, ...trace.hops.map((hop) => hop.url)].join(' -> ') +
+          ' / この回数を config/agency-profiles.yml の expectedRedirectCount に設定すると、以降は回数の変化を検知できます',
+      });
+    } else if (totalTransitions !== expectation.expectedRedirectCount) {
       findings.push({
         category: 'agency-redirect',
         severity: 'high',
         title: `${label}: リダイレクト回数が仕様と異なります`,
         expected: `${expectation.expectedRedirectCount} 回`,
-        actual: `${totalTransitions} 回 (HTTP 3xx: ${trace.httpRedirectCount}, ドキュメント要求: ${trace.documentRequestCount}, SPA: ${trace.historyChangeCount}, meta refresh: ${trace.metaRefreshTargets.length}) [observed hops: ${observed}]`,
+        actual: `${totalTransitions} 回 (${breakdown}) [observed hops: ${observed}]`,
         url,
         detail: `経路: ${[trace.entryUrl, ...trace.hops.map((hop) => hop.url)].join(' -> ')}`,
       });

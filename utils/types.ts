@@ -226,7 +226,12 @@ export interface AgencySpec {
   /** 挙動パターン名 (抽選のグループ分けに使う) */
   profile?: string;
   redirectMechanism: RedirectMechanism;
-  expectedRedirectCount: number;
+  /**
+   * 期待するリダイレクト回数。
+   * null = まだ実測していない。回数の照合は行わず、実測値を記録する
+   * (推測した回数で判定すると、正常なサイトを不具合として報告してしまう)。
+   */
+  expectedRedirectCount: number | null;
   expectedRedirectPaths: string[];
   visibleSections: string[];
   hiddenSections: string[];

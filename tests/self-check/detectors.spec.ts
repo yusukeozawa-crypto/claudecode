@@ -619,6 +619,58 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     }
   });
 
+  test('リダイレクト回数が未設定なら照合せず実測値を記録する', async () => {
+    // 推測した回数で判定すると、正常なサイトを不具合として報告してしまう。
+    // 未設定 (null) の間は Critical / High を出さず、実測値を Low で記録する。
+    const trace = {
+      entryUrl: 'https://example.test/lp/service/',
+      finalUrl: 'https://example.test/lp/service-premium/',
+      hops: [
+        { url: 'https://example.test/lp/service/', status: 302, location: 'https://example.test/lp/service-premium/', kind: 'http' as const },
+        { url: 'https://example.test/lp/service-premium/', status: 200, location: null, kind: 'document' as const },
+      ],
+      httpRedirectCount: 1,
+      documentRequestCount: 2,
+      historyChangeCount: 0,
+      metaRefreshTargets: [],
+      loopDetected: false,
+      mechanism: 'http' as const,
+    };
+    const expectation = {
+      code: 'littlefamily03',
+      entryPath: '/lp/service/',
+      expectedFinalPath: '/lp/service-premium/',
+      redirected: true,
+      redirectMechanism: 'unknown' as const,
+      expectedRedirectPaths: ['/lp/service-premium/'],
+    };
+
+    const unmeasured = verifyRedirectTrace(
+      trace,
+      { ...expectation, expectedRedirectCount: null },
+      config,
+    );
+    expect(
+      unmeasured.filter((finding) => finding.severity === 'critical' || finding.severity === 'high'),
+      '未設定なら Critical / High を出さない',
+    ).toEqual([]);
+    const recorded = unmeasured.find((finding) => finding.title.includes('リダイレクト回数が未設定'));
+    expect(recorded, '実測値が記録されること').toBeDefined();
+    expect(recorded?.actual, '実測値と内訳が分かること').toContain('1 回');
+    expect(recorded?.actual, '内訳が分かること').toContain('HTTP 3xx: 1');
+
+    // 実測値を設定すれば、以降は差異を検知できる
+    const wrong = verifyRedirectTrace(
+      trace,
+      { ...expectation, expectedRedirectCount: 2 },
+      config,
+    );
+    expect(
+      wrong.some((finding) => finding.severity === 'high' && finding.title.includes('リダイレクト回数')),
+      '設定後は回数の差異を検知すること',
+    ).toBe(true);
+  });
+
   test('同じ URL を再取得してもリダイレクトループと誤判定しない', async ({ page }) => {
     // 3xx を伴わない同一 URL の再取得はループではない
     const entryUrl = `${config.environment.baseUrl}/lp/`;

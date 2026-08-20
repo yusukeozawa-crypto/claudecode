@@ -87,7 +87,11 @@ profiles:
     # [未実測] 遷移方式 (http / js / meta-refresh / spa) が未確認。
     # discover で判定できる。設定した方式と異なっていれば警告として報告される。
     redirectMechanism: null
-    expectedRedirectCount: 1
+    # [未実測] 回数も方式も実測していない。
+    # null の間は照合せず実測値を記録する
+    # (推測した回数で判定すると正常なサイトを不具合として報告してしまう)。
+    # 「専用LPに着くこと」「他の代理店は着かないこと」は照合し続ける。
+    expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
     visibleSections: []
