@@ -3,6 +3,7 @@
  * 誤字脱字・表記揺れのチェックはこの抽出結果に対して行う。
  */
 import fs from 'node:fs';
+import { writeHumanText } from './text-file';
 import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { PROJECT_ROOT } from './config';
@@ -138,7 +139,8 @@ export function saveExtractedText(config: QaConfig, data: ExtractedText): string
         .map((value) => csvEscape(String(value)))
         .join(','),
     );
-    fs.writeFileSync(csvPath, `${header}\n${rows.join('\n')}\n`, 'utf8');
+    // Excel / メモ帳が Shift-JIS と誤認して文字化けするため BOM を付ける
+    writeHumanText(csvPath, `${header}\n${rows.join('\n')}\n`);
     saved.push(csvPath);
   }
 

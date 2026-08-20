@@ -135,7 +135,76 @@ $env:QA_AGENCY_SEED="m3k8xq-a71f9c"; npm run test:agency
 - `SPA` が 1 以上 → クライアント側のルーティング
 - リダイレクトなしの代理店で回数が 1 以上 → **想定が違う**
 
-## 4. 未実測の項目 (discover で確認する)
+## 4. 実測結果 (2026-08-20 ステージング)
+
+`npm run discover` をステージングに対して実行した結果。
+
+### 4-1. リダイレクトが観測されなかった
+
+**カカクコムのコードでも専用 LP へのリダイレクトが起きていない。**
+
+```
+[littlefamily03]
+  流入 URL : https://lp.littlefamily-ssi-stg.com/lp/service/?insAgentNo=littlefamily03
+  最終 URL : https://lp.littlefamily-ssi-stg.com/lp/service/?insAgentNo=littlefamily03
+  遷移方式 : リダイレクトなし (HTTP 3xx: 0, meta refresh: 0, SPA: 0)
+```
+
+`littlefamily03` `littlefamily03br37` `littlefamily03br46` すべて同じ。
+支店コードも本体も、`/lp/service/` に留まっている。
+
+仕様は「カカクコムのコードで流入したら `/lp/service-premium/` へリダイレクト」
+なので、**設定と実際が食い違っている**。次のいずれか。
+
+| 可能性 | 確認方法 |
+|---|---|
+| ステージングにリダイレクトが未反映 | 本番で `npm run test:production` を実行して比較する |
+| リダイレクトの条件が別にある (Cookie・初回のみ・時間帯など) | 実装を確認する |
+| 仕様が変わった | 仕様の確認 |
+
+**この不一致は設定を書き換えて消してはいけない。**
+リダイレクトが本当に不要なら `kakakucom` プロファイルの
+`expectedFinalPath` を `/lp/service/` に変え、`redirected: false` にする。
+それまでは Critical のまま残す (検知できている状態を維持する)。
+
+### 4-2. みらやくの表示差分の実体
+
+コードなしの通常 LP を基準にした差分。
+
+| 代理店 | みらやく | 差分 |
+|---|---|---|
+| `littlefamily01` (ダイレクト) | ○ | **差分なし** (自社コード = オリジナル表示。仕様どおり) |
+| `littlefamily18br14` | ○ | キャンペーンバナー 5 件が消える。文言の差分なし |
+| `littlefamily03` (カカクコム) | ○ | バナー 5 件が消える + 「募集代理店：株式会社カカクコム・インシュアランス」が出る |
+| `littlefamily12` (ドコモ) | × | バナー 5 件が消える + 募集代理店表記が出る + **24 行のテキストが消える** |
+
+みらやく × で消えている 24 行には次が含まれる。
+
+- 「月額780円〜でさらに安心」(保険料の訴求)
+- 「安心パック※2 基本プランに追加できるオプション」
+- 「保険料 提携先の保護団体を…」
+- 約款・重要事項説明書への案内、補償内容の注記
+
+つまり**みらやくの差分は 1 つのセクションではなく、
+保険料・オプション・注記など複数箇所のテキストに及ぶ**。
+セレクタを列挙する方式では取りこぼす。
+
+そのため「同じ分類なら表示が一致する / ○ と × は表示が異なる」という
+一貫性検査 (`tests/agency/agency-display-consistency.spec.ts`) を主とし、
+セクションの列挙は補助とする。
+
+### 4-3. その他の実測
+
+- **キャンペーンバナー** `#lf-campaign-banner-202609-1` 〜 `-5` は
+  代理店コードが付くと消える (コードなしのときだけ表示)。
+  みらやく可否とは無関係で、全代理店で同じ挙動
+- **代理店名の表示**: 「募集代理店：<会社名>」という文言が出る。
+  `expectedTexts` に設定できる形 (要素のセレクタは未特定)
+- **申込導線**: CTA が未設定のため未調査。
+  一部の代理店で `api` 方式の通信が観測されたが、
+  観測できない代理店もあり確定していない
+
+## 5. 未実測の項目 (discover で確認する)
 
 以下は実サイトで確認できていない。**設定するまでその項目は検査されない**
 (誤検知はしないが、見逃しになる)。
@@ -229,7 +298,7 @@ cat reports/discovery/suggested-agencies.yml
 出力される推奨値を `config/agency-profiles.yml` / `config/agency.yml` に反映し、
 `npm run agencies:build` で再生成する。
 
-## 5. いま実行して分かること
+## 6. いま実行して分かること
 
 未実測の項目があっても、次は検査できる。
 
@@ -244,7 +313,7 @@ cat reports/discovery/suggested-agencies.yml
 - URL に個人情報や不要なパラメータが付いていないか
 - open redirect / URL パラメータの HTML への出力
 
-## 6. 申込導線 (days ドメイン)
+## 7. 申込導線 (days ドメイン)
 
 申込は LP とは別ドメイン (`days.littlefamily-ssi-stg.com`)、入口は
 `/solicitation/step1` であることが分かっている。ただし
@@ -263,7 +332,7 @@ cat reports/discovery/suggested-agencies.yml
 3 は実測に頼らず、実装を確認して設定すること
 (誤って申込を完了させると取り消せない)。
 
-## 7. コーポレートサイト
+## 8. コーポレートサイト
 
 `www.littlefamily-ssi.com` は LP とは別ホストのため、`config/pages.yml` には
 入れられない (`baseUrl` 配下ではない)。検査する場合は

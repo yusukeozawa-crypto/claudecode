@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { test } from '../qa-fixtures';
 import { PROJECT_ROOT } from '../../utils/config';
+import { writeHumanText } from '../../utils/text-file';
 import { agencySpecs } from '../../utils/agency';
 import { buildEntryUrl } from '../../utils/agency-entry';
 import { capturePageSignatureStable, diffSignatures, toSelectorHint } from '../../utils/page-signature';
@@ -134,7 +135,8 @@ test.describe('表示差分の調査 @discover', () => {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     const markdownPath = path.join(OUTPUT_DIR, 'agency-section-diff.md');
     const jsonPath = path.join(OUTPUT_DIR, 'agency-section-diff.json');
-    fs.writeFileSync(markdownPath, `${lines.join('\n')}\n`, 'utf8');
+    // Windows で `type` / メモ帳が Shift-JIS と誤認して文字化けするため BOM を付ける
+    writeHumanText(markdownPath, `${lines.join('\n')}\n`);
     fs.writeFileSync(
       jsonPath,
       JSON.stringify(
