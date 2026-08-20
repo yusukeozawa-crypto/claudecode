@@ -109,7 +109,7 @@ test.describe('申込ページへの引き継ぎ @agency @handoff', () => {
           severity: tokenCount > 0 ? 'low' : 'critical',
           title:
             tokenCount > 0
-              ? `${spec.code}: 一時トークンによる引き継ぎを確認しました`
+              ? `[確認OK] ${spec.code}: 一時トークンによる引き継ぎを確認しました`
               : `${spec.code}: 一時トークンが観測されませんでした`,
           expected: `${spec.application.handoffParam} が送信され、申込側で ${spec.application.expectedCode} に復元されること`,
           actual:

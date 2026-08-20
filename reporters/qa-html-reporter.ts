@@ -311,9 +311,19 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   .card-medium .card-value { color: var(--medium); }
   .card-low .card-value { color: var(--low); }
   .card-label { font-size: 12px; color: #5a6672; }
-  .gate { margin: 12px 0 20px; padding: 12px 16px; border-radius: 8px; font-weight: 700; }
+  .gate { margin: 12px 0 20px; padding: 14px 18px; border-radius: 8px; }
+  .gate-title { display: block; font-size: 18px; font-weight: 700; }
+  .gate-note { display: block; margin-top: 4px; font-size: 12px; opacity: 0.85; }
   .gate-fail { background: #fdecea; border: 1px solid #f3b7b2; color: var(--critical); }
+  .gate-warn { background: #fff8e6; border: 1px solid #f0d79a; color: #8a5a00; }
   .gate-pass { background: #e9f7ef; border: 1px solid #b7e0c4; color: #14683a; }
+  .tests-details { margin: 28px 0 0; }
+  .tests-details > summary { cursor: pointer; font-size: 16px; font-weight: 700; padding: 6px 0; }
+  #tests tbody tr.status-passed { display: none; }
+  body.show-passed #tests tbody tr.status-passed { display: table-row; }
+  #tests-empty { display: none; }
+  body.no-attention #tests-empty { display: block; }
+  body.no-attention.show-passed #tests-empty { display: none; }
   h2 { font-size: 16px; margin: 28px 0 10px; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -350,10 +360,19 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
 </header>
 <main>
   <div class="cards">${severityCards}</div>
-  <div class="gate ${summary.gateFailed ? 'gate-fail' : 'gate-pass'}">
-    ${summary.gateFailed
-      ? 'Critical / High を検知しました。CI は失敗として終了します。'
-      : 'Critical / High の検知はありません。CI は成功として終了します。'}
+  <div class="gate ${summary.gateFailed ? 'gate-fail' : findings.length > 0 ? 'gate-warn' : 'gate-pass'}">
+    <span class="gate-title">${
+      summary.gateFailed
+        ? `要対応: 至急の不具合を ${summary.findings.critical + summary.findings.high} 件検知しました`
+        : findings.length > 0
+          ? `至急の不具合はありません (Medium / Low が ${findings.length} 件)`
+          : '異常は検知されませんでした'
+    }</span>
+    <span class="gate-note">${
+      summary.gateFailed
+        ? 'CI は失敗として終了します。下の一覧の Critical / High から対応してください。'
+        : 'CI は成功として終了します。'
+    }</span>
   </div>
 
   <h2>検知した不具合 (${findings.length} 件)</h2>
@@ -378,21 +397,37 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
     }
   </div>
 
-  <h2>テスト実行一覧</h2>
-  <div class="panel">
-    <table>
-      <thead><tr>
-        <th>結果</th><th>テスト</th><th>ページ</th><th>PC/SP</th><th>代理店コード</th><th>検知件数</th><th>所要</th><th>再現URL</th>
-      </tr></thead>
-      <tbody>${testRows}</tbody>
-    </table>
-  </div>
+  <details class="tests-details">
+    <summary>テスト実行一覧 (${summary.tests.total} 件) — 原因を詳しく追うとき以外は開く必要はありません</summary>
+    <div class="filters">
+      <label><input type="checkbox" id="show-passed"> 成功したテストも表示する (${summary.tests.passed} 件)</label>
+    </div>
+    <div class="panel">
+      <table id="tests">
+        <thead><tr>
+          <th>結果</th><th>テスト</th><th>ページ</th><th>PC/SP</th><th>代理店コード</th><th>検知件数</th><th>所要</th><th>再現URL</th>
+        </tr></thead>
+        <tbody>${testRows}</tbody>
+      </table>
+      <p class="empty" id="tests-empty">失敗・タイムアウト・スキップしたテストはありません。</p>
+    </div>
+  </details>
 </main>
 <footer>
   Playwright の詳細レポート: <a href="playwright-report/index.html">playwright-report/index.html</a>
   ｜ 生成日時 ${escapeHtml(new Date(summary.generatedAt).toLocaleString('ja-JP'))}
 </footer>
 <script>
+  (function () {
+    var attention = document.querySelectorAll('#tests tbody tr:not(.status-passed)').length;
+    if (attention === 0) document.body.classList.add('no-attention');
+    var toggle = document.getElementById('show-passed');
+    if (toggle) {
+      toggle.addEventListener('change', function () {
+        document.body.classList.toggle('show-passed', toggle.checked);
+      });
+    }
+  })();
   document.querySelectorAll('[data-filter]').forEach(function (input) {
     input.addEventListener('change', function () {
       var severity = input.getAttribute('data-filter');

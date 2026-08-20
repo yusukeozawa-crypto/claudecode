@@ -7,12 +7,34 @@
 ```bash
 npm install
 npm run prepare:browsers
-npm test
-npm run report          # ブラウザでレポートが開く
+npm run test:local
 ```
 
-同梱のモックサイトが自動起動し、255テストが実行されます。
+同梱のモックサイト（LP ドメイン + 申込ドメイン）が自動起動し、246項目が実行されます。
 実サイトの URL は不要です。**まずこれで「何が出るか」を確認してください。**
+
+終わったら `reports/qa-report.html` をブラウザで開きます。
+
+- Windows: `start reports\qa-report.html`
+- macOS: `open reports/qa-report.html`
+
+`npm test` は見た目のスクリーンショット比較（`@visual`）も含みます。基準画像は
+Linux (CI) で作成しているため、Windows / macOS では**不具合でなくても差分が出ます**。
+手元では `npm run test:local` を使ってください。
+
+### Node.js だけで動かす（Git を入れない場合）
+
+Git を入れずに済ませたい場合は、ZIP を取得して展開します（Windows PowerShell）:
+
+```powershell
+cd "$env:USERPROFILE"
+Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/yusukeozawa-crypto/claudecode/archive/refs/heads/main.zip" -OutFile repo.zip
+Expand-Archive -Path repo.zip -DestinationPath . -Force
+cd claudecode-main
+```
+
+`C:\Windows\System32` では書き込みできないため、必ずユーザーフォルダで実行してください
+（PowerShell を「管理者として実行」で開くと System32 から始まります）。
 
 ## 2. 自社サイトに向ける（15分）
 
@@ -91,12 +113,15 @@ readyIndicator:
 ```bash
 QA_ENV=staging npm run test:local        # 視覚差分以外をすべて
 QA_ENV=staging npm run test:agency       # 代理店テストのみ
-npm run report
 ```
 
 設定に不備があれば**実行前にエラーで止まり、どこが問題か表示されます**。
 
 ## 3. 結果の見方
+
+見るのは `reports/qa-report.html` です。**問題があった項目だけ**が重大度順に並びます
+（通った項目は「テスト実行一覧」に折りたたまれています）。
+画面上部に「異常は検知されませんでした / 要対応 N 件」と出るので、そこだけ見れば足ります。
 
 | 重大度 | 意味 | 対応 |
 |---|---|---|
@@ -110,13 +135,13 @@ npm run report
 ## 4. よく使うコマンド
 
 ```bash
-npm test                    # 全テスト（モックサイト）
-npm run test:local          # 視覚差分以外（ローカル向け・OS差のノイズなし）
+npm run test:local          # 全項目（視覚差分以外・手元での既定）
+npm test                    # 視覚差分も含む全テスト（CI/Linux 向け）
 npm run test:staging        # ステージング対象
 npm run test:production     # 本番対象（読み取り専用・申込完了しない）
 npm run test:agency         # 代理店テストのみ
 npm run discover            # 実仕様の調査
-npm run report              # レポートを開く
+npm run report              # Playwright の詳細レポート（原因追跡用）
 npm run clean               # レポートを削除（基準画像は残る）
 ```
 

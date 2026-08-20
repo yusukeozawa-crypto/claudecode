@@ -72,7 +72,7 @@ test.describe('代理店コードのセキュリティ @security', () => {
     const finding = qa.findings.add({
       category: 'agency-handoff',
       severity: 'low',
-      title: 'マスキング確認用',
+      title: '[自己検査] マスキングの動作確認 (サイトの不具合ではありません)',
       expected: '秘密情報を出力しないこと',
       actual: `handoff_token=${token}`,
       url: `${config.environment.applicationBaseUrl}/entry/?handoff_token=${token}`,
