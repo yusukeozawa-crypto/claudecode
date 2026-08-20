@@ -182,6 +182,7 @@ QA_ENV=staging npm run test:agency       # 代理店テストのみ
 ```bash
 npm run qa                  # 対話式（対象を選んで実行しレポートを開く）
 npm run agencies:build      # 代理店設定を再生成（マスタ編集後）
+npm run test:agency:all     # 代理店を抽選せず全件検査する
 npm run test:local          # 全項目（視覚差分以外・手元での既定）
 npm test                    # 視覚差分も含む全テスト（CI/Linux 向け）
 npm run test:staging        # ステージング対象

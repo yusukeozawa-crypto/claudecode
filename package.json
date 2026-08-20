@@ -18,6 +18,8 @@
     "report": "node scripts/serve-report.mjs",
     "test": "playwright test",
     "test:agency": "playwright test --grep @agency",
+    "test:agency:all": "node scripts/with-env.mjs QA_AGENCY_SCOPE=all -- playwright test --grep @agency",
+    "test:all-agencies": "node scripts/with-env.mjs QA_AGENCY_SCOPE=all -- playwright test",
     "test:crawl": "playwright test --grep @crawl",
     "test:handoff": "playwright test --grep @handoff",
     "test:health": "playwright test --grep @health",

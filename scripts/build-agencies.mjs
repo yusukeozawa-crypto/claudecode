@@ -12,8 +12,11 @@
  * このサイトの挙動は「みらやく掲載可否」と「カカクコムか否か」で決まるため、
  * パターン (プロファイル) を定義し、マスタの属性から割り当てる。
  *
- * 既定では各パターンの代表だけを出力する (scope.mode: sample)。
- *   --all      … マスタの全件を出力する
+ * 出力は常に全件。どれを実際に検査するかは実行時に抽選する
+ * (毎回同じ代理店だけを検査すると、残りに潜む問題を見逃し続けるため)。
+ * 抽選の設定は scope として agencies.yml に書き出し、
+ * utils/agency.ts が実行時に使う。
+ *
  *   --check    … 生成せず、現在の agencies.yml と一致するかだけ確認する (CI 用)
  */
 import fs from 'node:fs';
@@ -28,7 +31,6 @@ const PROFILES_PATH = path.join(CONFIG_DIR, 'agency-profiles.yml');
 const OUTPUT_PATH = path.join(CONFIG_DIR, 'agencies.yml');
 
 const args = process.argv.slice(2);
-const wantAll = args.includes('--all');
 const checkOnly = args.includes('--check');
 
 /** TSV の読み込み (# 始まりはコメント) */
@@ -70,34 +72,13 @@ function resolveProfileName(row, assign) {
   return null;
 }
 
-/** サンプリング: パターンごとに perProfile 件 + always を選ぶ */
-function selectRows(rows, scope) {
-  if (wantAll || scope.mode === 'all') return rows;
-  const always = new Set(scope.always ?? []);
-  const perProfile = Number(scope.perProfile ?? 2);
-  const picked = [];
-  const countByProfile = new Map();
-  for (const row of rows) {
-    if (always.has(row.code)) {
-      picked.push(row);
-      continue;
-    }
-    const used = countByProfile.get(row.profile) ?? 0;
-    if (used < perProfile) {
-      countByProfile.set(row.profile, used + 1);
-      picked.push(row);
-    }
-  }
-  // マスタの並び順を保つ
-  const order = new Map(rows.map((row, index) => [row.code, index]));
-  return picked.sort((a, b) => order.get(a.code) - order.get(b.code));
-}
-
 function buildAgency(row, profile) {
   const label = `${row.company} — ${profile.label}`;
   return {
     code: row.code,
     label,
+    // 実行時の抽選でパターンごとに選ぶために保持する
+    profile: row.profile,
     entryPath: profile.entryPath,
     expectedFinalPath: profile.expectedFinalPath,
     redirected: Boolean(profile.redirected),
@@ -167,10 +148,15 @@ function main() {
     assigned.push({ ...row, profile: profileName });
   }
 
-  const selected = selectRows(assigned, scope);
-  const agencies = selected.map((row) => buildAgency(row, profiles[row.profile]));
+  const agencies = assigned.map((row) => buildAgency(row, profiles[row.profile]));
 
   const output = {
+    // どれを実際に検査するかは実行時に抽選する (utils/agency.ts)
+    scope: {
+      mode: scope.mode ?? 'sample',
+      perProfile: Number(scope.perProfile ?? 2),
+      always: scope.always ?? [],
+    },
     agencies,
     invalidCodes: profilesFile.invalidCodes ?? [],
     invalidExpectation: buildFallback(profilesFile.invalidExpectation ?? {}),
@@ -188,10 +174,13 @@ function main() {
     '#     config/agency-profiles.yml  (挙動パターンごとの期待結果)',
     '#',
     '#   再生成: npm run agencies:build',
-    '#           npm run agencies:build -- --all   (全件を対象にする)',
     '#',
-    `#   生成時の対象: ${agencies.length} 件 / マスタ ${master.length} 件`,
-    `#   絞り込み: ${wantAll || scope.mode === 'all' ? 'all (全件)' : `sample (パターンごと ${scope.perProfile ?? 2} 件 + always)`}`,
+    `#   全 ${agencies.length} 件 / マスタ ${master.length} 件`,
+    '#',
+    '#   実際に検査する代理店は実行ごとに抽選される (scope を参照)。',
+    '#   毎回同じ代理店だけを検査すると、残りに潜む問題を見逃し続けるため。',
+    '#   全件を検査する場合: npm run test:agency:all',
+    '#   抽選を再現する場合: QA_AGENCY_SEED=<レポートに記録された値>',
     '# ============================================================',
     '',
   ].join('\n');
@@ -213,24 +202,28 @@ function main() {
   fs.writeFileSync(OUTPUT_PATH, yaml, 'utf8');
 
   const byProfile = new Map();
-  for (const row of selected) byProfile.set(row.profile, (byProfile.get(row.profile) ?? 0) + 1);
+  for (const row of assigned) byProfile.set(row.profile, (byProfile.get(row.profile) ?? 0) + 1);
 
   console.log(`config/agencies.yml を生成しました (${agencies.length} 件)`);
   console.log('');
   console.log('  パターンごとの件数:');
   for (const [name, count] of byProfile) console.log(`    ${name}: ${count}`);
   console.log('');
-  console.log(`  マスタ総数        : ${master.length}`);
-  console.log(`  割り当て済み      : ${assigned.length}`);
-  console.log(`  検査対象外        : ${skipped.length}`);
+  console.log(`  マスタ総数    : ${master.length}`);
+  console.log(`  検査対象      : ${assigned.length}`);
+  console.log(`  検査対象外    : ${skipped.length}`);
   if (skipped.length > 0) {
     const shown = skipped.slice(0, 5).map((entry) => `${entry.code} (${entry.reason})`);
     console.log(`    ${shown.join(', ')}${skipped.length > 5 ? ` ...他 ${skipped.length - 5} 件` : ''}`);
   }
-  if (!wantAll && scope.mode !== 'all') {
-    console.log('');
-    console.log(`  ※ 代表のみ出力しています。全 ${assigned.length} 件を対象にする場合:`);
-    console.log('       npm run agencies:build -- --all');
+  console.log('');
+  if ((scope.mode ?? 'sample') === 'sample') {
+    const perProfile = Number(scope.perProfile ?? 2);
+    const always = (scope.always ?? []).length;
+    console.log(`  実行時の抽選  : パターンごと ${perProfile} 件 + 常時 ${always} 件 (実行ごとに変わる)`);
+    console.log('                  全件を検査する場合: npm run test:agency:all');
+  } else {
+    console.log('  実行時の抽選  : なし (全件を検査する)');
   }
 }
 

@@ -14,8 +14,103 @@ import type {
 // 設定の参照
 // ---------------------------------------------------------------------------
 
+/**
+ * 抽選の種 (シード)。
+ *
+ * テストは複数のワーカープロセスに分かれて実行される。
+ * プロセスごとに抽選し直すとテストの一覧が食い違って実行が壊れるため、
+ * 1 回の実行の中では必ず同じ値を共有する必要がある。
+ * playwright.config.ts (ワーカー起動前に読み込まれる) が
+ * QA_AGENCY_SEED を設定し、ワーカーは環境変数として受け継ぐ。
+ *
+ * レポートにも記録されるので、同じ組み合わせを再現したいときは
+ * QA_AGENCY_SEED にその値を指定する。
+ */
+export function agencySeed(): string {
+  return process.env.QA_AGENCY_SEED ?? 'fixed';
+}
+
+/** 文字列から 32bit の初期値を作る */
+function hashSeed(text: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+/** シード付き乱数 (mulberry32) — 同じシードなら必ず同じ結果になる */
+function createRandom(seed: string): () => number {
+  let state = hashSeed(seed);
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** シード付きシャッフル (Fisher-Yates) */
+function shuffle<T>(items: T[], random: () => number): T[] {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1));
+    [result[index], result[swap]] = [result[swap], result[index]];
+  }
+  return result;
+}
+
+/**
+ * 検査対象の代理店。
+ *
+ * 代理店が 200 件を超えるサイトでは全件を毎回検査するのは現実的でないため、
+ * 挙動パターンごとに抽選する。毎回同じ代理店を選ぶと、
+ * 残りに潜む問題を見逃し続けることになるので実行ごとに変える。
+ *
+ *   QA_AGENCY_SCOPE=all   … 抽選せず全件を検査する
+ *   QA_AGENCY_SEED=<値>   … 過去の実行と同じ組み合わせを再現する
+ */
 export function agencySpecs(config: QaConfig): AgencySpec[] {
-  return config.agencies.agencies;
+  const all = config.agencies.agencies;
+  const scope = config.agencies.scope;
+  const requested = process.env.QA_AGENCY_SCOPE?.trim();
+
+  if (requested === 'all' || !scope || scope.mode === 'all') return all;
+  if (requested && requested !== 'sample') {
+    throw new Error(`QA_AGENCY_SCOPE には sample か all を指定してください (指定値: ${requested})`);
+  }
+
+  const perProfile = Math.max(0, Number(scope.perProfile ?? 2));
+  const always = new Set(scope.always ?? []);
+  const random = createRandom(agencySeed());
+
+  // パターンごとにまとめる (profile が無い場合は 1 つのグループとして扱う)
+  const groups = new Map<string, AgencySpec[]>();
+  for (const spec of all) {
+    const key = spec.profile ?? '(未分類)';
+    const list = groups.get(key);
+    if (list) list.push(spec);
+    else groups.set(key, [spec]);
+  }
+
+  const picked = new Set<string>(
+    // always は「その代理店がマスタに存在する場合のみ」含める
+    all.filter((spec) => always.has(spec.code)).map((spec) => spec.code),
+  );
+  // グループの処理順もシードに従って固定する (Map の挿入順に依存させない)
+  for (const key of shuffle([...groups.keys()], random)) {
+    const members = groups.get(key) ?? [];
+    // always で既に選ばれている分は抽選枠を消費したものとして数える
+    const alreadyPicked = members.filter((spec) => picked.has(spec.code)).length;
+    const remaining = perProfile - alreadyPicked;
+    if (remaining <= 0) continue;
+    for (const spec of shuffle(members, random).slice(0, remaining)) picked.add(spec.code);
+  }
+
+  // 出力順はマスタの並び順を保つ (レポートが読みやすい)
+  return all.filter((spec) => picked.has(spec.code));
 }
 
 export function findAgencySpec(config: QaConfig, code: string): AgencySpec | undefined {

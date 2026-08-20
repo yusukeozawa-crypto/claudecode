@@ -22,17 +22,19 @@
 
 # ---------- 出力対象の絞り込み ----------
 scope:
-  # sample = パターンごとに代表を perProfile 件 + always を出力
-  # all    = マスタの全件を出力 (実行時間は長くなる)
+  # sample = パターンごとに perProfile 件を実行ごとに抽選する
+  # all    = 抽選せず全件を検査する (実行時間は長くなる)
   mode: sample
-  perProfile: 2
-  # 常に含めるコード (パターンの代表として外せないもの)
+  # パターンごとの件数。
+  #   毎回同じ代理店だけを検査すると残りに潜む問題を見逃し続けるため、
+  #   実行ごとに抽選する。always に入れたコードはこの枠を消費するので、
+  #   「必ず回る枠」を残すには always の件数より大きくしておく。
+  perProfile: 3
+  # 抽選に関わらず必ず含めるコード。
+  #   挙動が 1 件しかなく、外すと検査されなくなるものだけを入れる。
   always:
-    - littlefamily01      # 自社コード (オリジナル表示)
-    - littlefamily03      # カカクコム 本体 (専用LPへリダイレクト)
-    - littlefamily03br01  # カカクコム 支店コード
-    - littlefamily04      # みらやく ○ の代表
-    - A0010               # みらやく × かつ命名規則が異なるコード
+    - littlefamily01  # 自社コード (オリジナル表示)
+    - littlefamily03  # カカクコム 本体 (専用LPへリダイレクトの代表)
   # 検査対象から除外する mirayaku の値
   #   エラー / 要確認 / 空欄 は期待結果が確定していないため除外する
   excludeMirayaku:
@@ -42,6 +44,11 @@ scope:
 
 # ---------- 割り当てルール (上から順に最初に一致したものを採用) ----------
 assign:
+  # A0010 だけ命名規則が他と異なる (littlefamily で始まらない)。
+  # コードの扱いに命名依存のバグがあれば出るため、
+  # 独立したパターンとして必ず検査対象に含める。
+  - match: { code: A0010 }
+    profile: legacy-code-format
   - match: { code: littlefamily01 }
     profile: direct
   - match: { codePrefix: littlefamily03 }
@@ -101,6 +108,24 @@ profiles:
     expectedRedirectPaths: []
     # [未実測] みらやくセクションの data-testid が未確認。
     # 判明したら visibleSections に入れる (例: mirayaku-section)。
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+
+  # 旧命名規則のコード (littlefamily で始まらない)。
+  # 期待される挙動は みらやく × と同じだが、
+  # 命名依存の不具合を毎回検査するため分類を分けている。
+  legacy-code-format:
+    label: 旧命名規則コード (みらやく掲載不可)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}

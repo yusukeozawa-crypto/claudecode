@@ -223,6 +223,8 @@ export interface AgencySpec {
   entryPath: string;
   expectedFinalPath: string;
   redirected: boolean;
+  /** 挙動パターン名 (抽選のグループ分けに使う) */
+  profile?: string;
   redirectMechanism: RedirectMechanism;
   expectedRedirectCount: number;
   expectedRedirectPaths: string[];
@@ -272,7 +274,18 @@ export interface FallbackExpectation {
   };
 }
 
+export interface AgencyScope {
+  /** sample = パターンごとに抽選する / all = 全件を検査する */
+  mode: 'sample' | 'all';
+  /** パターンごとに抽選する件数 */
+  perProfile: number;
+  /** 抽選に関わらず必ず含める代理店コード */
+  always: string[];
+}
+
 export interface AgenciesFile {
+  /** 実行時の抽選設定 (省略時は全件) */
+  scope?: AgencyScope;
   agencies: AgencySpec[];
   invalidCodes: Array<{ code: string; label: string }>;
   invalidExpectation: FallbackExpectation;

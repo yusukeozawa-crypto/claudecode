@@ -14,6 +14,7 @@ import type {
 } from '@playwright/test/reporter';
 import { SEVERITY_LABEL, SEVERITY_ORDER, sortBySeverity } from '../utils/findings';
 import { loadConfig, PROJECT_ROOT } from '../utils/config';
+import { agencySeed, agencySpecs } from '../utils/agency';
 import { maskText } from '../utils/secrets';
 import type { Finding, QaConfig, QaRecord, Severity } from '../utils/types';
 
@@ -140,6 +141,7 @@ export default class QaHtmlReporter implements Reporter {
         skipped: this.records.filter((record) => record.status === 'skipped').length,
       },
       findings: counts,
+      agencySampling: describeAgencySampling(),
       // 判定基準は config/runtime.yml の failOnSeverities に従う。
       // ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
       failOnSeverities: this.failOnSeverities,
@@ -154,6 +156,13 @@ export default class QaHtmlReporter implements Reporter {
     console.log('==================== QA レポート ====================');
     console.log(`対象環境      : ${summary.environmentLabel || '-'} (${summary.environment || '-'}) ${summary.baseUrl}`);
     console.log(`テスト        : 合計 ${summary.tests.total} / 成功 ${summary.tests.passed} / 失敗 ${summary.tests.failed} / スキップ ${summary.tests.skipped}`);
+    if (summary.agencySampling) {
+      const { seed, scope, selected, total } = summary.agencySampling;
+      console.log(
+        `代理店        : ${selected} / ${total} 件 (${scope === 'all' ? '全件' : '抽選'})` +
+          (scope === 'all' ? '' : `  再現用: QA_AGENCY_SEED=${seed}`),
+      );
+    }
     console.log(`検知件数      : Critical ${counts.critical} / High ${counts.high} / Medium ${counts.medium} / Low ${counts.low}`);
     console.log(`HTML レポート : ${relativeHtml}`);
     console.log(`JSON          : ${path.relative(PROJECT_ROOT, JSON_PATH)}`);
@@ -199,8 +208,28 @@ interface ReportSummary {
   baseUrl: string;
   projects: string[];
   tests: { total: number; passed: number; failed: number; skipped: number };
+  /** 代理店の抽選シードと対象件数 (同じ組み合わせを再現するために記録する) */
+  agencySampling: { seed: string; scope: string; selected: number; total: number } | null;
   findings: Record<Severity, number>;
   gateFailed: boolean;
+}
+
+/**
+ * 代理店の抽選内容。
+ * 抽選は実行ごとに変わるため、レポートにシードを残さないと
+ * 「どの代理店を検査したのか」「同じ組み合わせをどう再現するか」が分からなくなる。
+ */
+function describeAgencySampling(): ReportSummary['agencySampling'] {
+  try {
+    const config = loadConfig();
+    const total = config.agencies.agencies.length;
+    const selected = agencySpecs(config).length;
+    const scope = selected === total ? 'all' : 'sample';
+    return { seed: agencySeed(), scope, selected, total };
+  } catch {
+    // 設定が読めない場合はレポートを壊さない
+    return null;
+  }
 }
 
 function statusLabel(status: QaRecord['status']): string {
@@ -356,6 +385,15 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
     <dt>対象URL</dt><dd>${escapeHtml(summary.baseUrl)}</dd>
     <dt>実行構成</dt><dd>${escapeHtml(summary.projects.join(', '))}</dd>
     <dt>テスト結果</dt><dd>合計 ${summary.tests.total} / 成功 ${summary.tests.passed} / 失敗 ${summary.tests.failed} / スキップ ${summary.tests.skipped}</dd>
+    ${
+      summary.agencySampling
+        ? `<dt>代理店</dt><dd>${summary.agencySampling.selected} / ${summary.agencySampling.total} 件 ${
+            summary.agencySampling.scope === 'all'
+              ? '(全件)'
+              : `(実行ごとに抽選) — 同じ組み合わせを再現するには QA_AGENCY_SEED=${escapeHtml(summary.agencySampling.seed)}`
+          }</dd>`
+        : ''
+    }
   </dl>
 </header>
 <main>

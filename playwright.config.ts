@@ -8,6 +8,16 @@ import { defineConfig } from '@playwright/test';
 import { isCi, loadConfig, PROJECT_ROOT } from './utils/config';
 import { buildProjects } from './utils/projects';
 
+// 代理店の抽選シードをここで確定させる。
+//
+// この設定ファイルはワーカープロセスの起動前に読み込まれ、
+// ワーカーは起動時の環境変数を受け継ぐ。そのため
+// 「1 回の実行の中では同じ抽選結果」「実行ごとに変わる」を両立できる。
+// プロセスごとに抽選し直すとテストの一覧が食い違って実行が壊れる。
+if (!process.env.QA_AGENCY_SEED) {
+  process.env.QA_AGENCY_SEED = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 const config = loadConfig();
 const { runtime, environment } = config;
 
