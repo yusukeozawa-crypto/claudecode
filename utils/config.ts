@@ -122,6 +122,18 @@ export function validateConfig(config: QaConfig): void {
   if (!config.agency.paramName) {
     problems.push('config/agency.yml: paramName が未設定です');
   }
+  const indicator = config.agency.readyIndicator;
+  if (indicator) {
+    if (!['attribute', 'selector', 'none'].includes(indicator.type)) {
+      problems.push(`config/agency.yml: readyIndicator.type が不正です: ${indicator.type}`);
+    }
+    if (indicator.type === 'selector' && !indicator.selector) {
+      problems.push('config/agency.yml: readyIndicator.type が selector ですが selector が未設定です');
+    }
+    if (indicator.type === 'attribute' && !indicator.attribute) {
+      problems.push('config/agency.yml: readyIndicator.type が attribute ですが attribute が未設定です');
+    }
+  }
   if (!config.environment.applicationBaseUrl) {
     problems.push(
       `config/environments.yml: 環境「${config.environmentName}」の applicationBaseUrl が空です (申込ドメインを設定してください)`,

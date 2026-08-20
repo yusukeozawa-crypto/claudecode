@@ -147,6 +147,14 @@ export interface AgencyFile {
     /** 押してはならない要素 */
     forbiddenTestIds: string[];
   };
+  /** 代理店表示の描画完了をどう判定するか */
+  readyIndicator: {
+    type: 'attribute' | 'selector' | 'none';
+    attribute?: string | null;
+    value?: string | null;
+    selector?: string | null;
+    timeoutMs: number;
+  };
   persistenceFlow: string[];
 }
 

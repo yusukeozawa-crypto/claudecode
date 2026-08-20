@@ -192,7 +192,7 @@ test.describe('仕様調査 @discover', () => {
       await page.goto(entryUrl, { waitUntil: 'load', timeout: 30000 }).catch((error) => {
         notes.push(`流入 URL を開けませんでした: ${String(error).split('\n')[0]}`);
       });
-      await waitForFinalLanding(page, null);
+      await waitForFinalLanding(page, config, null);
       await tracker.captureMetaRefresh();
       const metaRefreshHints = httpChain.hops
         .map((hop) => hop.metaRefresh)

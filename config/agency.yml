@@ -41,6 +41,24 @@ application:
   forbiddenTestIds:
     - application-submit
 
+# 代理店表示の「描画完了」をどう判定するか。
+#   代理店情報はクライアント側で描画されることが多く、load 完了直後は
+#   まだ反映されていない場合がある。実サイトの実装に合わせて設定する。
+#
+#   type: attribute — <html> の属性で判定する (モックサイトはこの方式)
+#   type: selector  — 指定要素の出現で判定する (実サイトはこちらが現実的)
+#   type: none      — 待たない (load 完了のみ)
+#
+#   実サイトへ向ける際に設定を合わせないと、判定条件が現れず
+#   毎回 timeoutMs だけ待つことになる (テスト数 x 待機時間の無駄になる)。
+#   条件が現れなかった場合はレポートに記録されるため、設定漏れに気づける。
+readyIndicator:
+  type: attribute
+  attribute: data-agency-rendered
+  value: '1'
+  selector: null
+  timeoutMs: 5000
+
 # ページ遷移後のコード保持を検証する遷移パス (pages.yml の id)
 persistenceFlow:
   - lp

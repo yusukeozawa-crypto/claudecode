@@ -49,19 +49,39 @@ QA_ENV=staging npm run test:agency      # 表示・リダイレクト・引き�
 QA_ENV=staging npm run test:security    # セキュリティ検査
 ```
 
-### 手順4: 除外リストを調整する
+### 手順4: 描画完了の判定条件を合わせる
+
+代理店情報がクライアント側で描画される場合、`load` 完了直後はまだ反映されていない。
+`config/agency.yml` の `readyIndicator` を実サイトの実装に合わせる。
+
+```yaml
+readyIndicator:
+  # 実サイトでは selector 方式が現実的 (代理店セクションの出現を待つ)
+  type: selector
+  selector: agency-contact      # data-testid として解決される
+  timeoutMs: 5000
+```
+
+**この設定を合わせないと、テストごとに `timeoutMs` だけ待つことになる。**
+実測では、条件が現れない場合と正しい場合で所要時間が 4 倍以上変わった
+(代理店テスト 40 件で 64 秒 → 15 秒)。
+条件が現れなかった場合はレポートに Low として記録されるため、設定漏れに気づける。
+
+判定条件を使わない場合は `type: none` にする (`load` 完了のみで判断)。
+
+### 手順5: 除外リストを調整する
 
 実サイトでは計測タグ由来の console 出力やサードパーティのリクエスト失敗が出やすい。
 `config/errors.yml` の `ignoreMessages` / `ignoreUrlPatterns` に追加して、
 本質的な不具合だけが残るようにする。
 
-### 手順5: 表記ルールを整備する
+### 手順6: 表記ルールを整備する
 
 `config/text-rules.yml` の `canonical` / `unifyRules` / `prohibited` を
 自社の表記ガイドラインに合わせる。初回は指摘が多く出るため、
 `reports/text/` の抽出結果を見ながら `excludeWords` を整えていく。
 
-### 手順6: 基準画像を作成する
+### 手順7: 基準画像を作成する
 
 基準画像は環境ごとに分かれているため、検査したい環境それぞれで初回作成を行う。
 
@@ -71,7 +91,7 @@ git add screenshots/baseline
 git commit -m "chore: ステージングの基準画像を追加"
 ```
 
-### 手順7: CI に載せる
+### 手順8: CI に載せる
 
 1. まず `self-test` ジョブ (同梱モックサイト対象・Secrets 不要) が緑になることを確認する
 2. GitHub Secrets を設定する (LP ドメインと申込ドメインの両方)

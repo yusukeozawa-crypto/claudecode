@@ -8,6 +8,7 @@
 import { test, expect } from '../qa-fixtures';
 import { loadConfig, resolveSelector, validateConfig } from '../../utils/config';
 import { isForbiddenRequest } from '../../utils/handoff';
+import { waitForFinalLanding } from '../../utils/agency-entry';
 import type { QaConfig } from '../../utils/types';
 
 const config = loadConfig();
@@ -155,5 +156,54 @@ test.describe('安全装置の自己検査 @selfcheck', () => {
       String(error),
       'クライアント側で遮断されたことが分かること',
     ).toMatch(/BLOCKED|blockedbyclient|ERR_BLOCKED/i);
+  });
+});
+
+test.describe('描画完了判定の自己検査 @selfcheck', () => {
+  test('readyIndicator の設定不備を検出する', async () => {
+    expectError(
+      broken((draft) => {
+        draft.agency.readyIndicator = { type: 'selector', selector: null, timeoutMs: 5000 };
+      }),
+      'selector が未設定',
+    );
+    expectError(
+      broken((draft) => {
+        draft.agency.readyIndicator = { type: 'attribute', attribute: null, timeoutMs: 5000 };
+      }),
+      'attribute が未設定',
+    );
+    expectError(
+      broken((draft) => {
+        draft.agency.readyIndicator = {
+          type: 'unknown' as 'none',
+          timeoutMs: 5000,
+        };
+      }),
+      'readyIndicator.type が不正',
+    );
+  });
+
+  test('条件が現れない場合に記録される (実サイトでの設定漏れを検知する)', async ({ qa, page }) => {
+    // 実サイトにモック用の条件が無い状況を再現する
+    const original = qa.config.agency.readyIndicator;
+    qa.config.agency.readyIndicator = {
+      type: 'attribute',
+      attribute: 'data-not-exist-anywhere',
+      value: '1',
+      timeoutMs: 300,
+    };
+
+    try {
+      await page.goto(`${qa.config.environment.baseUrl}/lp/`);
+      const ready = await waitForFinalLanding(page, qa.config, null);
+      expect(ready, '条件が現れなければ false を返すこと').toBe(false);
+
+      // 設定が合っていれば true を返す
+      qa.config.agency.readyIndicator = original;
+      expect(await waitForFinalLanding(page, qa.config, null), '条件が合えば true').toBe(true);
+    } finally {
+      qa.config.agency.readyIndicator = original;
+    }
   });
 });
