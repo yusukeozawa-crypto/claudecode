@@ -1,22 +1,31 @@
 # ============================================================
-# 代理店コードの「共通の仕組み」設定
+# 代理店コードの「共通の仕組み」設定 — 実サイト (littlefamily-ssi)
 #
-#   代理店ごとの期待結果 (LP・リダイレクト・表示内容・申込引き継ぎ) は
-#   config/agencies.yml で管理する。このファイルは全代理店に共通する
-#   仕組み (パラメータ名・保存先・共通セレクタ) のみを扱う。
+#   代理店ごとの期待結果は config/agencies.yml で管理する
+#   (config/agency-master.tsv + config/agency-profiles.yml から生成)。
+#
+#   [未実測] と書かれた項目は実サイトで確認できていない。
+#   `npm run discover` の結果に合わせて設定すること。
+#   未実測のまま実行しても誤検知は出ないが、その項目は検査されない。
 # ============================================================
 
-# URL パラメータ名
-paramName: agency_code
+# URL パラメータ名 (確認済み)
+paramName: insAgentNo
 
 storage:
-  # cookie | localStorage | both — サイトの実装に合わせる
-  type: both
-  # 保存キー (Cookie 名 / localStorage キー)
-  key: agency_code
+  # cookie | localStorage | both | none
+  #   [未実測] 代理店コードの保存先が未確認のため none にしている。
+  #   none の間は保存値を根拠にした判定を行わない
+  #   (URL のみで引き回す実装を誤検知しないため)。
+  #   discover で Cookie 名 / localStorage キーが判明したら設定する。
+  type: none
+  key: insAgentNo
 
-# 全代理店に共通する判定要素。値は既定で data-testid として解決される。
+# 全代理店に共通する判定要素 (既定で data-testid として解決される)。
 # "css=" / "text=" を先頭に付けると任意のセレクタも使用できる。
+#   [未実測] 実サイトの目印が未確認。
+#   一致する要素が無い間、これらを使う検査は「検出なし」となる
+#   (誤検知はしないが、検査もされない)。
 selectors:
   agencyName: agency-name
   agencyPhone: agency-phone
@@ -25,42 +34,32 @@ selectors:
   fallbackNotice: fallback-notice
   ctaPrimary: cta-primary
 
-# 申込フローに共通する設定
 application:
-  # 申込側で代理店を確認するための API (recognition の type: api で使用)
+  # [未実測] 申込ドメイン・引き継ぎ方式が未確認。
+  # 申込導線の検査は agencies.yml の application が null のため実行されない。
   sessionApiPattern: "**/api/session*"
   # 絶対に発生させてはならないリクエスト (申込完了・データ送信)。
-  # 検知した場合は Critical として報告し、リクエスト自体を遮断する。
-  # 判定はクエリ/フラグメントを除去し、末尾スラッシュの有無と大文字小文字を
-  # 無視して行われるため、末尾に "*" を付ける必要はない。
-  # "*" を付けると completed-guide.html のような無関係なページまで遮断してしまう。
+  #   [要確認] 実サイトの申込完了 URL に合わせて必ず設定すること。
+  #   本番で押してはならない操作を止める安全装置なので、
+  #   申込導線の検査を有効にする前に実物に合わせる。
   forbiddenRequestPatterns:
     - "**/entry/complete"
     - "**/api/application/submit"
-  # 申込完了ボタン (押してはならない要素)
   forbiddenTestIds:
     - application-submit
 
-# 代理店表示の「描画完了」をどう判定するか。
-#   代理店情報はクライアント側で描画されることが多く、load 完了直後は
-#   まだ反映されていない場合がある。実サイトの実装に合わせて設定する。
-#
-#   type: attribute — <html> の属性で判定する (モックサイトはこの方式)
-#   type: selector  — 指定要素の出現で判定する (実サイトはこちらが現実的)
-#   type: none      — 待たない (load 完了のみ)
-#
-#   実サイトへ向ける際に設定を合わせないと、判定条件が現れず
-#   毎回 timeoutMs だけ待つことになる (テスト数 x 待機時間の無駄になる)。
-#   条件が現れなかった場合はレポートに記録されるため、設定漏れに気づける。
+# 代理店表示の「描画完了」の判定方法。
+#   [未実測] type: none = 待たない (load 完了のみ)。
+#   代理店情報がクライアント側で描画されるサイトでは、
+#   その要素を selector に設定すると待ち時間の無駄がなくなる。
 readyIndicator:
-  type: attribute
-  attribute: data-agency-rendered
-  value: '1'
+  type: none
+  attribute: null
+  value: null
   selector: null
   timeoutMs: 5000
 
 # ページ遷移後のコード保持を検証する遷移パス (pages.yml の id)
 persistenceFlow:
-  - lp
-  - product
-  - price
+  - lp-service
+  - lp-service-premium

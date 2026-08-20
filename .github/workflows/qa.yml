@@ -101,6 +101,11 @@ jobs:
       - name: 型チェック
         run: npm run typecheck
 
+      - name: 生成ファイルが最新か確認
+        # config/agencies.yml は agency-master.tsv と agency-profiles.yml から生成する。
+        # 生成元を編集して再生成を忘れると、設定と実際の検査対象がずれる。
+        run: npm run agencies:build -- --check
+
       - name: 全テストを実行 (モックサイト)
         id: qa
         continue-on-error: true

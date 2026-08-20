@@ -91,6 +91,16 @@ export interface EnvironmentConfig {
   readOnly: boolean;
   startLocalServer?: boolean;
   httpCredentials?: { username: string; password: string } | null;
+  /**
+   * この環境で使う代理店設定ファイル名 (config/ 配下)。
+   * 省略時は agency.yml / agencies.yml。
+   * モックサイトと実サイトでは代理店コードもパラメータ名も異なるため、
+   * 環境ごとに切り替えられるようにしている。
+   */
+  agencyFile?: string;
+  agenciesFile?: string;
+  /** この環境で検査するページ一覧のファイル名 (config/ 配下)。省略時は pages.yml */
+  pagesFile?: string;
 }
 export interface EnvironmentsFile {
   defaultEnvironment: string;
@@ -133,12 +143,19 @@ export interface RuntimeFile {
   trace: 'off' | 'on' | 'retain-on-failure' | 'on-first-retry';
   traceCi: 'off' | 'on' | 'retain-on-failure' | 'on-first-retry';
   failOnSeverities: Severity[];
+  /** 代理店の組み合わせ検証の上限 (代理店数の二乗で増えるため) */
+  maxAgencyPairs?: number;
 }
 
 // ---------- config/agency.yml (共通の仕組み) ----------
 export interface AgencyFile {
   paramName: string;
-  storage: { type: 'cookie' | 'localStorage' | 'both'; key: string };
+  /**
+   * 代理店コードの保存先。
+   * none = 保存しない実装 (URL のみで引き回す) / 保存方式が未確認。
+   * この場合、保存値の検査は行わず「未検査」として記録する。
+   */
+  storage: { type: 'cookie' | 'localStorage' | 'both' | 'none'; key: string };
   selectors: Record<string, string>;
   application: {
     sessionApiPattern: string;
@@ -213,9 +230,28 @@ export interface AgencySpec {
   hiddenSections: string[];
   expectedTexts: Record<string, string>;
   expectedAssets: Record<string, string>;
-  cta: { testId: string; expectedText?: string | null };
-  application: AgencyApplicationSpec;
+  /**
+   * 申込へ進む CTA。
+   * null の場合は CTA が未確認であることを示し、CTA 起点の検査は行わない。
+   */
+  cta: { testId: string; expectedText?: string | null } | null;
+  /**
+   * 申込ページへの引き継ぎ仕様。
+   * null の場合は申込導線の検査を行わない
+   * (導入初期に申込側の仕様が未確定でも LP 側の検査を始められるようにする)。
+   */
+  application: AgencyApplicationSpec | null;
 }
+
+/**
+ * 申込導線の検査対象となる代理店仕様。
+ * application が null の代理店は検査対象から除外するため、
+ * 申込関連の処理はこの型を受け取る (null チェックを各所に散らさない)。
+ */
+export type AgencySpecWithApplication = AgencySpec & {
+  application: AgencyApplicationSpec;
+  cta: NonNullable<AgencySpec['cta']>;
+};
 
 /** 無効コード / コードなしの期待結果 */
 export interface FallbackExpectation {

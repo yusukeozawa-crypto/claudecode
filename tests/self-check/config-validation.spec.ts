@@ -69,11 +69,22 @@ test.describe('設定検証の自己検査 @selfcheck', () => {
     // URL にコードが載っているだけで合格にしないため、1 つ以上必須
     expectError(
       broken((draft) => {
-        draft.agencies.agencies[0].application.recognition = [];
+        const application = draft.agencies.agencies[0].application;
+        if (application) application.recognition = [];
       }),
       'recognition',
     );
   });
+
+  test('申込導線を検査しない設定 (application: null) は許容する', async () => {
+    // 申込側の仕様が未確定な導入初期に、LP 側の検査だけ先に始められるようにする
+    const draft = broken((d) => {
+      for (const agency of d.agencies.agencies) agency.application = null;
+      d.environment.applicationBaseUrl = '';
+    });
+    expect(() => validateConfig(draft), 'application: null なら申込ドメインも不要').not.toThrow();
+  });
+
 
   test('表示・非表示セクションの重複を検出する', async () => {
     expectError(

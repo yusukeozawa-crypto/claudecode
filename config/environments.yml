@@ -16,6 +16,10 @@ environments:
     applicationBaseUrl: http://localhost:4174
     readOnly: false
     startLocalServer: true
+    # モックサイト用の代理店設定 (実サイト用とは別ファイル)
+    agencyFile: agency.local.yml
+    agenciesFile: agencies.local.yml
+    pagesFile: pages.local.yml
 
   staging:
     label: ステージング

@@ -103,9 +103,9 @@ export function loadConfig(): QaConfig {
     environments,
     devices: readYaml<DevicesFile>('devices.yml'),
     runtime: readYaml<RuntimeFile>('runtime.yml'),
-    agency: readYaml<AgencyFile>('agency.yml'),
-    agencies: readYaml<AgenciesFile>('agencies.yml'),
-    pages: readYaml<PagesFile>('pages.yml'),
+    agency: readYaml<AgencyFile>(environment.agencyFile ?? 'agency.yml'),
+    agencies: readYaml<AgenciesFile>(environment.agenciesFile ?? 'agencies.yml'),
+    pages: readYaml<PagesFile>(environment.pagesFile ?? 'pages.yml'),
     layout: readYaml<LayoutFile>('layout.yml'),
     visual: readYaml<VisualFile>('visual.yml'),
     errors: readYaml<ErrorsFile>('errors.yml'),
@@ -149,12 +149,16 @@ export function validateConfig(config: QaConfig): void {
       problems.push('config/agency.yml: readyIndicator.type が attribute ですが attribute が未設定です');
     }
   }
-  if (!config.environment.applicationBaseUrl) {
+  const agencies = config.agencies.agencies ?? [];
+  // 申込導線を検査する代理店が 1 件でもあれば申込ドメインが必要になる。
+  // 申込側の仕様が未確定な導入初期は application: null にでき、
+  // その場合は申込ドメインの設定も不要とする (LP 側の検査だけ先に始められる)。
+  const needsApplicationDomain = agencies.some((agency) => agency.application);
+  if (needsApplicationDomain && !config.environment.applicationBaseUrl) {
     problems.push(
       `config/environments.yml: 環境「${config.environmentName}」の applicationBaseUrl が空です (申込ドメインを設定してください)`,
     );
   }
-  const agencies = config.agencies.agencies ?? [];
   if (agencies.length === 0) {
     problems.push('config/agencies.yml: agencies が空です');
   }
@@ -170,16 +174,21 @@ export function validateConfig(config: QaConfig): void {
     if (!agency.redirected && agency.expectedFinalPath !== agency.entryPath) {
       problems.push(`config/agencies.yml: ${agency.code} は redirected: false ですが expectedFinalPath が entryPath と異なります`);
     }
-    if (!agency.application?.expectedPath) {
-      problems.push(`config/agencies.yml: ${agency.code} の application.expectedPath が未設定です`);
-    }
-    if (!agency.application?.expectedCode) {
-      problems.push(`config/agencies.yml: ${agency.code} の application.expectedCode が未設定です`);
-    }
-    if ((agency.application?.recognition ?? []).length === 0) {
-      problems.push(
-        `config/agencies.yml: ${agency.code} の application.recognition が空です (URL だけで合格にしないため 1 つ以上必要)`,
-      );
+    // application: null は「申込導線を検査しない」の明示。
+    // 設定されている場合は中身が揃っていることを要求する
+    // (中途半端な設定で素通りさせない)。
+    if (agency.application) {
+      if (!agency.application.expectedPath) {
+        problems.push(`config/agencies.yml: ${agency.code} の application.expectedPath が未設定です`);
+      }
+      if (!agency.application.expectedCode) {
+        problems.push(`config/agencies.yml: ${agency.code} の application.expectedCode が未設定です`);
+      }
+      if ((agency.application.recognition ?? []).length === 0) {
+        problems.push(
+          `config/agencies.yml: ${agency.code} の application.recognition が空です (URL だけで合格にしないため 1 つ以上必要)`,
+        );
+      }
     }
     const overlap = agency.visibleSections.filter((section) => agency.hiddenSections.includes(section));
     if (overlap.length > 0) {

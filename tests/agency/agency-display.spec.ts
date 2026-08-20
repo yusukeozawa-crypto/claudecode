@@ -17,9 +17,9 @@ import { test } from '../qa-fixtures';
 import { loadConfig } from '../../utils/config';
 import { pageById, pagesFromConfig } from '../../utils/page-source';
 import {
-  agencySpecs, clearStoredCode, invalidCodes, readStoredCode, storageLabel,
+  agencyPairs, agencySpecs, clearStoredCode, invalidCodes, readStoredCode, storageLabel,
   verifyAssets, verifyCtaText, verifyFallback, verifyNoOtherAgencyInfo,
-  verifySections, verifyStoredCode, verifyTexts,
+  verifySections, verifyStoredCode, verifyTexts, storageChecksEnabled,
 } from '../../utils/agency';
 import { enterAsAgency, enterPath, enterWithFallback } from '../../utils/agency-entry';
 
@@ -136,25 +136,24 @@ test.describe('代理店ごとの表示 @agency', () => {
   // ------------------------------------------------------------------
   // 別の代理店コードで再流入 (組み合わせを自動生成)
   // ------------------------------------------------------------------
-  for (const first of specs) {
-    for (const second of specs) {
-      if (first.code === second.code) continue;
-      test(`${first.code} の後に ${second.code} で再流入すると ${second.code} に切り替わる`, async ({ qa, page }) => {
-        if (!(await enterAsAgency(qa, first))) return;
-        if (!(await enterAsAgency(qa, second))) return;
+  // 全組み合わせは代理店数の二乗になるため、
+  // config/runtime.yml の maxAgencyPairs で上限を設ける
+  for (const { first, second } of agencyPairs(specs, config)) {
+    test(`${first.code} の後に ${second.code} で再流入すると ${second.code} に切り替わる`, async ({ qa, page }) => {
+      if (!(await enterAsAgency(qa, first))) return;
+      if (!(await enterAsAgency(qa, second))) return;
 
-        const label = `${first.code} -> ${second.code} で再流入`;
-        qa.addAll(await verifySections(page, second, label));
-        qa.addAll(await verifyTexts(page, second.expectedTexts, label));
-        qa.addAll(await verifyAssets(page, second.expectedAssets, label));
-        // 前の代理店の情報が残っていないこと
-        qa.addAll(await verifyNoOtherAgencyInfo(page, config, second.code, label));
+      const label = `${first.code} -> ${second.code} で再流入`;
+      qa.addAll(await verifySections(page, second, label));
+      qa.addAll(await verifyTexts(page, second.expectedTexts, label));
+      qa.addAll(await verifyAssets(page, second.expectedAssets, label));
+      // 前の代理店の情報が残っていないこと
+      qa.addAll(await verifyNoOtherAgencyInfo(page, config, second.code, label));
 
-        const stored = await readStoredCode(page, config);
-        qa.addAll(verifyStoredCode(stored, config, second.code, { url: page.url(), label }));
-        qa.collectMonitorFindings();
-      });
-    }
+      const stored = await readStoredCode(page, config);
+      qa.addAll(verifyStoredCode(stored, config, second.code, { url: page.url(), label }));
+      qa.collectMonitorFindings();
+    });
   }
 
   // ------------------------------------------------------------------
@@ -162,6 +161,11 @@ test.describe('代理店ごとの表示 @agency', () => {
   // ------------------------------------------------------------------
   for (const spec of specs) {
     test(`${spec.code}: ${storageLabel(config)} を削除すると通常表示に戻る`, async ({ qa, page, context }) => {
+      // 保存先なし (URL のみで引き回す) の設定では検証対象がない
+      test.skip(
+        !storageChecksEnabled(config),
+        'config/agency.yml の storage.type が none のため保存値の検査は行いません',
+      );
       if (!(await enterAsAgency(qa, spec))) return;
 
       // 遷移が完了した状態で保存値を削除する

@@ -1,81 +1,37 @@
 # ============================================================
-# テスト対象ページ
-#   source: config  … 下記 pages の定義を使用する (初期方式)
-#   source: sitemap … sitemap.xml から自動取得する (utils/page-source.ts)
+# 検査対象ページ — 実サイト (littlefamily-ssi LP ドメイン)
+#
+#   ここに載せるのは baseUrl (LP ドメイン) 配下のパスのみ。
+#   コーポレートサイト (www.littlefamily-ssi.com) は別ホストなので
+#   このファイルには入れられない。検査したい場合は
+#   config/environments.yml に別環境として追加する
+#   (docs/operations.md「別ホストを検査する」)。
+#
+#   source: config  … 下記の pages を検査する
+#   source: sitemap … sitemap.xml から取得する (取得失敗時は pages にフォールバック)
 # ============================================================
 source: config
 
 sitemap:
   path: /sitemap.xml
-  # 取得件数の上限 (過剰なリクエスト防止)
   maxPages: 50
   includePatterns: []
   excludePatterns:
-    - "**/preview/**"
-    - "**/*.pdf"
-  # sitemap から取得したページに適用する既定のチェック内容
+    - "**/wp-admin/**"
   defaults:
-    agencyAware: false
-    checks: [layout, errors, links, visual, text]
+    agencyAware: true
+    checks: [layout, links, images, errors, text]
 
 pages:
-  - id: lp
-    name: 共通LP
-    path: /lp/
-    agencyAware: true          # 代理店コードによる表示差分があるページ
-    checks: [layout, errors, links, visual, text]
-    # 必ず存在すべき要素 (data-testid)
-    requiredTestIds: [default-hero, common-benefits]
-    # 重なり・はみ出しを検査する主要要素
-    primaryTestIds: [site-header, default-hero, common-benefits, site-footer]
-
-  - id: product
-    name: 商品詳細
-    path: /product.html
+  - id: lp-service
+    name: 共通LP (service)
+    path: /lp/service/
+    # 代理店コードによって表示が変わるページ
     agencyAware: true
-    checks: [layout, errors, links, visual, text]
-    requiredTestIds: [product-detail]
-    primaryTestIds: [site-header, product-detail, site-footer]
+    checks: [layout, links, images, errors, visual, text]
 
-  - id: price
-    name: 保険料ページ
-    path: /price.html
+  - id: lp-service-premium
+    name: 価格コム限定プラン専用LP (service-premium)
+    path: /lp/service-premium/
     agencyAware: true
-    checks: [layout, errors, links, visual, text]
-    requiredTestIds: [price-table]
-    primaryTestIds: [site-header, price-table, site-footer]
-
-  - id: faq
-    name: FAQ
-    path: /faq.html
-    agencyAware: false
-    checks: [layout, errors, links, visual, text]
-    requiredTestIds: [faq-list]
-    primaryTestIds: [site-header, faq-list, site-footer]
-
-  # 代理店専用 LP (リダイレクト先)。直接アクセスした場合の表示も検査する。
-  - id: partner-a002
-    name: 代理店専用LP (A002)
-    path: /partner/a002/
-    agencyAware: true
-    checks: [layout, errors, links, visual, text]
-    requiredTestIds: [partner-exclusive-hero, partner-exclusive-offer]
-    primaryTestIds: [site-header, partner-exclusive-hero, site-footer]
-
-  - id: partner-a003
-    name: 代理店専用LP (A003)
-    path: /partner/a003/
-    agencyAware: true
-    checks: [layout, errors, links, visual, text]
-    requiredTestIds: [partner-exclusive-hero, partner-exclusive-offer]
-    primaryTestIds: [site-header, partner-exclusive-hero, site-footer]
-
-  - id: agency-only
-    name: 代理店専用表示ページ
-    path: /agency.html
-    agencyAware: true
-    checks: [layout, errors, links, visual, text]
-    # agency-only-content は代理店コードがある場合のみ表示されるため、
-    # 常に表示される要素を必須要素として指定する (表示・非表示は @agency で検証する)
-    requiredTestIds: [agency-program]
-    primaryTestIds: [site-header, agency-program, site-footer]
+    checks: [layout, links, images, errors, visual, text]

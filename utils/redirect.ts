@@ -380,8 +380,22 @@ export function verifyRedirectTrace(
     }
   }
 
-  // 遷移方式 (仕様と異なる場合は警告)
-  if (expectation.redirectMechanism !== trace.mechanism) {
+  // 遷移方式。
+  //   unknown = 「まだ実測していない」の明示。
+  //   仕様と照合せず、実測値を記録して設定に反映できるようにする
+  //   (未設定を「仕様と異なる」として毎回警告するのは誤解を招く)。
+  if (expectation.redirectMechanism === 'unknown') {
+    findings.push({
+      category: 'redirect-mechanism',
+      severity: 'low',
+      title: `${label}: リダイレクトの実装方式が未設定です`,
+      expected: 'config の redirectMechanism に実測値を設定すること',
+      actual: `実測値: ${trace.mechanism} (${describeMechanism(trace.mechanism)})`,
+      url,
+      detail:
+        'この値を config/agency-profiles.yml の redirectMechanism に設定すると、以降は仕様との差異を検知できます',
+    });
+  } else if (expectation.redirectMechanism !== trace.mechanism) {
     findings.push({
       category: 'redirect-mechanism',
       severity: 'medium',

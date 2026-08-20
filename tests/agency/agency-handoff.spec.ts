@@ -25,10 +25,22 @@ import {
   verifyHandoffTransport, verifyRecognition,
 } from '../../utils/handoff';
 import { verifyUrlHygiene } from '../../utils/redirect';
+import type { AgencySpecWithApplication } from '../../utils/types';
 import { buildEntryUrl, enterAsAgency, enterWithFallback } from '../../utils/agency-entry';
 
 const config = loadConfig();
 const specs = agencySpecs(config);
+
+/**
+ * 申込導線の検査対象。
+ * application または cta が未設定の代理店 (申込側の仕様が未確定) は除外する。
+ */
+const handoffSpecs = specs.filter(
+  (spec): spec is AgencySpecWithApplication => spec.application !== null && spec.cta !== null,
+);
+
+/** 申込ドメインが未設定の環境では申込側の検査を行わない */
+const hasApplicationDomain = Boolean(config.environment.applicationBaseUrl);
 
 function entryUrl(path: string, code: string | null): string {
   const url = new URL(path, `${config.environment.baseUrl}/`);
@@ -37,7 +49,12 @@ function entryUrl(path: string, code: string | null): string {
 }
 
 test.describe('申込ページへの引き継ぎ @agency @handoff', () => {
-  for (const spec of specs) {
+  test.skip(
+    !hasApplicationDomain,
+    '申込ドメイン (applicationBaseUrl) が未設定のため申込導線の検査は行いません',
+  );
+
+  for (const spec of handoffSpecs) {
     test(`${spec.code}: ${spec.application.handoffMethod} 方式で申込ドメインへ引き継がれる`, async ({ qa, page }) => {
       test.slow();
       if (!(await enterAsAgency(qa, spec))) return;
@@ -171,7 +188,7 @@ test.describe('申込ページへの引き継ぎ @agency @handoff', () => {
   // (9) 他の代理店のコードに置き換えられていないこと (組み合わせ検証)
   //     ある代理店で流入したのに、別の代理店として認識されないことを確認する
   // ------------------------------------------------------------------
-  for (const spec of specs) {
+  for (const spec of handoffSpecs) {
     test(`${spec.code}: 申込ページで他の代理店として認識されない`, async ({ qa, page }) => {
       if (!(await enterAsAgency(qa, spec))) return;
 

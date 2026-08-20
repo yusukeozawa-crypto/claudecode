@@ -64,6 +64,50 @@ export async function readStoredCode(page: Page, config: QaConfig): Promise<Stor
   return { cookie: cookie ? decodeURIComponent(cookie) : null, localStorage: fromLocalStorage };
 }
 
+/**
+ * 代理店の組み合わせ (流入し直しの検証) を列挙する。
+ *
+ * 全組み合わせは代理店数の二乗になるため、
+ * config/runtime.yml の maxAgencyPairs で上限を設ける。
+ * 上限内では「隣接する組み合わせ」を優先して選ぶ
+ * (先頭の代理店だけが繰り返し使われるのを避け、
+ *  どの代理店も少なくとも 1 回は前後に現れるようにする)。
+ */
+export function agencyPairs(
+  specs: AgencySpec[],
+  config: QaConfig,
+): Array<{ first: AgencySpec; second: AgencySpec }> {
+  const limit = config.runtime.maxAgencyPairs ?? 30;
+  if (limit <= 0 || specs.length < 2) return [];
+
+  const pairs: Array<{ first: AgencySpec; second: AgencySpec }> = [];
+  const seen = new Set<string>();
+  const push = (first: AgencySpec, second: AgencySpec): void => {
+    if (pairs.length >= limit || first.code === second.code) return;
+    const key = `${first.code}->${second.code}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    pairs.push({ first, second });
+  };
+
+  // 1) 互いに重ならない隣接ペアから選ぶ。
+  //    (0,1) (2,3) (4,5) ... の順に取ると、1 ペアあたり 2 代理店を
+  //    新しく網羅できるため、上限が代理店数より小さい場合でも
+  //    登場する代理店が最大になる。
+  for (const offset of [0, 1]) {
+    for (let index = offset; index + 1 < specs.length && pairs.length < limit; index += 2) {
+      push(specs[index], specs[index + 1]);
+    }
+  }
+  // 2) 上限に余裕があれば距離を広げて組み合わせを増やす
+  for (let distance = 1; distance < specs.length && pairs.length < limit; distance += 1) {
+    for (let index = 0; index < specs.length && pairs.length < limit; index += 1) {
+      push(specs[index], specs[(index + distance) % specs.length]);
+    }
+  }
+  return pairs;
+}
+
 /** 保存先設定に応じた「保持されているコード」 */
 export function effectiveStoredCode(stored: StoredAgencyCode, config: QaConfig): string | null {
   switch (config.agency.storage.type) {
@@ -71,13 +115,21 @@ export function effectiveStoredCode(stored: StoredAgencyCode, config: QaConfig):
       return stored.cookie;
     case 'localStorage':
       return stored.localStorage;
+    case 'none':
+      return null;
     default:
       return stored.cookie ?? stored.localStorage;
   }
 }
 
+/** 保存値の検査を行う設定か (none は行わない) */
+export function storageChecksEnabled(config: QaConfig): boolean {
+  return config.agency.storage.type !== 'none';
+}
+
 export function storageLabel(config: QaConfig): string {
   const { type, key } = config.agency.storage;
+  if (type === 'none') return '保存先なし (URL のみで引き回す設定)';
   const typeLabel = type === 'both' ? 'Cookie / localStorage' : type === 'cookie' ? 'Cookie' : 'localStorage';
   return `${typeLabel} (キー: ${key})`;
 }
@@ -105,6 +157,11 @@ export function verifyStoredCode(
   context: { url: string; label: string },
 ): FindingInput[] {
   const findings: FindingInput[] = [];
+  // storage.type: none は「保存しない実装 / 保存方式が未確認」の明示。
+  // 保存値を根拠に合否を判定しない (URL のみで引き回すサイトを誤検知しない)。
+  if (!storageChecksEnabled(config)) {
+    return findings;
+  }
   const actual = effectiveStoredCode(stored, config);
 
   if (expectedCode === null) {

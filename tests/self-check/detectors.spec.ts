@@ -16,7 +16,7 @@ import { detectTextIssues } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
-import { verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
+import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
@@ -568,6 +568,41 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
 
     const unlimited = await collectLinks(page, config);
     expect(unlimited.length, '上限を上げれば多く収集されること').toBeGreaterThan(links.length);
+  });
+
+  test('代理店の組み合わせ検証に上限が効く (代理店数が多いサイトで破綻しない)', async () => {
+    const many = Array.from({ length: 50 }, (_, index) => ({
+      ...config.agencies.agencies[0],
+      code: `CODE${String(index).padStart(3, '0')}`,
+    }));
+
+    const limited = agencyPairs(many, {
+      ...config,
+      runtime: { ...config.runtime, maxAgencyPairs: 30 },
+    });
+    expect(limited.length, '上限を超えないこと').toBe(30);
+    expect(
+      limited.every((pair) => pair.first.code !== pair.second.code),
+      '同じ代理店同士の組み合わせを作らないこと',
+    ).toBe(true);
+    expect(
+      new Set(limited.map((pair) => `${pair.first.code}->${pair.second.code}`)).size,
+      '同じ組み合わせを重複させないこと',
+    ).toBe(limited.length);
+
+    // 上限内でも、どの代理店も少なくとも 1 回は現れること
+    // (先頭の代理店だけを繰り返し使う実装だと検査の偏りが出る)
+    const appeared = new Set(limited.flatMap((pair) => [pair.first.code, pair.second.code]));
+    expect(appeared.size, '上限 30 でも 50 代理店すべてが登場すること').toBe(50);
+
+    expect(
+      agencyPairs(many, { ...config, runtime: { ...config.runtime, maxAgencyPairs: 0 } }).length,
+      '0 を指定すると組み合わせ検証を行わないこと',
+    ).toBe(0);
+    expect(
+      agencyPairs([config.agencies.agencies[0]], config).length,
+      '代理店が 1 件なら組み合わせは作れないこと',
+    ).toBe(0);
   });
 
   test('ページ間の表記揺れを検出できる', async () => {

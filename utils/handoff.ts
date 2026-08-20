@@ -25,7 +25,7 @@ import { expectedApplicationHost, resolveSelector } from './config';
 import { maskUrl } from './secrets';
 import { matchesAnyGlob } from './patterns';
 import type {
-  AgencySpec, FallbackExpectation, FindingInput, HandoffMethod, QaConfig, RecognitionCheck,
+  AgencySpec, AgencySpecWithApplication, FallbackExpectation, FindingInput, HandoffMethod, QaConfig, RecognitionCheck,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -237,7 +237,7 @@ export interface HandoffResult {
  * 引き継ぎに書き込み (非 GET) を伴う方式かどうか。
  * 読み取り専用環境ではフォーム送信が遮断されるため、実際の遷移は行わない。
  */
-export function requiresWriteRequest(spec: AgencySpec): boolean {
+export function requiresWriteRequest(spec: AgencySpecWithApplication): boolean {
   return spec.application.handoffMethod === 'post' || spec.application.handoffMethod === 'hidden';
 }
 
@@ -252,7 +252,7 @@ export function requiresWriteRequest(spec: AgencySpec): boolean {
 export async function verifyHandoffStatically(
   page: Page,
   config: QaConfig,
-  spec: AgencySpec,
+  spec: AgencySpecWithApplication,
 ): Promise<FindingInput[]> {
   const findings: FindingInput[] = [];
   const url = page.url();
@@ -446,7 +446,7 @@ export function assertRequestAllowed(
 /** CTA をクリックして申込ドメインへ遷移する */
 export async function clickCtaToApplication(
   page: Page,
-  spec: AgencySpec,
+  spec: AgencySpecWithApplication,
   config: QaConfig,
 ): Promise<{ navigated: boolean; error?: string }> {
   const selector = resolveSelector(spec.cta.testId);
@@ -474,7 +474,7 @@ export async function clickCtaToApplication(
 /** (1)(2) 遷移先のドメイン・パスを検証する */
 export function verifyApplicationDestination(
   currentUrl: string,
-  spec: AgencySpec,
+  spec: AgencySpecWithApplication,
   config: QaConfig,
 ): FindingInput[] {
   const findings: FindingInput[] = [];
@@ -528,7 +528,7 @@ export function verifyApplicationDestination(
 /** (3) 代理店コードまたはトークンが送信されていることを検証する */
 export function verifyHandoffTransport(
   observation: HandoffObservation,
-  spec: AgencySpec,
+  spec: AgencySpecWithApplication,
   currentUrl: string,
 ): FindingInput[] {
   const findings: FindingInput[] = [];
@@ -597,7 +597,7 @@ export function verifyHandoffTransport(
 export async function verifyRecognition(
   page: Page,
   config: QaConfig,
-  spec: AgencySpec,
+  spec: AgencySpecWithApplication,
   label: string,
 ): Promise<FindingInput[]> {
   const findings: FindingInput[] = [];
@@ -635,7 +635,7 @@ async function runRecognitionCheck(
   page: Page,
   config: QaConfig,
   check: RecognitionCheck,
-  spec: AgencySpec,
+  spec: AgencySpecWithApplication,
   label: string,
   url: string,
 ): Promise<FindingInput[]> {
@@ -759,7 +759,7 @@ async function runRecognitionCheck(
 export async function verifyApplicationPersistence(
   page: Page,
   config: QaConfig,
-  spec: AgencySpec,
+  spec: AgencySpecWithApplication,
 ): Promise<FindingInput[]> {
   const findings: FindingInput[] = [];
 

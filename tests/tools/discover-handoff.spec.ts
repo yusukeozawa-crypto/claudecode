@@ -201,6 +201,11 @@ test.describe('仕様調査 @discover', () => {
       tracker.detach();
 
       // --- CTA 候補の検出 (別ドメインを指すリンク / フォーム) ---
+      // 申込ドメインが未設定 (導入初期) でも調査できるようにする。
+      // 未設定なら空文字を渡し、LP ドメイン以外への遷移先を候補として集める。
+      const applicationHost = config.environment.applicationBaseUrl
+        ? new URL(config.environment.applicationBaseUrl).host
+        : '';
       const ctaCandidates = await page.evaluate((applicationHostHint: string) => {
         const candidates: Array<{ testId: string; text: string; href: string; kind: string }> = [];
         for (const element of Array.from(document.querySelectorAll('a[href], form[action], button'))) {
@@ -228,15 +233,18 @@ test.describe('仕様調査 @discover', () => {
           }
         }
         return candidates;
-      }, new URL(config.environment.applicationBaseUrl).host);
+        // 申込ドメインが未設定の場合は「LP ドメイン以外」を候補として扱う
+      }, applicationHost);
 
       // --- CTA をクリックして申込ドメインへ (申込完了はしない) ---
       let applicationPage: DiscoveryResult['applicationPage'] = null;
-      const ctaSelector = resolveSelector(spec.cta.testId);
-      const ctaLocator = page.locator(ctaSelector).first();
-      const ctaExists = (await ctaLocator.count()) > 0;
+      const ctaSelector = spec.cta ? resolveSelector(spec.cta.testId) : null;
+      const ctaLocator = ctaSelector ? page.locator(ctaSelector).first() : null;
+      const ctaExists = ctaLocator !== null && (await ctaLocator.count()) > 0;
 
-      if (!ctaExists) {
+      if (!ctaSelector) {
+        notes.push('CTA が未設定です (config の cta)。上記 ctaCandidates から選んで設定してください');
+      } else if (!ctaLocator || !ctaExists) {
         notes.push(`設定された CTA (${ctaSelector}) が見つかりません。上記 ctaCandidates を確認してください`);
       } else {
         const beforeUrl = page.url();
@@ -249,9 +257,11 @@ test.describe('仕様調査 @discover', () => {
           notes.push('CTA をクリックしても URL が変化しませんでした (別タブ・JS 遷移の可能性)');
         } else {
           // 申込側 API の応答を記録する (読み取りのみ)
+          // 申込ドメインが未設定の場合は遷移後の URL を基準にする
+          const apiBase = config.environment.applicationBaseUrl || new URL(page.url()).origin;
           const sessionApi = new URL(
             config.agency.application.sessionApiPattern.replace(/^\*\*/, '').replace(/\*$/, ''),
-            config.environment.applicationBaseUrl,
+            apiBase,
           ).toString();
           const response = await page.request.get(sessionApi, { failOnStatusCode: false }).catch(() => null);
           if (response) {

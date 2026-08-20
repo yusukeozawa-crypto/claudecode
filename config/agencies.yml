@@ -1,331 +1,242 @@
 # ============================================================
-# 代理店ごとの個別仕様 (期待結果)
+# 【自動生成ファイル】直接編集しないこと
 #
-#   重要: 代理店コードの「有無」では判定しない。
-#         代理店コードごとに、最初に表示する LP・リダイレクト有無・遷移先・
-#         表示/非表示セクション・代理店名・電話番号・バナー・CTA・申込先ドメイン・
-#         引き継ぐ値がすべて異なる。その差異をこのファイルで管理する。
+#   生成元:
+#     config/agency-master.tsv    (代理店コードと属性)
+#     config/agency-profiles.yml  (挙動パターンごとの期待結果)
 #
-#   ここに 1 件追加すれば、その代理店のテスト
-#   (表示 / リダイレクト / 申込引き継ぎ / PC・SP) が自動的に追加される。
-#   テストコードを複製する必要はない。
+#   再生成: npm run agencies:build
+#           npm run agencies:build -- --all   (全件を対象にする)
 #
-#   値はモックサイト (fixtures/mock-site) に合わせた仮置き。
-#   実サイトの仕様は npm run discover (docs/handoff-discovery.md) で
-#   実際の通信を記録して確認し、その結果に合わせて調整する。
+#   生成時の対象: 11 件 / マスタ 214 件
+#   絞り込み: sample (パターンごと 2 件 + always)
 # ============================================================
-
 agencies:
-  # ----------------------------------------------------------
-  # A001: リダイレクトなし / 共通 LP に代理店セクションを表示 / クエリ引き継ぎ
-  # ----------------------------------------------------------
-  - code: A001
-    label: リダイレクトなし・クエリ引き継ぎ
-    # 流入 URL (パス)
-    entryPath: /lp/
-    # 最終的に表示されるべき URL (パス)
-    expectedFinalPath: /lp/
+  - code: A0010
+    label: Amazon — みらやく掲載不可
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
     redirected: false
-    # none | http | js | meta-refresh | spa
-    # 仕様と異なる遷移方式が使われていた場合は警告として報告する
     redirectMechanism: none
-    # 期待するリダイレクト回数と経路 (entryPath を除く)
     expectedRedirectCount: 0
     expectedRedirectPaths: []
-
-    visibleSections:
-      - default-hero
-      - common-benefits
-      - agency-campaign
-      - agency-contact
-    hiddenSections:
-      - default-contact
-      - fallback-notice
-
-    expectedTexts:
-      agency-name: 株式会社エーワン保険サービス
-      agency-phone: 03-0000-0001
-
-    # バナー・ロゴ (src の部分一致で検証する)
-    expectedAssets:
-      agency-banner: /assets/banner-a001.svg
-      agency-logo: /assets/logo-a001.svg
-
-    cta:
-      testId: cta-primary
-      expectedText: Webでお申し込み
-
-    application:
-      # 申込先ドメイン。null の場合は environments.yml の applicationBaseUrl を使用する。
-      # 代理店ごとに申込ドメインが異なる場合はホスト名を明示する。
-      expectedDomain: null
-      expectedPath: /entry/
-      # query | hidden | post | api | server-session | token
-      handoffMethod: query
-      # クエリ / hidden 項目のキー名
-      handoffParam: agency_code
-      # 申込側に引き継がれるべき代理店コード (LP のコードと異なる場合もある)
-      expectedCode: A001
-      # 申込ページ側で「正しい代理店として認識されている」ことの確認方法。
-      # URL にコードが載っていることだけでは合格にしない。
-      recognition:
-        - type: text
-          testId: application-agency-name
-          expected: 株式会社エーワン保険サービス
-        - type: hidden
-          testId: application-agency-code
-          expected: A001
-        - type: storage
-          storageType: localStorage
-          key: agency_code
-          expected: A001
-        - type: api
-          urlPattern: "**/api/session*"
-          field: agency_code
-          expected: A001
-      # 申込を数画面進めて代理店情報が保持されるか (申込完了は行わない)
-      steps:
-        - testId: application-next
-          expectedPath: /entry/step2/
-        - testId: application-next
-          expectedPath: /entry/confirm/
-
-  # ----------------------------------------------------------
-  # A002: HTTP 302 で代理店専用 LP へリダイレクト / 一時トークン引き継ぎ
-  # ----------------------------------------------------------
-  - code: A002
-    label: HTTP リダイレクト・一時トークン引き継ぎ
-    entryPath: /lp/
-    expectedFinalPath: /partner/a002/
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily01
+    label: ダイレクト — 自社コード (オリジナル表示)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily02
+    label: PECOAD（ダイレクト扱い各種用） — みらやく掲載可
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily03
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPへリダイレクト)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service-premium/
     redirected: true
-    redirectMechanism: http
+    redirectMechanism: unknown
     expectedRedirectCount: 1
     expectedRedirectPaths:
-      - /partner/a002/
-
-    visibleSections:
-      - partner-exclusive-hero
-      - partner-exclusive-offer
-      - agency-contact
-    hiddenSections:
-      - default-hero
-      - agency-campaign
-      - fallback-notice
-
-    expectedTexts:
-      agency-name: 株式会社ビーツー保険
-      agency-phone: 06-0000-0002
-
-    expectedAssets:
-      agency-banner: /assets/banner-a002.svg
-
-    cta:
-      testId: cta-primary
-      expectedText: パートナー限定プランを申し込む
-
-    application:
-      expectedDomain: null
-      expectedPath: /entry/
-      handoffMethod: token
-      # 一時トークンのパラメータ名。トークン文字列そのものは比較せず、
-      # 「存在すること」と「申込側で復元された代理店コード」を検証する。
-      handoffParam: handoff_token
-      expectedCode: A002
-      recognition:
-        - type: text
-          testId: application-agency-name
-          expected: 株式会社ビーツー保険
-        - type: hidden
-          testId: application-agency-code
-          expected: A002
-        - type: api
-          urlPattern: "**/api/session*"
-          field: agency_code
-          expected: A002
-      steps:
-        - testId: application-next
-          expectedPath: /entry/step2/
-        - testId: application-next
-          expectedPath: /entry/confirm/
-
-  # ----------------------------------------------------------
-  # A003: meta refresh で代理店専用 LP へリダイレクト / hidden + POST 引き継ぎ
-  # ----------------------------------------------------------
-  - code: A003
-    label: meta refresh リダイレクト・POST 引き継ぎ
-    entryPath: /lp/
-    expectedFinalPath: /partner/a003/
+      - /lp/service-premium/
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily04
+    label: アドバンスクリエイト株式会社 — みらやく掲載可
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily05
+    label: エレメント — みらやく掲載不可
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily07
+    label: アイビーシステム — みらやく掲載可
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily11
+    label: 株式会社NTTドコモ — みらやく掲載不可
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily03br01
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPへリダイレクト)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service-premium/
     redirected: true
-    redirectMechanism: meta-refresh
+    redirectMechanism: unknown
     expectedRedirectCount: 1
     expectedRedirectPaths:
-      - /partner/a003/
-
-    visibleSections:
-      - partner-exclusive-hero
-      - partner-exclusive-offer
-      - agency-contact
-    hiddenSections:
-      - default-hero
-      - fallback-notice
-
-    expectedTexts:
-      agency-name: シースリー少額短期保険株式会社
-      agency-phone: 052-000-0003
-
-    expectedAssets:
-      agency-banner: /assets/banner-a003.svg
-
-    cta:
-      # POST 送信方式のため送信ボタンを CTA として扱う
-      testId: cta-form-submit
-      expectedText: お申し込み手続きへ進む
-
-    application:
-      expectedDomain: null
-      expectedPath: /entry/
-      handoffMethod: post
-      handoffParam: agency_code
-      expectedCode: A003
-      recognition:
-        - type: text
-          testId: application-agency-name
-          expected: シースリー少額短期保険株式会社
-        - type: hidden
-          testId: application-agency-code
-          expected: A003
-        - type: api
-          urlPattern: "**/api/session*"
-          field: agency_code
-          expected: A003
-      steps:
-        - testId: application-next
-          expectedPath: /entry/step2/
-
-# ============================================================
-# 無効な代理店コード (フォールバック仕様)
-#   無効コードが有効な代理店として処理されたら Critical
-# ============================================================
+      - /lp/service-premium/
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily03br02
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPへリダイレクト)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service-premium/
+    redirected: true
+    redirectMechanism: unknown
+    expectedRedirectCount: 1
+    expectedRedirectPaths:
+      - /lp/service-premium/
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily03br03
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPへリダイレクト)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service-premium/
+    redirected: true
+    redirectMechanism: unknown
+    expectedRedirectCount: 1
+    expectedRedirectPaths:
+      - /lp/service-premium/
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
 invalidCodes:
-  - code: INVALID
+  - code: NOSUCHCODE
     label: 未登録コード
-  - code: A999
-    label: 形式は正しいが未登録のコード
-  - code: "a001"
-    label: 大文字小文字違い (別コードとして扱われるべき)
-
+  - code: LITTLEFAMILY01
+    label: 大文字 (別コードとして扱われるべき)
+  - code: littlefamily001
+    label: 桁数違い
 invalidExpectation:
-  entryPath: /lp/
-  expectedFinalPath: /lp/
+  entryPath: /lp/service/
+  expectedFinalPath: /lp/service/
   redirected: false
   redirectMechanism: none
-  visibleSections:
-    - default-hero
-    - common-benefits
-    - default-contact
-    - fallback-notice
-  hiddenSections:
-    - agency-campaign
-    - agency-contact
+  visibleSections: []
+  hiddenSections: []
   expectedTexts: {}
-  # 保存されないこと
   expectStored: false
   application:
     expectedDomain: null
-    expectedPath: /entry/
-    # 通常経路へフォールバックすること
-    expectDefaultRoute: true
-    defaultRouteTestId: application-default-route
-    # 代理店として認識されてはならない
-    forbiddenTestIds:
-      - application-agency-info
-
-# ============================================================
-# 代理店コードなし (通常流入)
-# ============================================================
+    expectedPath: /
+    expectDefaultRoute: false
+    defaultRouteTestId: ""
+    forbiddenTestIds: []
 noCodeExpectation:
-  entryPath: /lp/
-  expectedFinalPath: /lp/
+  entryPath: /lp/service/
+  expectedFinalPath: /lp/service/
   redirected: false
   redirectMechanism: none
-  visibleSections:
-    - default-hero
-    - common-benefits
-    - default-contact
-  hiddenSections:
-    - agency-campaign
-    - agency-contact
-    - fallback-notice
+  visibleSections: []
+  hiddenSections: []
+  expectedTexts: {}
   expectStored: false
   application:
-    expectedPath: /entry/
-    expectDefaultRoute: true
-    defaultRouteTestId: application-default-route
-    forbiddenTestIds:
-      - application-agency-info
-
-# ============================================================
-# リダイレクト・URL の共通検査条件
-# ============================================================
+    expectedDomain: null
+    expectedPath: /
+    expectDefaultRoute: false
+    defaultRouteTestId: ""
+    forbiddenTestIds: []
 redirect:
-  # リダイレクト回数の上限 (超過はリダイレクトループとみなす)
   maxRedirects: 5
-  # 最終 URL に付いていてよいクエリパラメータ (これ以外は「不要な付加」として報告)
   allowedQueryParams:
-    - agency_code
-    - handoff_token
-    - utm_source
-    - utm_medium
-    - utm_campaign
-  # URL に含まれてはならない個人情報らしいパラメータ名 (部分一致・小文字で比較)
+    - insAgentNo
   forbiddenQueryParamKeywords:
     - mail
     - tel
-    - phone
     - name
-    - birth
-    - address
-    - zip
-    - card
     - password
-    - passwd
-    - token_secret
-  # URL 値に個人情報が含まれていないかの検査パターン (正規表現)
+    - token
   piiValuePatterns:
-    - "[\\w.+-]+@[\\w-]+\\.[\\w.-]+"          # メールアドレス
-    - "\\b0\\d{1,4}-\\d{1,4}-\\d{3,4}\\b"      # 電話番号
-    - "\\b\\d{16}\\b"                          # カード番号らしい数字列
-
-# ============================================================
-# セキュリティ検査
-# ============================================================
+    - "[\\w.+-]+@[\\w-]+\\.[\\w.]+"
+    - 0\d{1,4}-?\d{1,4}-?\d{3,4}
 security:
-  # open redirect 検査に使用するパラメータ名
   redirectParamNames:
-    - next
+    - redirect
     - redirect_to
     - return_to
+    - next
     - url
-  # 遷移を試みる外部ドメイン (実際に到達したら Critical)
-  externalProbeUrl: https://evil.example.com/
-  # 遷移が許可されるオリジン (LP ドメインと申込ドメインは実行時に自動で許可される)
+  externalProbeUrl: https://example.com/
   allowedRedirectOrigins: []
-  # 代理店コードとして送り込む XSS ペイロード (HTML へそのまま出力されないこと)
   xssPayloads:
-    - "<img src=x onerror=window.__qa_xss=1>"
-    - "\"><script>window.__qa_xss=1</script>"
-    - "javascript:window.__qa_xss=1"
-  # レポート・ログでマスキングする値のパラメータ名 / キー名
+    - '"><script>window.__qaInjection=1</script>'
+    - "'><img src=x onerror=window.__qaInjection=1>"
   maskParamNames:
-    - handoff_token
     - token
+    - handoff_token
     - session
-    - sessionid
     - sid
-    - auth
-    - signature
-    - sig
-  # マスキングする値のパターン (正規表現)。一時トークンなどの秘密値を出力しない。
   maskValuePatterns:
-    - "eyJ[A-Za-z0-9_-]{10,}"                  # JWT らしい文字列
-    - "\\b[A-Fa-f0-9]{32,}\\b"                 # 長い 16 進文字列
+    - eyJ[A-Za-z0-9_-]{10,}
+    - "[0-9a-f]{32,}"

@@ -1,0 +1,188 @@
+# ============================================================
+# 代理店の挙動パターン (プロファイル) 定義
+#
+#   このサイトの代理店は 214 件あるが、期待される挙動は
+#   代理店ごとに固有ではなく、いくつかのパターンに分かれる。
+#     ・みらやく掲載可否 (○ / ×) でセクションの表示・非表示が決まる
+#     ・株式会社カカクコム・インシュアランスだけ専用 LP へリダイレクトする
+#     ・littlefamily01 は自社コードで、代理店コードを無効化しオリジナル表示
+#
+#   そのため 214 件を個別に書くのではなく、
+#     config/agency-master.tsv  … コードと属性 (どの代理店が何か)
+#     config/agency-profiles.yml … パターンごとの期待結果 (このファイル)
+#   の 2 つから config/agencies.yml を生成する。
+#
+#   `npm run agencies:build` で生成する。
+#   既定では各パターンの代表を数件だけ出力する (scope.mode: sample)。
+#   全 214 件を対象にする場合は `npm run agencies:build -- --all`。
+#
+#   [未実測] と書かれた項目は実サイトで確認できていない。
+#   npm run discover の結果に合わせて設定する。
+# ============================================================
+
+# ---------- 出力対象の絞り込み ----------
+scope:
+  # sample = パターンごとに代表を perProfile 件 + always を出力
+  # all    = マスタの全件を出力 (実行時間は長くなる)
+  mode: sample
+  perProfile: 2
+  # 常に含めるコード (パターンの代表として外せないもの)
+  always:
+    - littlefamily01      # 自社コード (オリジナル表示)
+    - littlefamily03      # カカクコム 本体 (専用LPへリダイレクト)
+    - littlefamily03br01  # カカクコム 支店コード
+    - littlefamily04      # みらやく ○ の代表
+    - A0010               # みらやく × かつ命名規則が異なるコード
+  # 検査対象から除外する mirayaku の値
+  #   エラー / 要確認 / 空欄 は期待結果が確定していないため除外する
+  excludeMirayaku:
+    - エラー
+    - 要確認
+    - ""
+
+# ---------- 割り当てルール (上から順に最初に一致したものを採用) ----------
+assign:
+  - match: { code: littlefamily01 }
+    profile: direct
+  - match: { codePrefix: littlefamily03 }
+    profile: kakakucom
+  - match: { mirayaku: "○" }
+    profile: mirayaku-visible
+  - match: { mirayaku: "×" }
+    profile: mirayaku-hidden
+
+# ---------- パターンごとの期待結果 ----------
+profiles:
+  # 自社コード。代理店コードを無効化しオリジナルを表示する
+  direct:
+    label: 自社コード (オリジナル表示)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    # [未実測] 表示・非表示セクションの data-testid が未確認
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+
+  # 株式会社カカクコム・インシュアランス
+  # LP に入った時点で価格コム限定プラン専用 LP へリダイレクトする
+  kakakucom:
+    label: カカクコム (専用LPへリダイレクト)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service-premium/
+    redirected: true
+    # [未実測] 遷移方式 (http / js / meta-refresh / spa) が未確認。
+    # discover で判定できる。設定した方式と異なっていれば警告として報告される。
+    redirectMechanism: null
+    expectedRedirectCount: 1
+    expectedRedirectPaths:
+      - /lp/service-premium/
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+
+  # みらやく掲載可 (○) — みらやくのセクションが表示される
+  mirayaku-visible:
+    label: みらやく掲載可
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    # [未実測] みらやくセクションの data-testid が未確認。
+    # 判明したら visibleSections に入れる (例: mirayaku-section)。
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+
+  # みらやく掲載不可 (×) — みらやくのセクションが表示されない
+  mirayaku-hidden:
+    label: みらやく掲載不可
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    # [未実測] 判明したら hiddenSections に入れる (例: mirayaku-section)。
+    # ここが設定されるまで「×なのに表示されている」は検知できない。
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+
+# ---------- 無効コード / コードなしの期待結果 ----------
+invalidCodes:
+  - code: NOSUCHCODE
+    label: 未登録コード
+  - code: LITTLEFAMILY01
+    label: 大文字 (別コードとして扱われるべき)
+  - code: littlefamily001
+    label: 桁数違い
+
+invalidExpectation:
+  expectedFinalPath: /lp/service/
+  redirected: false
+  # [未実測] 無効コード時に通常表示へフォールバックすることを
+  # 何で確認するか (代理店セクションが出ないこと等)
+  visibleSections: []
+  hiddenSections: []
+  application: null
+
+noCodeExpectation:
+  expectedFinalPath: /lp/service/
+  redirected: false
+  visibleSections: []
+  hiddenSections: []
+  application: null
+
+# ---------- リダイレクト・セキュリティの共通設定 ----------
+redirect:
+  maxRedirects: 5
+  allowedQueryParams:
+    - insAgentNo
+  forbiddenQueryParamKeywords:
+    - mail
+    - tel
+    - name
+    - password
+    - token
+  piiValuePatterns:
+    - "[\\w.+-]+@[\\w-]+\\.[\\w.]+"
+    - "0\\d{1,4}-?\\d{1,4}-?\\d{3,4}"
+
+security:
+  redirectParamNames:
+    - redirect
+    - redirect_to
+    - return_to
+    - next
+    - url
+  externalProbeUrl: https://example.com/
+  allowedRedirectOrigins: []
+  xssPayloads:
+    - "\"><script>window.__qaInjection=1</script>"
+    - "'><img src=x onerror=window.__qaInjection=1>"
+  maskParamNames:
+    - token
+    - handoff_token
+    - session
+    - sid
+  maskValuePatterns:
+    - "eyJ[A-Za-z0-9_-]{10,}"
+    - "[0-9a-f]{32,}"
