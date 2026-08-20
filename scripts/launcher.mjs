@@ -26,23 +26,26 @@ const TARGETS = [
     label: '練習用サイト',
     note: '対象サイト不要。ツールの動作確認用',
     task: 'test:local',
-    requiresEnv: false,
+    prefix: null,
   },
   {
     key: '2',
     label: 'ステージング',
-    note: '.env の STAGING_BASE_URL を検査する',
+    note: '検査対象の URL を .env から読む',
     task: 'test:staging',
-    requiresEnv: true,
+    prefix: 'STAGING',
   },
   {
     key: '3',
     label: '本番',
     note: '読み取りのみ。申込完了やデータ送信は行わない',
     task: 'test:production',
-    requiresEnv: true,
+    prefix: 'PRODUCTION',
   },
 ];
+
+const ENV_PATH = path.join(root, '.env');
+const ENV_EXAMPLE_PATH = path.join(root, '.env.example');
 
 const line = '─'.repeat(60);
 
@@ -121,6 +124,162 @@ function createPrompt() {
   };
 }
 
+/**
+ * .env の読み取り。utils/config.ts の loadDotEnv と同じ書式を想定する
+ * (KEY=VALUE、# はコメント、値の前後の引用符は取り除く)。
+ */
+function readEnvFile() {
+  const values = new Map();
+  if (!fs.existsSync(ENV_PATH)) return values;
+  for (const rawLine of fs.readFileSync(ENV_PATH, 'utf8').split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (/^(['"]).*\1$/.test(value)) value = value.slice(1, -1);
+    values.set(key, value);
+  }
+  return values;
+}
+
+/**
+ * .env の値を書き換える。
+ * 既存の行はコメントごと残し、該当キーの行だけ差し替える
+ * (手で書いた設定やコメントを消さないため)。
+ * ファイルが無い場合は .env.example を雛形にする。
+ */
+function writeEnvValues(updates) {
+  let lines;
+  if (fs.existsSync(ENV_PATH)) {
+    lines = fs.readFileSync(ENV_PATH, 'utf8').split(/\r?\n/);
+  } else if (fs.existsSync(ENV_EXAMPLE_PATH)) {
+    lines = fs.readFileSync(ENV_EXAMPLE_PATH, 'utf8').split(/\r?\n/);
+  } else {
+    lines = [];
+  }
+
+  const remaining = new Map(Object.entries(updates));
+  const rewritten = lines.map((line) => {
+    const match = /^(\s*)([A-Z0-9_]+)\s*=/.exec(line);
+    if (!match) return line;
+    const key = match[2];
+    if (!remaining.has(key)) return line;
+    const value = remaining.get(key);
+    remaining.delete(key);
+    return `${key}=${value}`;
+  });
+
+  for (const [key, value] of remaining) rewritten.push(`${key}=${value}`);
+  fs.writeFileSync(ENV_PATH, `${rewritten.join('\n').replace(/\n+$/, '')}\n`, 'utf8');
+}
+
+function isHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/** URL を 1 件聞く (空入力・不正な形式はやり直し) */
+async function askUrl(prompt, label, current) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const hint = current ? ` [現在: ${current}]` : '';
+    const answer = await prompt.ask(`    ${label}${hint}: `);
+    if (answer === '' && current) return current;
+    if (isHttpUrl(answer)) return answer.replace(/\/+$/, '');
+    if (answer === '') {
+      print('    URL を入力してください。');
+    } else {
+      print('    https:// または http:// から始まる URL を入力してください。');
+    }
+  }
+  return null;
+}
+
+/**
+ * 検査対象の URL・認証情報が .env に揃っているか確認し、
+ * 足りなければその場で聞いて .env に書き込む。
+ *
+ * Windows のエクスプローラーでは「.env」という名前のファイルを作れないため、
+ * 手作業で用意させずここで作れるようにしている。
+ */
+async function ensureEnvConfigured(target, prompt) {
+  if (!target.prefix) return true;
+
+  const lpKey = `${target.prefix}_BASE_URL`;
+  const appKey = `${target.prefix}_APPLICATION_BASE_URL`;
+  const userKey = `${target.prefix}_BASIC_USER`;
+  const passKey = `${target.prefix}_BASIC_PASS`;
+
+  const current = readEnvFile();
+  if (current.get(lpKey) && current.get(appKey)) return true;
+
+  print();
+  print(line);
+  print(`  ${target.label} の設定がありません。ここで作成できます。`);
+  print(line);
+  print();
+  print('  入力する内容:');
+  print('    ・LP の URL         例) https://staging.example.jp');
+  print('    ・申込ページの URL  例) https://staging-app.example.jp');
+  print('    ・Basic 認証の ID とパスワード (不要なら空のまま Enter)');
+  print();
+  print('  入力した内容は .env に保存されます (Git にはコミットされません)。');
+  print('  ※ パスワードは入力中に画面に表示されます。画面共有中は注意してください。');
+  print('  ※ 手で用意する場合は .env.example をコピーして .env にしてください。');
+  print();
+
+  const answer = await prompt.ask('  いま設定しますか？ (y = はい / n = やめる): ');
+  if (!/^y(es)?$/i.test(answer)) {
+    print();
+    print('  中止しました。設定してから再度実行してください。');
+    return false;
+  }
+
+  print();
+  const lpUrl = await askUrl(prompt, 'LP の URL', current.get(lpKey));
+  if (!lpUrl) {
+    print('    入力を確認できませんでした。中止します。');
+    return false;
+  }
+  const appUrl = await askUrl(prompt, '申込ページの URL', current.get(appKey));
+  if (!appUrl) {
+    print('    入力を確認できませんでした。中止します。');
+    return false;
+  }
+
+  print();
+  print('    Basic 認証 (ブラウザのポップアップで ID を聞かれる方式)');
+  print('    不要な場合は何も入力せず Enter を押してください。');
+  const basicUser = await prompt.ask('    ID: ');
+  const basicPass = basicUser === '' ? '' : await prompt.ask('    パスワード: ');
+
+  const updates = { [lpKey]: lpUrl, [appKey]: appUrl };
+  if (basicUser !== '') {
+    updates[userKey] = basicUser;
+    updates[passKey] = basicPass;
+  }
+  writeEnvValues(updates);
+
+  print();
+  print('  .env を保存しました。');
+  print(`    ${lpKey}=${lpUrl}`);
+  print(`    ${appKey}=${appUrl}`);
+  if (basicUser !== '') {
+    print(`    ${userKey}=${basicUser}`);
+    print(`    ${passKey}=${'*'.repeat(Math.min(basicPass.length, 12))} (画面には表示しません)`);
+  } else {
+    print('    Basic 認証: なし');
+  }
+  print();
+  print('  内容を変えたい場合は .env をメモ帳で開いて編集できます。');
+  return true;
+}
+
 /** レポートを既定のアプリで開く */
 async function openReport(reportPath) {
   // start は cmd の内部コマンドなので shell 経由で呼ぶ (run は win32 で shell: true)。
@@ -130,7 +289,7 @@ async function openReport(reportPath) {
   return run('xdg-open', [reportPath]);
 }
 
-async function selectTarget() {
+async function selectTarget(prompt) {
   const preset = process.argv[2];
   if (preset) {
     const byKey = TARGETS.find((target) => target.key === preset);
@@ -147,12 +306,7 @@ async function selectTarget() {
   }
   print();
 
-  const prompt = createPrompt();
-  try {
-    return await promptForTarget(prompt);
-  } finally {
-    prompt.close();
-  }
+  return promptForTarget(prompt);
 }
 
 async function promptForTarget(prompt) {
@@ -179,21 +333,18 @@ async function main() {
   print(line);
   print();
 
-  const target = await selectTarget();
-  if (!target) {
-    print('  中止しました。');
-    return 1;
-  }
-
-  if (target.requiresEnv && !fs.existsSync(path.join(root, '.env'))) {
-    print();
-    print('  [設定なし] .env ファイルがありません。');
-    print();
-    print('    1. .env.example をコピーして .env という名前にする');
-    print('    2. .env をメモ帳で開き、検査したいサイトの URL を書く');
-    print();
-    print('    詳しくは QUICKSTART.md を参照してください。');
-    return 1;
+  const prompt = createPrompt();
+  let target;
+  try {
+    target = await selectTarget(prompt);
+    if (!target) {
+      print('  中止しました。');
+      return 1;
+    }
+    if (!(await ensureEnvConfigured(target, prompt))) return 1;
+  } finally {
+    // 以降は子プロセスが stdin を使うため、ここで入力を手放す
+    prompt.close();
   }
 
   if (!fs.existsSync(path.join(root, 'node_modules'))) {

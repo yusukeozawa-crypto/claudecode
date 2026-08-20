@@ -17,6 +17,10 @@ import BASIC_AUTH from '../../fixtures/mock-site/basic-auth.json';
 const config = loadConfig();
 
 test.describe('Basic 認証の自己検査 @selfcheck', () => {
+  // /protected/ はモックサイト固有のパスなので local 環境でのみ実行する
+  // (実サイトに対して実行すると 404 を誤検知する)
+  test.skip(config.environmentName !== 'local', 'モックサイトを使用するため local 環境でのみ実行します');
+
   test('認証情報の正規化: 未設定・空文字は認証なしとして扱う', async () => {
     expect(normalizeHttpCredentials(null), 'null は認証なし').toBeNull();
     expect(normalizeHttpCredentials(undefined), 'undefined は認証なし').toBeNull();

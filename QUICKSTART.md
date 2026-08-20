@@ -59,6 +59,12 @@ cd claudecode-main
 
 ### ① URL を設定
 
+**`run-qa.cmd` から `2`（ステージング）を選ぶと、設定が無ければその場で聞かれます。**
+URL と Basic 認証を入力すれば `.env` が作られるので、下の手作業は不要です
+（Windows のエクスプローラーでは `.env` という名前のファイルを作れないため）。
+
+手で用意する場合:
+
 ```bash
 cp .env.example .env
 ```
