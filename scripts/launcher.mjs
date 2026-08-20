@@ -16,6 +16,7 @@ import { createInterface } from 'node:readline';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withBinPath } from './lib/env-path.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 process.chdir(root);
@@ -60,7 +61,7 @@ function run(command, args) {
     const child = spawn(command, args, {
       stdio: 'inherit',
       shell: process.platform === 'win32',
-      env: { ...process.env, PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ''}` },
+      env: withBinPath(binDir),
     });
     child.on('error', () => resolve(-1));
     child.on('exit', (code) => resolve(code ?? -1));

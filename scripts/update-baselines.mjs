@@ -13,6 +13,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { withBinPath } from './lib/env-path.mjs';
 
 const BASELINE_PLATFORM = 'linux';
 const args = process.argv.slice(2);
@@ -48,7 +49,7 @@ if (forced && process.platform !== BASELINE_PLATFORM) {
 }
 
 const binDir = path.join(fileURLToPath(new URL('..', import.meta.url)), 'node_modules', '.bin');
-const env = { ...process.env, PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ''}` };
+const env = withBinPath(binDir);
 
 const child = spawn(
   'playwright',

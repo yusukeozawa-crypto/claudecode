@@ -16,7 +16,7 @@ import { detectTextIssues } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
-import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, toSelectorHint } from '../../utils/page-signature';
+import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, toSelectorHint } from '../../utils/page-signature';
 import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
@@ -709,6 +709,35 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       ['ab-test-slot'],
     );
     expect(ignored.extra, '除外した鍵は差分にしない').toEqual([]);
+  });
+
+  test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {
+    // みらやくの表示差分はセクションの有無だけでなく、
+    // フッターの表記や注釈など文言だけの違いとして現れることもある。
+    // ブロックの有無しか見ないと「切り替えが効いていない」と誤判定する。
+    const blocks = [
+      { key: 'footer', keyKind: 'class' as const, visible: true, textSample: '', textLength: 10 },
+      { key: 'main-hero', keyKind: 'testid' as const, visible: true, textSample: '', textLength: 10 },
+    ];
+    const mirayakuOk = { url: 'https://example.test/?code=A', blocks, textLines: ['共通の説明', 'みらやく掲載あり'] };
+    const mirayakuNg = { url: 'https://example.test/?code=B', blocks, textLines: ['共通の説明', 'みらやく掲載なし'] };
+    const identical = { url: 'https://example.test/?code=C', blocks, textLines: ['共通の説明', 'みらやく掲載あり'] };
+
+    const textOnly = evaluateDisplayDifference(mirayakuOk, mirayakuNg);
+    expect(textOnly.blocksDiffer, 'ブロック構成は同一').toBe(false);
+    expect(textOnly.textDiffers, '文言は異なる').toBe(true);
+    expect(textOnly.differs, '文言だけの違いも「表示が違う」と判定する').toBe(true);
+    expect(textOnly.textOnlyInB, '違う文言が分かること').toContain('みらやく掲載なし');
+
+    const same = evaluateDisplayDifference(mirayakuOk, identical);
+    expect(same.differs, '完全に同じなら「違いなし」と判定する').toBe(false);
+
+    const blocksChanged = evaluateDisplayDifference(mirayakuOk, {
+      ...mirayakuOk,
+      blocks: [...blocks, { key: 'extra', keyKind: 'testid' as const, visible: true, textSample: '', textLength: 1 }],
+    });
+    expect(blocksChanged.blocksDiffer, 'ブロックの違いも検出する').toBe(true);
+    expect(blocksChanged.onlyInB, '増えたブロックが分かること').toContain('extra');
   });
 
   test('数字だけが違うテキストは差分として報告しない (時刻・カウンタの誤検知防止)', async () => {

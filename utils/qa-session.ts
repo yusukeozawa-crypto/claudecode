@@ -26,6 +26,19 @@ export interface GotoOptions {
   waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' | 'commit';
 }
 
+/**
+ * 実行の中断によるエラーか。
+ *
+ * Ctrl+C や Playwright の中断でブラウザ・コンテキストが閉じられると
+ * page.goto は失敗する。これは検査対象サイトの不具合ではないため、
+ * サイトの検知結果と混ぜない。
+ */
+export function isRunAborted(message: string): boolean {
+  return /Target (page|closed)|context or browser has been closed|Browser has been closed|Test ended|Test was interrupted|Protocol error.*disposeBrowserContext|Target closed/i.test(
+    message,
+  );
+}
+
 export class QaSession {
   readonly findings: FindingCollector;
   readonly monitor: PageMonitor;
@@ -104,6 +117,24 @@ export class QaSession {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+
+      // 実行の中断 (Ctrl+C・ブラウザやコンテキストの終了) は
+      // 検査対象サイトの不具合ではない。
+      // これをサイトの High として報告すると、
+      // 中断しただけで「不具合を検知した」ことになってしまう。
+      if (isRunAborted(message)) {
+        this.findings.add({
+          category: 'network-error',
+          severity: 'low',
+          title: '実行が中断されたため検査できませんでした',
+          expected: '検査を完了すること',
+          actual: message.split('\n')[0],
+          url: target,
+          detail: 'サイトの不具合ではありません。中断せずに再実行してください。',
+        });
+        return false;
+      }
+
       const isRedirectLoop = /ERR_TOO_MANY_REDIRECTS|too many redirects/i.test(message);
       const isTimeout = /Timeout|timed out/i.test(message);
       this.findings.add({

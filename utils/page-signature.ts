@@ -146,8 +146,18 @@ export interface SignatureDiff {
  * 実行するたびに変わるため、そのまま比較すると
  * 「代理店による違い」に混ざって差分が読めなくなる。
  */
-function normalizeLine(line: string): string {
+export function normalizeLine(line: string): string {
   return line.replace(/[0-9０-９]+/g, '#');
+}
+
+/** 表示テキストの差分 (数字だけの違いは無視する) */
+export function diffTextLines(a: PageSignature, b: PageSignature): { onlyInA: string[]; onlyInB: string[] } {
+  const linesA = new Set(a.textLines.map(normalizeLine));
+  const linesB = new Set(b.textLines.map(normalizeLine));
+  return {
+    onlyInA: a.textLines.filter((line) => !linesB.has(normalizeLine(line))),
+    onlyInB: b.textLines.filter((line) => !linesA.has(normalizeLine(line))),
+  };
 }
 
 export function diffSignatures(a: PageSignature, b: PageSignature): SignatureDiff {
@@ -205,5 +215,48 @@ export function compareVisibleBlocks(
     missing: referenceKeys.filter((key) => !targetSet.has(key)),
     extra: targetKeys.filter((key) => !referenceSet.has(key)),
     shared: referenceKeys.filter((key) => targetSet.has(key)),
+  };
+}
+
+export interface DisplayDifference {
+  /** 表示ブロックの構成が違うか */
+  blocksDiffer: boolean;
+  /** 文言が違うか */
+  textDiffers: boolean;
+  /** 何らかの違いがあるか */
+  differs: boolean;
+  onlyInA: string[];
+  onlyInB: string[];
+  textOnlyInA: string[];
+  textOnlyInB: string[];
+  sharedBlocks: string[];
+}
+
+/**
+ * 2 ページの表示が違うかを判定する。
+ *
+ * 「セクションが出る / 出ない」だけでなく、フッターの表記や注釈など
+ * 文言だけの違いも「表示が違う」とみなす。
+ * ブロックの有無しか見ないと、文言だけ変わるサイトで
+ * 「切り替えが効いていない」と誤判定する。
+ */
+export function evaluateDisplayDifference(
+  a: PageSignature,
+  b: PageSignature,
+  ignoreKeys: Iterable<string> = [],
+): DisplayDifference {
+  const blocks = compareVisibleBlocks(a, b, ignoreKeys);
+  const text = diffTextLines(a, b);
+  const blocksDiffer = blocks.missing.length > 0 || blocks.extra.length > 0;
+  const textDiffers = text.onlyInA.length > 0 || text.onlyInB.length > 0;
+  return {
+    blocksDiffer,
+    textDiffers,
+    differs: blocksDiffer || textDiffers,
+    onlyInA: blocks.missing,
+    onlyInB: blocks.extra,
+    textOnlyInA: text.onlyInA,
+    textOnlyInB: text.onlyInB,
+    sharedBlocks: blocks.shared,
   };
 }

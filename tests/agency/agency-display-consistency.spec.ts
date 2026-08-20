@@ -17,7 +17,9 @@ import { test } from '../qa-fixtures';
 import { loadConfig } from '../../utils/config';
 import { agencySpecs } from '../../utils/agency';
 import { buildEntryUrl } from '../../utils/agency-entry';
-import { capturePageSignatureStable, compareVisibleBlocks } from '../../utils/page-signature';
+import {
+  capturePageSignatureStable, compareVisibleBlocks, diffTextLines, evaluateDisplayDifference,
+} from '../../utils/page-signature';
 import type { PageSignature } from '../../utils/page-signature';
 import type { QaSession } from '../../utils/qa-session';
 import type { AgencySpec } from '../../utils/types';
@@ -43,6 +45,12 @@ const groups = groupByProfile(specs);
 function describeKeys(keys: string[]): string {
   const shown = keys.slice(0, 8).join(', ');
   return keys.length > 8 ? `${shown} ...他 ${keys.length - 8} 件` : shown || '(なし)';
+}
+
+/** テキスト差分を読める形にする */
+function describeLines(lines: string[]): string {
+  const shown = lines.slice(0, 4).map((line) => `「${line.slice(0, 60)}」`).join(' / ');
+  return lines.length > 4 ? `${shown} ...他 ${lines.length - 4} 行` : shown || '(なし)';
 }
 
 /** 代理店コードで LP を開き、表示シグネチャを取る */
@@ -89,6 +97,27 @@ test.describe('表示の一貫性 @agency @consistency', () => {
               `基準: ${reference.code} (${reference.label})`,
           });
         }
+
+        // 表示の違いはセクションの有無だけでなく、フッターの表記や注釈など
+        // 文言だけの違いとして現れることもある。
+        // ただし代理店名のように代理店ごとに変わる文言もあるため、
+        // ブロックの不一致 (Critical) とは分けて Medium で報告する。
+        const textDiff = diffTextLines(referenceSignature, signature);
+        if (textDiff.onlyInA.length > 0 || textDiff.onlyInB.length > 0) {
+          qa.add({
+            category: 'agency-display',
+            severity: 'medium',
+            title: `${spec.code}: 同じ分類 (${profile}) の代理店と文言が異なります`,
+            expected: `${reference.code} と同じ文言になること (分類: ${profile})`,
+            actual:
+              `${reference.code} だけ: ${describeLines(textDiff.onlyInA)} / ` +
+              `${spec.code} だけ: ${describeLines(textDiff.onlyInB)}`,
+            url: signature.url,
+            detail:
+              '代理店名など代理店ごとに変わる文言であれば問題ありません。' +
+              'みらやくの掲載可否に関わる文言が混ざっている場合は要確認です。',
+          });
+        }
       }
       qa.collectMonitorFindings();
     });
@@ -110,35 +139,44 @@ test.describe('表示の一貫性 @agency @consistency', () => {
       const rightSignature = await captureFor(qa, page, right);
       if (!rightSignature) return;
 
-      const { missing: onlyLeft, extra: onlyRight, shared } = compareVisibleBlocks(
-        leftSignature,
-        rightSignature,
-        ignoreKeys,
-      );
+      // 表示の違いはセクションの有無だけでなく、フッターの表記や注釈など
+      // 文言だけの違いとして現れることもある。両方を見ないと
+      // 「切り替えが効いていない」と誤判定する。
+      const difference = evaluateDisplayDifference(leftSignature, rightSignature, ignoreKeys);
+      const { blocksDiffer, textDiffers, onlyInA: onlyLeft, onlyInB: onlyRight, sharedBlocks: shared } = difference;
+      const textDiff = { onlyInA: difference.textOnlyInA, onlyInB: difference.textOnlyInB };
 
-      if (onlyLeft.length === 0 && onlyRight.length === 0) {
+      if (!difference.differs) {
         qa.add({
           category: 'agency-display',
           severity: 'critical',
           title: `${leftProfile} と ${rightProfile} で表示が同じです (切り替えが効いていません)`,
           expected: `${left.code} (${leftProfile}) と ${right.code} (${rightProfile}) で表示が異なること`,
-          actual: `表示されているブロックが完全に一致 (${shared.length} 件)`,
+          actual: `表示ブロック (${shared.length} 件) と文言 (${leftSignature.textLines.length} 行) が完全に一致`,
           url: rightSignature.url,
           detail:
             'みらやく掲載可否による表示切り替えが機能していない可能性があります。' +
             `比較: ${left.code} と ${right.code}`,
         });
       } else {
-        // 差分の内容を記録する (設定に反映できるようにする)
+        // 何が違うのかを記録する (設定に反映し、以降は変化を検知できるようにする)
         qa.add({
           category: 'agency-display',
           severity: 'low',
           title: `[確認OK] ${leftProfile} と ${rightProfile} の表示差分`,
           expected: `${leftProfile} と ${rightProfile} で表示が異なること`,
           actual:
-            `${leftProfile} だけ: ${describeKeys(onlyLeft)} / ` +
-            `${rightProfile} だけ: ${describeKeys(onlyRight)}`,
+            (blocksDiffer
+              ? `ブロック — ${leftProfile} だけ: ${describeKeys(onlyLeft)} / ${rightProfile} だけ: ${describeKeys(onlyRight)}`
+              : 'ブロックの構成は同一') +
+            ' | ' +
+            (textDiffers
+              ? `文言 — ${leftProfile} だけ: ${describeLines(textDiff.onlyInA)} / ${rightProfile} だけ: ${describeLines(textDiff.onlyInB)}`
+              : '文言は同一'),
           url: rightSignature.url,
+          detail:
+            'ここに出た差分が、みらやく掲載可否による表示の違いです。' +
+            'セクションであれば config の visibleSections / hiddenSections に設定できます。',
         });
       }
       qa.collectMonitorFindings();
