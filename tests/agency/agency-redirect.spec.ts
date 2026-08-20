@@ -26,6 +26,7 @@ import {
 
 import { deviceUse } from '../../utils/projects';
 import { installContextGuards, isForbiddenRequest } from '../../utils/handoff';
+import { enterAsAgency } from '../../utils/agency-entry';
 
 const config = loadConfig();
 const specs = agencySpecs(config);
@@ -132,6 +133,75 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
         httpChain: httpChain.hops,
       });
       await qa.captureScreenshot(`redirect-${spec.code}`);
+      qa.collectMonitorFindings();
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // 再訪時のリダイレクト (保存済みコードによる遷移)
+  //
+  //   カカクコムは「最初から専用 LP に入る」ため、流入時はリダイレクトしない。
+  //   リダイレクトが起きるのは、コードが保存された状態で
+  //   通常 LP を開いたとき。この 2 段階の挙動を検査する。
+  //
+  //   revisitRedirect が無い代理店は「再訪してもリダイレクトされない」ことを
+  //   検査する (他の代理店が専用 LP へ誤って飛ばされないため)。
+  // ------------------------------------------------------------------
+  for (const spec of specs) {
+    const revisit = spec.revisitRedirect ?? null;
+    const fromPath = revisit?.fromPath ?? config.agencies.noCodeExpectation.entryPath;
+    const toPath = revisit?.toPath ?? fromPath;
+    const title = revisit
+      ? `${spec.code}: コード保持後に ${fromPath} を開くと ${toPath} へ遷移する`
+      : `${spec.code}: コード保持後に ${fromPath} を開いてもリダイレクトされない`;
+
+    test(title, async ({ qa, page }) => {
+      test.slow();
+      // 1 回目: コードを付けて流入し、サイト側にコードを保存させる
+      if (!(await enterAsAgency(qa, spec))) return;
+
+      // 2 回目: コードを付けずに fromPath を開く
+      const target = entryUrl(fromPath, null);
+      const tracker = new RedirectTracker(page);
+      const opened = await qa.goto({ url: target, agencyCode: spec.code });
+      if (!opened) {
+        tracker.detach();
+        return;
+      }
+      if (revisit) {
+        await page
+          .waitForURL((url) => url.pathname.replace(/\/$/, '') === toPath.replace(/\/$/, ''), { timeout: 10000 })
+          .catch(() => undefined);
+      }
+      await tracker.captureMetaRefresh();
+      await page.waitForLoadState('load').catch(() => undefined);
+      const trace = tracker.build(target, maxRedirects);
+      tracker.detach();
+
+      qa.findings.setContext({ url: trace.finalUrl, agencyCode: spec.code });
+      qa.addAll(
+        verifyRedirectTrace(
+          trace,
+          {
+            code: spec.code,
+            entryPath: fromPath,
+            expectedFinalPath: toPath,
+            redirected: Boolean(revisit),
+            // [未実測] 再訪時の遷移方式は確認できていない。
+            // unknown の間は方式を照合せず、実測値を記録する。
+            redirectMechanism: revisit ? 'unknown' : 'none',
+            expectedRedirectCount: revisit ? null : 0,
+            expectedRedirectPaths: revisit ? [toPath] : [],
+          },
+          config,
+        ),
+      );
+      await qa.attachJson(`revisit-redirect-${spec.code}`, {
+        entryUrl: trace.entryUrl,
+        finalUrl: trace.finalUrl,
+        mechanism: trace.mechanism,
+        hops: trace.hops,
+      });
       qa.collectMonitorFindings();
     });
   }

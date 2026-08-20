@@ -325,8 +325,15 @@ const server = http.createServer(async (req, res) => {
       // 許可されない遷移先は無視してそのままページを表示する (リダイレクトしない)
     }
 
-    // 代理店ごとのリダイレクト
-    if (agency && agency.redirectTo && normalized !== agency.redirectTo) {
+    // 代理店ごとのリダイレクト。
+    //   redirectOnlyWithStoredCode の代理店は「保存済みコードで開いたとき」だけ
+    //   リダイレクトする (流入時は専用 LP に直接入ってくるため飛ばさない)。
+    const redirectApplies =
+      agency &&
+      agency.redirectTo &&
+      normalized !== agency.redirectTo &&
+      (!agency.redirectOnlyWithStoredCode || getAgency(storedCode) === agency);
+    if (redirectApplies) {
       const target = `${agency.redirectTo}?${PARAM_NAME}=${encodeURIComponent(code)}`;
       if (agency.redirectType === 'http') {
         res.writeHead(302, { location: target, 'cache-control': 'no-store' });

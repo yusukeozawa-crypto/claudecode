@@ -17,7 +17,7 @@ import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
-import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
+import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
 import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { describeApplicationLinks, observeApplicationLinks } from '../../utils/handoff';
 import { maskText, maskUrl } from '../../utils/secrets';
@@ -862,6 +862,36 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       [...difference.onlyInB, ...difference.textOnlyInB].join(' '),
       '何が変わったか分かること',
     ).toContain('fallback-notice');
+  });
+
+  test('除外指定はパターンでも書ける (月ごとに id が変わる要素を除外する)', async () => {
+    // 公開前のキャンペーンバナーは id に年月が入る (#lf-campaign-banner-202609-1)。
+    // 毎月設定を書き換えずに除外できないと、運用が続かない。
+    const block = (key: string) => ({
+      key,
+      keyKind: 'id' as const,
+      visible: true,
+      width: 1440,
+      height: 292,
+      textSample: '',
+      textLength: 0,
+    });
+    const signature = {
+      url: 'https://example.test/lp/service/',
+      blocks: [block('#lf-campaign-banner-202609-1'), block('#lf-campaign-banner-202610-3'), block('#main-hero')],
+      textLines: [],
+    };
+
+    const patterns = ['css=#lf-campaign-banner-*'];
+    expect(matchesIgnoreKey('#lf-campaign-banner-202609-1', patterns), 'パターンで除外できること').toBe(true);
+    expect(matchesIgnoreKey('#lf-campaign-banner-202610-3', patterns), '翌月の id も除外できること').toBe(true);
+    expect(matchesIgnoreKey('#main-hero', patterns), '関係ない要素は除外しないこと').toBe(false);
+
+    const keys = visibleBlockKeys(signature, patterns);
+    expect(keys, '除外した要素は比較対象に入らないこと').toEqual(['#main-hero']);
+
+    // 完全一致の指定も従来どおり使える
+    expect(visibleBlockKeys(signature, ['#main-hero']).length, '完全一致の指定も使えること').toBe(2);
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

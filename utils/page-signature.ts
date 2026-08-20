@@ -8,6 +8,7 @@
  *       検査すべきセクションを特定する (推測で設定を書かないため)。
  */
 import type { Page } from '@playwright/test';
+import { matchesAnyGlob } from './patterns';
 
 export interface BlockInfo {
   /** 要素を指す鍵。data-testid > id > タグ+クラス の優先順で決める */
@@ -321,12 +322,26 @@ export function diffSignatures(a: PageSignature, b: PageSignature): SignatureDif
 }
 
 /** 表示されているブロックの鍵 (比較対象) */
+/**
+ * 除外指定に一致するか。
+ *   完全一致のほか `*` を使ったパターンも書ける。
+ *   月ごとに id が変わる要素 (例: #lf-campaign-banner-202609-1) を
+ *   毎月書き換えずに除外できるようにするため。
+ *   config には `css=#lf-campaign-banner-*` の形で書ける。
+ */
+export function matchesIgnoreKey(key: string, patterns: Iterable<string>): boolean {
+  const list = [...patterns];
+  if (list.includes(key)) return true;
+  const normalized = list.map((pattern) => (pattern.startsWith('css=') ? pattern.slice(4) : pattern));
+  return matchesAnyGlob(key, normalized.filter((pattern) => pattern.includes('*')));
+}
+
 export function visibleBlockKeys(signature: PageSignature, ignoreKeys: Iterable<string> = []): string[] {
-  const ignored = new Set(ignoreKeys);
+  const patterns = [...ignoreKeys];
   // 表示が安定しない要素は比較しない (実行タイミングの違いを差分にしないため)
-  for (const key of signature.unstableKeys ?? []) ignored.add(key);
+  const unstable = new Set(signature.unstableKeys ?? []);
   return signature.blocks
-    .filter((block) => block.visible && !ignored.has(block.key))
+    .filter((block) => block.visible && !unstable.has(block.key) && !matchesIgnoreKey(block.key, patterns))
     .map((block) => block.key)
     .sort();
 }

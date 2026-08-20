@@ -59,7 +59,12 @@ displayMustDiffer:
 #   比較から除外する鍵。
 #   実行ごとに出入りする要素 (ABテストの差し込み枠、ランダム表示の
 #   キャンペーン枠など) を入れる。data-testid / css= セレクタで書く。
-displayIgnoreKeys: []
+#   `*` を使ったパターンも書ける (月ごとに id が変わる要素のため)。
+displayIgnoreKeys:
+  # 公開前のキャンペーンバナー枠。
+  #   実際の画面には表示されていない (運用側の確認済み)。
+  #   id に年月が入るため、毎月書き換えずに済むようパターンで除外する。
+  - "css=#lf-campaign-banner-*"
 
 #   コードなしの表示と一致するはずのパターン。
 #   支店コードは現状「何も変化しない」ため、通常 LP と同じ表示になる。
@@ -109,23 +114,28 @@ profiles:
     cta: null
     application: null
 
-  # 株式会社カカクコム・インシュアランス
-  # LP に入った時点で価格コム限定プラン専用 LP へリダイレクトする
+  # 株式会社カカクコム・インシュアランス (価格コム限定プラン)
+  #
+  #   流入は最初から専用 LP。
+  #     https://.../lp/service-premium/?insAgentNo=littlefamily03
+  #   通常 LP にコード付きで入ってくる URL は運用上存在しない。
+  #
+  #   リダイレクトが起きるのは「再訪」のとき。
+  #   コードが保存された状態 (Cookie) で通常 LP を開くと専用 LP へ飛ぶ。
+  #   そのため流入時 (redirected) と再訪時 (revisitRedirect) を分けて設定する。
   kakakucom:
-    label: カカクコム (専用LPへリダイレクト)
-    entryPath: /lp/service/
+    label: カカクコム (専用LPが入口・再訪時にリダイレクト)
+    entryPath: /lp/service-premium/
     expectedFinalPath: /lp/service-premium/
-    redirected: true
-    # [未実測] 遷移方式 (http / js / meta-refresh / spa) が未確認。
-    # discover で判定できる。設定した方式と異なっていれば警告として報告される。
-    redirectMechanism: null
-    # [未実測] 回数も方式も実測していない。
-    # null の間は照合せず実測値を記録する
-    # (推測した回数で判定すると正常なサイトを不具合として報告してしまう)。
-    # 「専用LPに着くこと」「他の代理店は着かないこと」は照合し続ける。
-    expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    # 流入時はリダイレクトしない (最初から専用 LP に入る)
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    # 再訪時: コードが保存された状態で通常 LP を開くと専用 LP へ飛ぶ
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}

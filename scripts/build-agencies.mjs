@@ -90,6 +90,8 @@ function buildAgency(row, profile) {
     // サイト側でコードとして扱われないパターン (支店コードなど) は
     // 保存・引き継ぎ・代理店表示のいずれも期待しない
     recognized: profile.recognized !== false,
+    // 再訪時のリダイレクト (保存済みコードによる遷移)。null = 起きない
+    revisitRedirect: profile.revisitRedirect ?? null,
     entryPath: profile.entryPath,
     expectedFinalPath: profile.expectedFinalPath,
     redirected: Boolean(profile.redirected),

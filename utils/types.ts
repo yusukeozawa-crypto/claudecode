@@ -240,6 +240,13 @@ export interface AgencySpec {
    */
   expectedRedirectCount: number | null;
   expectedRedirectPaths: string[];
+  /**
+   * 再訪時のリダイレクト。
+   *   コードを付けて入った後 (= 保存済みの状態) に fromPath を開くと
+   *   toPath へリダイレクトされる、という挙動を検査する。
+   *   null = 再訪してもリダイレクトされない (fromPath に留まる)。
+   */
+  revisitRedirect?: { fromPath: string; toPath: string } | null;
   visibleSections: string[];
   hiddenSections: string[];
   expectedTexts: Record<string, string>;

@@ -49,6 +49,21 @@ export const AGENCIES = {
     handoffMethod: 'post',
     campaign: '提携先さま向けのご案内',
   },
+  A004: {
+    name: 'エーフォー限定プラン保険株式会社',
+    phone: '011-000-0004',
+    // 流入は最初から専用 LP。
+    // リダイレクトが起きるのは「コードが保存された状態で共通 LP を開いたとき」だけ
+    // (実サイトのカカクコムと同じ挙動)。
+    redirectTo: '/partner/a004/',
+    redirectType: 'http',
+    redirectOnlyWithStoredCode: true,
+    banner: '/assets/banner-a002.svg',
+    logo: '/assets/logo-a002.svg',
+    ctaText: '限定プランを申し込む',
+    handoffMethod: 'query',
+    campaign: 'エーフォー限定プランのご案内',
+  },
 };
 
 /** 有効な代理店コードか */

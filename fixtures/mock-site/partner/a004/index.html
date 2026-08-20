@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エーフォー限定プラン｜テスト保険株式会社</title>
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/logo.svg">
+<!--AGENCY_CONTEXT-->
+</head>
+<body>
+  <header class="site-header" data-testid="site-header">
+    <div class="logo">
+      <img src="/assets/logo.svg" width="160" height="40" alt="テスト保険株式会社">
+      <img class="agency-logo" width="120" height="32" alt="" data-testid="agency-logo" hidden>
+    </div>
+    <nav class="global-nav" data-testid="global-nav">
+      <ul>
+        <li><a href="/lp/" data-testid="nav-top">トップ</a></li>
+        <li><a href="/product.html" data-testid="nav-product">商品詳細</a></li>
+        <li><a href="/price.html" data-testid="nav-price">保険料</a></li>
+        <li><a href="/faq.html" data-testid="nav-faq">よくあるご質問</a></li>
+        <li><a href="/agency.html" data-testid="nav-agency">代理店のお客さまへ</a></li>
+      </ul>
+    </nav>
+    <p class="meta">現在時刻 <span data-testid="current-datetime">-</span></p>
+  </header>
+
+  <div class="main-visual agency-panel" data-testid="partner-exclusive-hero">
+    <div class="container">
+      <h1>エーフォー限定プラン</h1>
+      <p>担当代理店経由でお申し込みのお客さま向けのご案内です。</p>
+      <img class="agency-banner" width="640" height="120" alt="" data-testid="agency-banner" hidden>
+    </div>
+  </div>
+
+  <main class="container">
+    <section class="panel agency-panel" data-testid="partner-exclusive-offer">
+      <h2>限定プランのご案内</h2>
+      <p data-testid="agency-campaign-text">-</p>
+      <ul>
+        <li>通院・入院・手術を補償します</li>
+        <li>提携先さま限定の補償割合をご用意しています</li>
+      </ul>
+    </section>
+
+    <section class="panel agency-panel" data-testid="agency-contact" hidden>
+      <h2>担当代理店のご案内</h2>
+      <p>担当代理店：<span data-testid="agency-name">-</span></p>
+      <p>お問い合わせ先：<span data-testid="agency-phone">-</span></p>
+    </section>
+
+    <section class="panel fallback-panel" data-testid="fallback-notice" hidden>
+      <h2>代理店情報を確認できませんでした</h2>
+      <p>お手数ですが、お問い合わせ窓口までご連絡ください。</p>
+    </section>
+
+    <p>
+      <a class="btn-application" href="" data-testid="cta-primary">お申し込みはこちら</a>
+    </p>
+    <form class="handoff-form" data-testid="cta-form" method="post" action="" hidden>
+      <input type="hidden" name="agency_code" data-testid="cta-agency-code" value="">
+      <button type="submit" data-testid="cta-form-submit">お申し込み手続きへ進む</button>
+    </form>
+
+  </main>
+
+  <footer class="site-footer" data-testid="site-footer">
+    <div class="container">
+      <p>テスト保険株式会社</p>
+      <ul>
+        <li><a href="/faq.html">よくあるご質問</a></li>
+        <li><a href="/lp/">トップページ</a></li>
+      </ul>
+      <p class="meta">本サイトはテスト用のモックサイトです。実在の商品・会社とは関係ありません。</p>
+    </div>
+  </footer>
+
+  <script src="/assets/agency.js"></script>
+</body>
+</html>

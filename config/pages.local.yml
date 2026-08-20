@@ -70,6 +70,15 @@ pages:
     requiredTestIds: [partner-exclusive-hero, partner-exclusive-offer]
     primaryTestIds: [site-header, partner-exclusive-hero, site-footer]
 
+  # A004 の専用 LP。流入の入口であり、再訪時のリダイレクト先でもある
+  - id: partner-a004
+    name: 代理店専用LP (A004)
+    path: /partner/a004/
+    agencyAware: true
+    checks: [layout, errors, links, text]
+    requiredTestIds: [partner-exclusive-hero, partner-exclusive-offer]
+    primaryTestIds: [site-header, partner-exclusive-hero, site-footer]
+
   - id: agency-only
     name: 代理店専用表示ページ
     path: /agency.html

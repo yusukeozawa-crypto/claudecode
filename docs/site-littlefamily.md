@@ -88,27 +88,58 @@ $env:QA_AGENCY_SEED="m3k8xq-a71f9c"; npm run test:agency
 > `littlefamily06` / `littlefamily47` は `エラー` のままなので、
 > 掲載可否が確定したら `agency-master.tsv` の `mirayaku` 列に `○` / `×` を入れる。
 
-## 3. リダイレクトの現在の想定
+## 3. リダイレクトの仕様 (2026-08-20 運用側の確認で修正)
 
-代理店コードごとに、次の 5 点を仕様として持ち、実測値と突き合わせている。
+**流入時にリダイレクトは起きない。** 最初はここを誤解していた。
 
-| 項目 | カカクコム (`littlefamily03*`) | それ以外 |
+カカクコムの流入 URL は最初から専用 LP。
+
+```
+https://lp.littlefamily-ssi.com/lp/service-premium/?insAgentNo=littlefamily03
+```
+
+`/lp/service/?insAgentNo=littlefamily03` のような URL は**運用上存在しない**。
+そのため「通常 LP にコード付きで入ると専用 LP へ飛ぶ」という検査は
+成立しない (実際に飛ばないのは正しい挙動だった)。
+
+リダイレクトが起きるのは **再訪のとき**。
+
+| 段階 | URL | 結果 |
 |---|---|---|
-| 流入 URL | `/lp/service/?insAgentNo=<コード>` | 同じ |
-| 最終的に表示される URL | `/lp/service-premium/` | `/lp/service/` |
-| リダイレクトするか | する | しない |
-| リダイレクト回数 | **未実測** (照合せず実測値を記録) | **0 回** |
-| 経路に含まれるべき URL | `/lp/service-premium/` | — |
-| 実装方式 | **未実測** (照合せず実測値を記録) | リダイレクトなし |
+| 1. 流入 | `/lp/service-premium/?insAgentNo=littlefamily03` | 専用 LP を表示。コードが Cookie に保存される |
+| 2. 再訪 | `/lp/service/` (コードなし) | **専用 LP へリダイレクト** |
 
-カカクコムの**回数と方式は実測していない**ため、照合せず実測値を Low で記録する。
-推測した回数で判定すると、正常なサイトを不具合として報告してしまうため。
-「専用 LP に着くこと」「他の代理店は着かないこと」は照合し続ける
-(こちらが仕様として確定している部分)。
+判定の根拠は URL のパラメータではなく **Cookie に保存されたコード**。
+Cookie が無い状態で `/lp/service/?insAgentNo=littlefamily03` を開いても飛ばない。
 
-実測値が分かったら `config/agency-profiles.yml` の
-`expectedRedirectCount` / `redirectMechanism` に設定する。
-以降は回数や方式が変わったことを検知できるようになる。
+この 2 段階を `agency-profiles.yml` で分けて設定している。
+
+```yaml
+kakakucom:
+  entryPath: /lp/service-premium/       # 流入はここ
+  expectedFinalPath: /lp/service-premium/
+  redirected: false                     # 流入時は飛ばない
+  revisitRedirect:                      # 再訪時に飛ぶ
+    fromPath: /lp/service/
+    toPath: /lp/service-premium/
+```
+
+検査は 2 回開いて確認する (`@redirect`)。
+
+1. コードを付けて `entryPath` に流入する (サイト側にコードを保存させる)
+2. コードを付けずに `fromPath` を開き、`toPath` へ飛ぶかを見る
+
+`revisitRedirect` が無い代理店については、
+同じ手順で **飛ばないこと**を検査する。
+他の代理店が専用 LP へ誤って飛ばされていないかの検査になる。
+
+再訪時の遷移方式と回数は未実測のため、照合せず実測値を記録する。
+判明したら設定に書けば、以降は方式や回数の変化を検知できる。
+
+> Cookie 名は未確認のまま。上記の検査は「2 回開いて結果を見る」方式なので、
+> Cookie 名を知らなくても成立する。
+> `agency.yml` の `storage.type` は `none` のままにしている
+> (キー名を推測して検査すると誤検知になるため)。
 
 「リダイレクト回数」は次の合計として数えている。
 
@@ -215,6 +246,12 @@ HTTP 200 が直接返っており、3xx も meta refresh も JavaScript 遷移�
 - **キャンペーンバナー** `#lf-campaign-banner-202609-1` 〜 `-5` は
   代理店コードが付くと消える (コードなしのときだけ表示)。
   みらやく可否とは無関係で、全代理店で同じ挙動。
+
+  **2026-08-20: 運用側の確認により「実際の画面には表示されていない」ため、
+  比較対象から除外した** (`displayIgnoreKeys` に `css=#lf-campaign-banner-*`)。
+  id に年月が入るため、毎月書き換えずに済むようパターンで指定している。
+
+  以下は経緯の記録。
 
   ただしこれは **検査ツール側の判定が甘かった可能性が高い**。
   運用側の確認では「画面上にそのようなバナーは見えていない」。

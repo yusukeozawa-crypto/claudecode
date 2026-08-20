@@ -126,6 +126,10 @@ agencies:
     expectedRedirectCount: 1
     expectedRedirectPaths:
       - /partner/a002/
+    # 再訪時 (コード保持状態で共通 LP を開いたとき) も同じ専用 LP へ飛ぶ
+    revisitRedirect:
+      fromPath: /lp/
+      toPath: /partner/a002/
 
     visibleSections:
       - partner-exclusive-hero
@@ -185,6 +189,10 @@ agencies:
     expectedRedirectCount: 1
     expectedRedirectPaths:
       - /partner/a003/
+    # 再訪時 (コード保持状態で共通 LP を開いたとき) も同じ専用 LP へ飛ぶ
+    revisitRedirect:
+      fromPath: /lp/
+      toPath: /partner/a003/
 
     visibleSections:
       - partner-exclusive-hero
@@ -231,6 +239,37 @@ agencies:
 # 無効な代理店コード (フォールバック仕様)
 #   無効コードが有効な代理店として処理されたら Critical
 # ============================================================
+  # ----------------------------------------------------------
+  # A004: 流入は最初から専用 LP。
+  #   コードが保存された状態で共通 LP を開いたときだけリダイレクトする
+  #   (実サイトのカカクコムと同じ 2 段階の挙動)。
+  # ----------------------------------------------------------
+  - code: A004
+    label: 専用LPが入口・再訪時にリダイレクト
+    profile: premium
+    entryPath: /partner/a004/
+    expectedFinalPath: /partner/a004/
+    # 流入時はリダイレクトしない
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    # 再訪時: コード保持状態で共通 LP を開くと専用 LP へ飛ぶ
+    revisitRedirect:
+      fromPath: /lp/
+      toPath: /partner/a004/
+    visibleSections:
+      - partner-exclusive-hero
+      - partner-exclusive-offer
+    hiddenSections:
+      - fallback-notice
+    expectedTexts:
+      agency-name: エーフォー限定プラン保険株式会社
+      agency-phone: 011-000-0004
+    expectedAssets: {}
+    cta: null
+    application: null
+
   # ----------------------------------------------------------
   # A001BR01: 支店コード相当。
   #   代理店コードとして認識されず、通常 LP のまま何も変わらない

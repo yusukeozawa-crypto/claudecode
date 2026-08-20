@@ -58,6 +58,31 @@ PC / SP は project (`chromium-pc` / `chromium-sp`) により両方で実行さ�
 | 9 | リダイレクトループ | HTTP レベルとブラウザレベルの両方で検出 (Critical) |
 | 10 | PC と SP で同じルール | 端末ごとに context を作り最終 URL と方式を比較 |
 
+### 再訪時のリダイレクト (`revisitRedirect`)
+
+流入時ではなく「コードが保存された状態で別の URL を開いたとき」に
+リダイレクトするサイトがある (保存済みコードで遷移先を決める実装)。
+URL のパラメータではなく Cookie が判定材料なので、
+1 回開くだけでは検査できない。
+
+```yaml
+revisitRedirect:
+  fromPath: /lp/service/          # コードなしで開く URL
+  toPath: /lp/service-premium/    # 飛ぶ先
+```
+
+検査手順:
+
+1. `entryPath` にコードを付けて流入する (サイト側にコードを保存させる)
+2. `fromPath` をコードなしで開き、`toPath` へ飛ぶかを記録する
+
+`revisitRedirect` が `null` の代理店は、同じ手順で
+**飛ばないこと**を検査する (他の代理店の専用 LP へ誤って
+飛ばされていないかの検査になる)。
+
+遷移方式・回数が未実測の場合は `unknown` / `null` として扱い、
+照合せず実測値を記録する。
+
 ### 経路の記録方法
 
 `page.url()` による最終 URL 確認だけでは不十分なため、次を併用する。
