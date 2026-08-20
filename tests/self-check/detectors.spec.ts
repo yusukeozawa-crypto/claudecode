@@ -809,6 +809,35 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(none[0].detail, '次に何をすればよいか示すこと').toContain('discover');
   });
 
+  test('表示が安定するまで待ち、揺れている要素は差分にしない (実行タイミングによる誤検知防止)', async ({ page }) => {
+    // 遅延読み込みのバナーやアニメーションは、取得した瞬間によって
+    // 「表示されている / されていない」が変わる。1 回しか取らないと
+    // その揺れを「代理店による表示の違い」として報告してしまう。
+    await page.goto('/broken/late-render.html');
+    const signature = await capturePageSignatureStable(page);
+    expect(signature, 'シグネチャを取得できること').not.toBeNull();
+
+    const unstable = signature!.unstableKeys ?? [];
+    expect(unstable, '点滅する要素は「安定しない」と記録されること').toContain('blinking');
+
+    // 除外された要素は比較対象に入らない
+    const keys = visibleBlockKeys(signature!);
+    expect(keys, '安定しない要素は比較しないこと').not.toContain('blinking');
+    expect(keys, '安定している要素は比較対象に残ること').toContain('always-visible');
+
+    // 遅れて開くバナーは、待った結果「表示されている」として確定する
+    const banner = signature!.blocks.find((block) => block.key === 'late-banner-inner');
+    expect(banner?.visible, '遅れて表示される要素も待って捉えること').toBe(true);
+
+    // 揺れている要素は 2 ページの比較にも出てこない
+    const other = await capturePageSignatureStable(page);
+    const difference = evaluateDisplayDifference(signature!, other!);
+    expect(
+      [...difference.onlyInA, ...difference.onlyInB],
+      '同じページを 2 回取っただけで差分が出ないこと',
+    ).not.toContain('blinking');
+  });
+
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {
     // みらやくの表示差分はセクションの有無だけでなく、
     // フッターの表記や注釈など文言だけの違いとして現れることもある。

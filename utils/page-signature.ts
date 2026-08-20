@@ -32,6 +32,14 @@ export interface PageSignature {
   blocks: BlockInfo[];
   /** 表示テキストを行単位で正規化したもの */
   textLines: string[];
+  /**
+   * 取得のたびに表示が変わった要素の鍵。
+   * アニメーション・遅延読み込み・スライダーなど「まだ動いている」もの。
+   * 差分比較から除外する (実行タイミングの違いを代理店の違いと誤認しないため)。
+   */
+  unstableKeys?: string[];
+  /** 取得のたびに変わったテキスト行 (同上の理由で比較から除外する) */
+  unstableTextLines?: string[];
 }
 
 /** 設定ファイルに書けるセレクタ表記へ変換する */
@@ -40,27 +48,92 @@ export function toSelectorHint(block: BlockInfo): string {
   return `css=${block.key}`;
 }
 
+/** 表示が落ち着くまでの待ち方 */
+export interface SettleOptions {
+  /** 安定を確認するために取り直す回数 */
+  settleAttempts?: number;
+  /** 取り直しの間隔 (ms) */
+  settleDelayMs?: number;
+}
+
 /**
  * 遷移が落ち着くのを待ってからシグネチャを取得する。
  *
  * リダイレクト (meta refresh / JavaScript) の途中で評価すると
  * 「Execution context was destroyed」で失敗するため、
- * 読み込み完了を待ち、それでも失敗した場合は 1 度だけ取り直す。
+ * 読み込み完了を待ち、それでも失敗した場合は取り直す。
+ *
+ * さらに **表示が安定するまで取り直す**。
+ * 遅延読み込みの画像・スライダー・アニメーションは、
+ * 取得した瞬間によって「表示されている / されていない」が変わる。
+ * 1 回しか取らないと、その揺れを「代理店による表示の違い」として
+ * 報告してしまう (実行するたびに結果が変わる原因になる)。
+ * 2 回続けて同じになるまで取り直し、それでも変わる要素は
+ * unstableKeys / unstableTextLines に記録して比較から除外する。
  */
-export async function capturePageSignatureStable(page: Page): Promise<PageSignature | null> {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await page.waitForLoadState('load', { timeout: 15000 }).catch(() => undefined);
-    // 遷移直後に URL が変わり切っていない場合があるため少し待つ
-    await page.waitForTimeout(400);
-    try {
-      return await capturePageSignature(page);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      // 遷移によるコンテキスト破棄以外は再試行しても直らない
-      if (!/Execution context was destroyed|Target closed|navigation/i.test(message)) throw error;
+export async function capturePageSignatureStable(
+  page: Page,
+  options: SettleOptions = {},
+): Promise<PageSignature | null> {
+  const settleAttempts = options.settleAttempts ?? 3;
+  const settleDelayMs = options.settleDelayMs ?? 600;
+
+  const capture = async (): Promise<PageSignature | null> => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await page.waitForLoadState('load', { timeout: 15000 }).catch(() => undefined);
+      // 遷移直後に URL が変わり切っていない場合があるため少し待つ
+      await page.waitForTimeout(400);
+      try {
+        return await capturePageSignature(page);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        // 遷移によるコンテキスト破棄以外は再試行しても直らない
+        if (!/Execution context was destroyed|Target closed|navigation/i.test(message)) throw error;
+      }
     }
+    return null;
+  };
+
+  let previous = await capture();
+  if (!previous) return null;
+
+  const unstableKeys = new Set<string>();
+  const unstableTextLines = new Set<string>();
+
+  for (let attempt = 0; attempt < settleAttempts; attempt += 1) {
+    await page.waitForTimeout(settleDelayMs);
+    const current = await capture();
+    if (!current) break;
+
+    const changedKeys = symmetricDifference(visibleKeySet(previous), visibleKeySet(current));
+    const changedLines = symmetricDifference(textLineSet(previous), textLineSet(current));
+    previous = current;
+    if (changedKeys.length === 0 && changedLines.length === 0) break;
+    for (const key of changedKeys) unstableKeys.add(key);
+    for (const line of changedLines) unstableTextLines.add(line);
   }
-  return null;
+
+  return {
+    ...previous,
+    unstableKeys: [...unstableKeys],
+    unstableTextLines: [...unstableTextLines],
+  };
+}
+
+function visibleKeySet(signature: PageSignature): Set<string> {
+  return new Set(signature.blocks.filter((block) => block.visible).map((block) => block.key));
+}
+
+function textLineSet(signature: PageSignature): Set<string> {
+  return new Set(signature.textLines.map(normalizeLine));
+}
+
+/** どちらか一方にしか無い要素 */
+function symmetricDifference(a: Set<string>, b: Set<string>): string[] {
+  const result: string[] = [];
+  for (const value of a) if (!b.has(value)) result.push(value);
+  for (const value of b) if (!a.has(value)) result.push(value);
+  return result;
 }
 
 export async function capturePageSignature(page: Page): Promise<PageSignature> {
@@ -213,36 +286,45 @@ export function normalizeLine(line: string): string {
   return line.replace(/[0-9０-９]+/g, '#');
 }
 
-/** 表示テキストの差分 (数字だけの違いは無視する) */
+/** 表示テキストの差分 (数字だけの違い・表示が安定しない行は無視する) */
 export function diffTextLines(a: PageSignature, b: PageSignature): { onlyInA: string[]; onlyInB: string[] } {
   const linesA = new Set(a.textLines.map(normalizeLine));
   const linesB = new Set(b.textLines.map(normalizeLine));
+  const unstable = new Set([...(a.unstableTextLines ?? []), ...(b.unstableTextLines ?? [])]);
+  const stable = (line: string): boolean => !unstable.has(normalizeLine(line));
   return {
-    onlyInA: a.textLines.filter((line) => !linesB.has(normalizeLine(line))),
-    onlyInB: b.textLines.filter((line) => !linesA.has(normalizeLine(line))),
+    onlyInA: a.textLines.filter((line) => !linesB.has(normalizeLine(line)) && stable(line)),
+    onlyInB: b.textLines.filter((line) => !linesA.has(normalizeLine(line)) && stable(line)),
   };
 }
 
 export function diffSignatures(a: PageSignature, b: PageSignature): SignatureDiff {
+  // 表示が安定しない要素は差分にしない (どちらのシグネチャで揺れていても除外する)
+  const unstable = new Set([...(a.unstableKeys ?? []), ...(b.unstableKeys ?? [])]);
   const visibleMap = (signature: PageSignature): Map<string, BlockInfo> =>
-    new Map(signature.blocks.filter((block) => block.visible).map((block) => [block.key, block]));
+    new Map(
+      signature.blocks
+        .filter((block) => block.visible && !unstable.has(block.key))
+        .map((block) => [block.key, block]),
+    );
 
   const visibleA = visibleMap(a);
   const visibleB = visibleMap(b);
-  const linesA = new Set(a.textLines.map(normalizeLine));
-  const linesB = new Set(b.textLines.map(normalizeLine));
+  const text = diffTextLines(a, b);
 
   return {
     visibleOnlyInA: [...visibleA.values()].filter((block) => !visibleB.has(block.key)),
     visibleOnlyInB: [...visibleB.values()].filter((block) => !visibleA.has(block.key)),
-    textOnlyInA: a.textLines.filter((line) => !linesB.has(normalizeLine(line))),
-    textOnlyInB: b.textLines.filter((line) => !linesA.has(normalizeLine(line))),
+    textOnlyInA: text.onlyInA,
+    textOnlyInB: text.onlyInB,
   };
 }
 
 /** 表示されているブロックの鍵 (比較対象) */
 export function visibleBlockKeys(signature: PageSignature, ignoreKeys: Iterable<string> = []): string[] {
   const ignored = new Set(ignoreKeys);
+  // 表示が安定しない要素は比較しない (実行タイミングの違いを差分にしないため)
+  for (const key of signature.unstableKeys ?? []) ignored.add(key);
   return signature.blocks
     .filter((block) => block.visible && !ignored.has(block.key))
     .map((block) => block.key)

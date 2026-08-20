@@ -61,6 +61,22 @@ function renderText(title: string, lines: string[]): string[] {
   return out;
 }
 
+/**
+ * 取得のたびに表示が変わった要素。
+ * アニメーション・遅延読み込み・スライダーなど「まだ動いているもの」で、
+ * 差分比較からは除外している。除外した事実を隠さないために出力する。
+ */
+function renderUnstable(signature: PageSignature): string[] {
+  const keys = signature.unstableKeys ?? [];
+  const textLines = signature.unstableTextLines ?? [];
+  if (keys.length === 0 && textLines.length === 0) return [];
+  const out = ['- 表示が安定しなかったため比較から除外したもの:', ''];
+  if (keys.length > 0) out.push(`  - 要素: ${keys.slice(0, 10).map((key) => `\`${key}\``).join(', ')}${keys.length > 10 ? ` ...他 ${keys.length - 10} 件` : ''}`);
+  if (textLines.length > 0) out.push(`  - テキスト: ${textLines.length} 行`);
+  out.push('', '  (アニメーション・遅延読み込み・スライダーの可能性があります)', '');
+  return out;
+}
+
 test.describe('表示差分の調査 @discover', () => {
   test.skip(
     !process.env.QA_DISCOVER,
@@ -118,6 +134,7 @@ test.describe('表示差分の調査 @discover', () => {
       lines.push(...renderBlocks('コードなしでは出るが、このコードでは出ないブロック', diff.visibleOnlyInA));
       lines.push(...renderText('このコードだけに出るテキスト', diff.textOnlyInB));
       lines.push(...renderText('このコードでは消えるテキスト', diff.textOnlyInA));
+      lines.push(...renderUnstable(signature));
     }
 
     // パターン同士の比較 (みらやく ○ と × の違いを直接見る)
