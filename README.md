@@ -474,6 +474,7 @@ traceCi: retain-on-failure
 │   ├── layout.yml           #   表示崩れの閾値
 │   ├── visual.yml           #   スクリーンショット比較
 │   ├── errors.yml           #   エラー検知・除外リスト
+│   ├── known-issues.yml     #   既知の不具合 (修正日まで Low に落とす)
 │   ├── text-rules.yml       #   誤字脱字・表記揺れルール
 │   └── runtime.yml          #   並列数・待機・重大度ゲート
 ├── tests/                   # テストコード

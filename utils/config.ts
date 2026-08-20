@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type {
-  AgenciesFile, AgencyFile, DevicesFile, EnvironmentsFile, ErrorsFile, LayoutFile,
+  AgenciesFile, AgencyFile, DevicesFile, EnvironmentsFile, ErrorsFile, KnownIssuesFile, LayoutFile,
   PagesFile, QaConfig, RuntimeFile, TextRulesFile, VisualFile,
 } from './types';
 
@@ -130,11 +130,23 @@ export function loadConfig(): QaConfig {
     visual: readYaml<VisualFile>('visual.yml'),
     errors: readYaml<ErrorsFile>('errors.yml'),
     text: readYaml<TextRulesFile>('text-rules.yml'),
+    // 既知の不具合。ファイルが無くても動く (無ければ既知扱いを行わない)
+    knownIssues: readOptionalYaml<KnownIssuesFile>('known-issues.yml'),
   };
 
   validateConfig(config);
   cached = config;
   return config;
+}
+
+/**
+ * 任意の設定ファイルを読む (無ければ undefined)。
+ * 既知の不具合のように「あれば使う」設定のため。
+ */
+function readOptionalYaml<T>(fileName: string): T | undefined {
+  const filePath = path.join(CONFIG_DIR, fileName);
+  if (!fs.existsSync(filePath)) return undefined;
+  return readYaml<T>(fileName);
 }
 
 /**

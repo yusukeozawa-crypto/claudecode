@@ -25,8 +25,7 @@ displayMustDiffer:
     - mirayaku-hidden
 displayIgnoreKeys:
   - css=#lf-campaign-banner-*
-sameAsNoCodeProfiles:
-  - branch-code
+sameAsNoCodeProfiles: []
 agencies:
   - code: littlefamily01
     label: ダイレクト — 自社コード (オリジナル表示)
@@ -1051,9 +1050,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily02br01
-    label: 動物病院パスポートダイレクト用 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 動物病院パスポートダイレクト用 — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1068,12 +1067,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br01
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1085,12 +1086,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br02
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1102,12 +1105,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br03
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1119,12 +1124,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br04
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1136,12 +1143,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br05
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1153,12 +1162,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br06
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1170,12 +1181,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br07
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1187,12 +1200,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br08
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1204,12 +1219,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br09
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1221,12 +1238,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br10
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1238,12 +1257,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br11
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1255,12 +1276,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br12
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1272,12 +1295,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br13
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1289,12 +1314,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br14
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1306,12 +1333,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br15
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1323,12 +1352,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br16
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1340,12 +1371,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br17
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1357,12 +1390,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br18
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1374,12 +1409,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br19
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1391,12 +1428,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br20
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1408,12 +1447,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br21
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1425,12 +1466,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br22
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1442,12 +1485,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br23
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1459,12 +1504,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br24
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1476,12 +1523,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br25
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1493,12 +1542,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br26
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1510,12 +1561,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br27
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1527,12 +1580,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br28
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1544,12 +1599,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br29
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1561,12 +1618,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br30
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1578,12 +1637,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br31
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1595,12 +1656,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br32
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1612,12 +1675,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br33
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1629,12 +1694,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br34
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1646,12 +1713,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br35
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1663,12 +1732,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br36
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1680,12 +1751,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br37
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1697,12 +1770,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br38
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1714,12 +1789,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br39
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1731,12 +1808,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br40
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1748,12 +1827,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br41
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1765,12 +1846,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br42
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1782,12 +1865,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br43
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1799,12 +1884,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br44
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1816,12 +1903,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br45
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1833,12 +1922,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br46
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1850,12 +1941,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br47
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1867,12 +1960,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br48
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1884,12 +1979,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br49
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1901,12 +1998,14 @@ agencies:
     cta: null
     application: null
   - code: littlefamily03br50
-    label: 株式会社カカクコム・インシュアランス — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
-    revisitRedirect: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
+    label: 株式会社カカクコム・インシュアランス — カカクコム (専用LPが入口・再訪時にリダイレクト)
+    profile: kakakucom
+    recognized: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    entryPath: /lp/service-premium/
+    expectedFinalPath: /lp/service-premium/
     redirected: false
     redirectMechanism: none
     expectedRedirectCount: 0
@@ -1918,9 +2017,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br01
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1935,9 +2034,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br02
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1952,9 +2051,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br03
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1969,9 +2068,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br04
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1986,9 +2085,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br05
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2003,9 +2102,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br06
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2020,9 +2119,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br07
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2037,9 +2136,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br08
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2054,9 +2153,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br09
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2071,9 +2170,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br10
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2088,9 +2187,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br11
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2105,9 +2204,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br12
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2122,9 +2221,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br13
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2139,9 +2238,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br14
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2156,9 +2255,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br15
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2173,9 +2272,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br16
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2190,9 +2289,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br17
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2207,9 +2306,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br18
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2224,9 +2323,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br19
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2241,9 +2340,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br20
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2258,9 +2357,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br21
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2275,9 +2374,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br22
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2292,9 +2391,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br23
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2309,9 +2408,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br24
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2326,9 +2425,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br25
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2343,9 +2442,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br26
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2360,9 +2459,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br27
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2377,9 +2476,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br28
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2394,9 +2493,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br29
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2411,9 +2510,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily18br30
-    label: Sasuke Financial Lab株式会社 — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社 — みらやく掲載可
+    profile: mirayaku-visible
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2428,9 +2527,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br01
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2445,9 +2544,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br02
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2462,9 +2561,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br03
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2479,9 +2578,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br04
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2496,9 +2595,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br05
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2513,9 +2612,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br06
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2530,9 +2629,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br07
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2547,9 +2646,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br08
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2564,9 +2663,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br09
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2581,9 +2680,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br10
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2598,9 +2697,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br11
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2615,9 +2714,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br12
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2632,9 +2731,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br13
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2649,9 +2748,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br14
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2666,9 +2765,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br15
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2683,9 +2782,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br16
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2700,9 +2799,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br17
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2717,9 +2816,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br18
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2734,9 +2833,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br19
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2751,9 +2850,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br20
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2768,9 +2867,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br21
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2785,9 +2884,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br22
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2802,9 +2901,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br23
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2819,9 +2918,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br24
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2836,9 +2935,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br25
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2853,9 +2952,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br26
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2870,9 +2969,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br27
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2887,9 +2986,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br28
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2904,9 +3003,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br29
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2921,9 +3020,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br30
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2938,9 +3037,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br31
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2955,9 +3054,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br32
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2972,9 +3071,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br33
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -2989,9 +3088,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br34
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3006,9 +3105,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br35
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3023,9 +3122,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br36
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3040,9 +3139,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br37
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3057,9 +3156,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br38
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3074,9 +3173,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br39
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3091,9 +3190,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br40
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3108,9 +3207,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br41
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3125,9 +3224,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br42
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3142,9 +3241,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br43
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3159,9 +3258,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br44
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3176,9 +3275,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br45
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3193,9 +3292,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br46
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3210,9 +3309,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br47
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3227,9 +3326,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br48
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3244,9 +3343,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br49
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3261,9 +3360,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily33br50
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3278,9 +3377,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br01
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3295,9 +3394,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br02
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3312,9 +3411,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br03
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3329,9 +3428,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br04
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3346,9 +3445,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br05
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3363,9 +3462,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br06
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3380,9 +3479,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br07
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3397,9 +3496,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br08
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3414,9 +3513,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br09
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3431,9 +3530,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br10
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3448,9 +3547,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br11
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3465,9 +3564,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br12
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3482,9 +3581,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br13
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3499,9 +3598,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br14
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3516,9 +3615,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br15
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3533,9 +3632,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br16
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3550,9 +3649,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br17
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3567,9 +3666,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br18
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3584,9 +3683,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br19
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -3601,9 +3700,9 @@ agencies:
     cta: null
     application: null
   - code: littlefamily57br20
-    label: 株式会社ジャパンペットコミュニケーションズ — 支店コード (通常LPのまま変化なし)
-    profile: branch-code
-    recognized: false
+    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
+    profile: mirayaku-hidden
+    recognized: true
     revisitRedirect: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/

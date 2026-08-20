@@ -15,6 +15,7 @@ import type {
 import { SEVERITY_LABEL, SEVERITY_ORDER, sortBySeverity } from '../utils/findings';
 import { loadConfig, PROJECT_ROOT } from '../utils/config';
 import { agencySeed, agencySpecs } from '../utils/agency';
+import { activeKnownIssues } from '../utils/known-issues';
 import { maskText } from '../utils/secrets';
 import type { Finding, QaConfig, QaRecord, Severity } from '../utils/types';
 
@@ -164,6 +165,11 @@ export default class QaHtmlReporter implements Reporter {
       );
     }
     console.log(`検知件数      : Critical ${counts.critical} / High ${counts.high} / Medium ${counts.medium} / Low ${counts.low}`);
+    // 既知の不具合は Low に落としているため、何を既知として扱ったかを明示する
+    // (黙って下げると「検知されていない」と誤解されるため)
+    for (const issue of describeKnownIssues()) {
+      console.log(`既知の不具合  : ${issue}`);
+    }
     console.log(`HTML レポート : ${relativeHtml}`);
     console.log(`JSON          : ${path.relative(PROJECT_ROOT, JSON_PATH)}`);
     console.log(
@@ -273,6 +279,23 @@ interface ReportSummary {
  * 抽選は実行ごとに変わるため、レポートにシードを残さないと
  * 「どの代理店を検査したのか」「同じ組み合わせをどう再現するか」が分からなくなる。
  */
+/**
+ * いま既知として扱っている不具合の説明。
+ * 設定が読めない場合 (実行環境の設定不備) は何も出さない。
+ */
+function describeKnownIssues(): string[] {
+  try {
+    const config = loadConfig();
+    return activeKnownIssues(config).map(
+      (issue) =>
+        `${issue.title} (${issue.id})` +
+        (issue.fixedOn ? ` — ${issue.fixedOn} 修正予定まで Low として扱う` : ' — Low として扱う'),
+    );
+  } catch {
+    return [];
+  }
+}
+
 function describeAgencySampling(): ReportSummary['agencySampling'] {
   try {
     const config = loadConfig();

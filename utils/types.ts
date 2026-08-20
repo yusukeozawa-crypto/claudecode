@@ -455,6 +455,23 @@ export interface TextRulesFile {
 }
 
 /** 全設定をまとめたもの */
+/** 既知の不具合 1 件 (config/known-issues.yml) */
+export interface KnownIssue {
+  id: string;
+  title: string;
+  note?: string;
+  /** 修正リリース日 (YYYY-MM-DD)。この日以降は既知扱いをやめる */
+  fixedOn?: string;
+  /** 対象の代理店コード (`*` が使える) */
+  codes?: string[];
+  /** 対象の検知種別。空なら種別を問わない */
+  categories: FindingCategory[];
+}
+
+export interface KnownIssuesFile {
+  knownIssues: KnownIssue[];
+}
+
 export interface QaConfig {
   environmentName: string;
   environment: EnvironmentConfig;
@@ -468,4 +485,6 @@ export interface QaConfig {
   visual: VisualFile;
   errors: ErrorsFile;
   text: TextRulesFile;
+  /** 既知の不具合 (未設定でもよい) */
+  knownIssues?: KnownIssuesFile;
 }

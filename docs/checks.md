@@ -295,6 +295,35 @@ AI API は使用せず、まず表示テキストを抽出して保存し、ル�
 代理店コードに関する検査 (表示・リダイレクト・別ドメイン申込引き継ぎ・セキュリティ) は
 [agency-code-scenarios.md](agency-code-scenarios.md) を参照。
 
+## 7.1 既知の不具合 (`utils/known-issues.ts` / `config/known-issues.yml`)
+
+すでに把握していて修正リリースが決まっている不具合を登録すると、
+その検知結果を **Low に落として**報告する。
+毎回 Critical が並んで本当の異常が埋もれるのを防ぐため。
+
+```yaml
+knownIssues:
+  - id: branch-code-not-applied
+    title: 支店コードが親コードとして扱われない
+    fixedOn: 2026-09-03        # この日以降は既知扱いをやめる
+    codes: ["littlefamily03br*", "littlefamily33br*"]
+    categories: [agency-display, agency-redirect]
+```
+
+| 項目 | 内容 |
+|---|---|
+| 期待結果 | **書き換えない**。仕様どおりのままにする |
+| 一致条件 | 代理店コードと検知種別の**両方**が一致したときだけ |
+| 修正日前 | Low + タイトルに `[既知 (YYYY-MM-DD 修正予定)]`、本来の重大度を詳細に残す |
+| 修正日以降 | 元の重大度で報告する (直っていなければその日から Critical) |
+| レポート | 有効な既知不具合の一覧を毎回出力する (黙って下げない) |
+
+期待結果を現状に合わせて書き換えないのが要点。書き換えると
+「修正されたこと」も「壊れ直したこと」も検知できなくなる。
+
+種別を限定しているため、同じ代理店で**別の**不具合が出た場合は
+既知扱いにならず通常の重大度で報告される。
+
 ## 8. 設定検証 (`utils/config.ts` の `validateConfig`)
 
 運用者は `config/agencies.yml` を頻繁に編集するため、

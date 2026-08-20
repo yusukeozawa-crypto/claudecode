@@ -67,11 +67,10 @@ displayIgnoreKeys:
   - "css=#lf-campaign-banner-*"
 
 #   コードなしの表示と一致するはずのパターン。
-#   支店コードは現状「何も変化しない」ため、通常 LP と同じ表示になる。
-#   ここに差分が出た場合は、仕様変更か不具合のどちらか
-#   (どちらとも断定できないため Medium で報告する)。
-sameAsNoCodeProfiles:
-  - branch-code
+#   「コードを付けても何も変わらない」ことが仕様の分類があれば、
+#   ここに書くと差分が出たときに報告される (Medium)。
+#   支店コードは親コードと同じ挙動になるのが仕様のため、ここには入れない。
+sameAsNoCodeProfiles: []
 
 # ---------- 割り当てルール (上から順に最初に一致したものを採用) ----------
 assign:
@@ -80,12 +79,13 @@ assign:
   - match: { code: A0010 }
     exclude: true
     reason: Amazon 用のため検査対象外 (通常 LP のまま)
-  # 支店コード (末尾が brNN)。
-  #   運用側の確認により、現状は **通常 LP のままで何も変化しない**。
-  #   カカクコムの支店コード (littlefamily03brNN) もリダイレクトしない。
-  #   そのため親コードの分類 (みらやく可否・カカクコム) より前に判定する。
-  - match: { codeMatches: "br[0-9]+$" }
-    profile: branch-code
+  # 支店コード (末尾 brNN) は親コードと同じ挙動になるのが仕様。
+  #   マスタの各行が親と同じ みらやく可否を持っているため、
+  #   専用の割り当てルールは不要 (下の みらやく / カカクコムのルールで決まる)。
+  #
+  #   2026-08 現在、支店コードが親コードとして扱われない不具合がある。
+  #   これは config/known-issues.yml で「既知の不具合」として扱う
+  #   (期待結果は仕様どおりのままにし、修正日を過ぎたら通常の不具合として報告する)。
   - match: { code: littlefamily01 }
     profile: direct
   - match: { codePrefix: littlefamily03 }
@@ -161,29 +161,6 @@ profiles:
     cta: null
     application: null
 
-  # 支店コード (末尾が brNN)。
-  #   現状は代理店コードとして扱われず、通常 LP のまま何も変化しない
-  #   (募集代理店の表記も出ない)。実測 2026-08 / 運用側の確認済み。
-  #   親コードがカカクコムでも専用 LP へのリダイレクトは起きない。
-  #   sameAsNoCodeProfiles に入れているため、
-  #   コードなしとの差分が出たら報告される (仕様変更の検知)。
-  branch-code:
-    label: 支店コード (通常LPのまま変化なし)
-    # サイト側で代理店コードとして扱われない。
-    # 保存・引き継ぎ・代理店表示のいずれも期待しない。
-    recognized: false
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    redirected: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    expectedAssets: {}
-    cta: null
-    application: null
 
   # みらやく掲載不可 (×) — みらやくのセクションが表示されない
   mirayaku-hidden:

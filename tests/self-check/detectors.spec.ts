@@ -25,7 +25,8 @@ import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
 import { detectCrossPageInconsistency } from '../../utils/text-rules';
 import { collectLinks } from '../../utils/links';
-import type { FindingCategory, RedirectTrace } from '../../utils/types';
+import { applyKnownIssue } from '../../utils/known-issues';
+import type { FindingCategory, KnownIssuesFile, RedirectTrace } from '../../utils/types';
 
 const config = loadConfig();
 const SP_VIEWPORT = { width: 390, height: 844 };
@@ -892,6 +893,84 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
 
     // 完全一致の指定も従来どおり使える
     expect(visibleBlockKeys(signature, ['#main-hero']).length, '完全一致の指定も使えること').toBe(2);
+  });
+
+  test('既知の不具合は修正日まで Low に落とし、修正日を過ぎたら元の重大度で報告する', async () => {
+    // 既知の不具合を毎回 Critical で出すと本当の異常が埋もれる。
+    // かといって期待結果を現状に書き換えると、直ったことも
+    // 壊れ直したことも分からなくなる。そのため検知結果だけを切り替える。
+    const known: KnownIssuesFile = {
+      knownIssues: [
+        {
+          id: 'selfcheck-branch',
+          title: '支店コードが親コードとして扱われない',
+          fixedOn: '2026-09-03',
+          codes: ['selfcheckbr*'],
+          categories: ['agency-display'],
+        },
+      ],
+    };
+    const withKnown: typeof config = { ...config, knownIssues: known };
+    const finding = {
+      severity: 'critical' as const,
+      category: 'agency-display' as const,
+      title: 'みらやく × なのに表示されています',
+      url: 'https://example.test/lp/service/',
+      agencyCode: 'selfcheckbr01',
+    };
+
+    // 修正日より前 → Low に落とし、既知であることと本来の重大度を残す
+    const before = applyKnownIssue(finding, withKnown, new Date('2026-08-20T00:00:00'));
+    expect(before.severity, '修正日より前は Low に落とすこと').toBe('low');
+    expect(before.title, '既知だと分かる表示にすること').toContain('既知');
+    expect(before.detail, '本来の重大度を残すこと').toContain('critical');
+
+    // 修正日以降 → 元の重大度で報告する (直っていなければその日から Critical)
+    const after = applyKnownIssue(finding, withKnown, new Date('2026-09-03T09:00:00'));
+    expect(after.severity, '修正日以降は元の重大度で報告すること').toBe('critical');
+    expect(after.title, '既知の表示を付けないこと').not.toContain('既知');
+
+    // 対象外の代理店コードは落とさない (別の代理店の不具合を見逃さない)
+    const otherCode = applyKnownIssue(
+      { ...finding, agencyCode: 'littlefamily12' },
+      withKnown,
+      new Date('2026-08-20T00:00:00'),
+    );
+    expect(otherCode.severity, '対象外のコードは落とさないこと').toBe('critical');
+
+    // 対象外の種別は落とさない (同じ代理店の別の不具合を見逃さない)
+    const otherCategory = applyKnownIssue(
+      { ...finding, category: 'js-error' as const },
+      withKnown,
+      new Date('2026-08-20T00:00:00'),
+    );
+    expect(otherCategory.severity, '対象外の種別は落とさないこと').toBe('critical');
+
+    // 収集経路にも効いていること (レポートに Low として載る)
+    const collector = new FindingCollector(withKnown, {
+      environment: config.environmentName,
+      environmentLabel: config.environment.label,
+      baseUrl: config.environment.baseUrl,
+      browserId: 'chromium',
+      deviceId: 'pc',
+      deviceLabel: 'PC',
+      agencyCode: 'selfcheckbr01',
+    });
+    collector.add({ category: 'agency-display', title: 'みらやく × なのに表示されています' });
+    expect(collector.blocking, '既知の不具合は CI を失敗させないこと').toEqual([]);
+    expect(collector.all[0]?.severity, 'レポートには Low として載ること').toBe('low');
+
+    // 実際の設定ファイルが読めること (書式ミスの検知)
+    for (const issue of config.knownIssues?.knownIssues ?? []) {
+      expect(issue.id, '既知の不具合に id があること').toBeTruthy();
+      expect(issue.categories.length, '対象の種別が指定されていること').toBeGreaterThan(0);
+      if (issue.fixedOn) {
+        expect(
+          Number.isNaN(new Date(`${issue.fixedOn}T00:00:00`).getTime()),
+          `fixedOn が日付として読めること: ${issue.id}`,
+        ).toBe(false);
+      }
+    }
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

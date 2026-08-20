@@ -8,6 +8,7 @@
  *   low      … 誤字脱字、表記揺れ、軽微な画像差分
  */
 import type { TestInfo } from '@playwright/test';
+import { applyKnownIssue } from './known-issues';
 import { maskFinding, maskUrl } from './secrets';
 import type { Finding, FindingCategory, FindingInput, QaConfig, Severity } from './types';
 
@@ -89,8 +90,12 @@ export class FindingCollector {
       browserId: input.browserId ?? this.context.browserId,
       agencyCode: input.agencyCode ?? this.context.agencyCode,
     };
+    // 既知の不具合 (修正リリース待ち) は Low に落とす。
+    // 期待結果は仕様どおりのままにしているため、修正日を過ぎれば
+    // 元の重大度で報告され、直っていないことが分かる。
+    const adjusted = applyKnownIssue(raw, this.config);
     // 一時トークン・セッション ID などの秘密情報はレポートに出力しない
-    const finding = maskFinding(raw, this.config);
+    const finding = maskFinding(adjusted, this.config);
     this.items.push(finding);
     return finding;
   }
