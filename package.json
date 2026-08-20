@@ -37,6 +37,8 @@
     "test:text": "playwright test --grep @text",
     "test:visual": "playwright test --grep @visual",
     "typecheck": "tsc --noEmit",
+    "selftest:ui": "node scripts/check-ui.mjs",
+    "ui": "node scripts/ui-server.mjs",
     "update": "node scripts/update.mjs",
     "update:screenshots": "node scripts/update-baselines.mjs"
   },

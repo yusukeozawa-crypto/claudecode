@@ -106,6 +106,10 @@ jobs:
         # 生成元を編集して再生成を忘れると、設定と実際の検査対象がずれる。
         run: npm run agencies:build -- --check
 
+      - name: ブラウザ画面 (UI) の自己検査
+        # 画面を人が開かずに、操作の受付・ファイル公開範囲・URL 検証を確認する
+        run: npm run selftest:ui
+
       - name: 全テストを実行 (モックサイト)
         id: qa
         continue-on-error: true

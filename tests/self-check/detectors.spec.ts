@@ -26,7 +26,8 @@ import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-
 import { detectCrossPageInconsistency } from '../../utils/text-rules';
 import { collectLinks } from '../../utils/links';
 import { applyKnownIssue } from '../../utils/known-issues';
-import type { FindingCategory, KnownIssuesFile, RedirectTrace } from '../../utils/types';
+import { buildAgencyRows } from '../../reporters/qa-html-reporter';
+import type { FindingCategory, KnownIssuesFile, RedirectTrace, Severity } from '../../utils/types';
 
 const config = loadConfig();
 const SP_VIEWPORT = { width: 390, height: 844 };
@@ -971,6 +972,62 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
         ).toBe(false);
       }
     }
+  });
+
+  test('代理店コードごとの一覧表を組み立てられる (レポートの見出し部分)', async () => {
+    // 「今回どのコードを検査して、それぞれどうだったか」を 1 画面で見るための表。
+    // 抽選で毎回対象が変わるため、検知が無いコードも行として残す必要がある。
+    const record = (agencyCode: string, findings: Array<{ category: FindingCategory; severity: Severity }>) => ({
+      testId: `t-${agencyCode}-${findings.length}`,
+      testTitle: 'self check',
+      suite: 'self check',
+      environment: 'local',
+      environmentLabel: 'ローカル',
+      baseUrl: 'http://127.0.0.1:4173',
+      browserId: 'chromium',
+      deviceId: 'pc',
+      deviceLabel: 'PC',
+      agencyCode,
+      status: 'passed' as const,
+      durationMs: 1,
+      startedAt: new Date().toISOString(),
+      findings: findings.map((entry) => ({
+        ...entry,
+        title: 'self check',
+        url: 'http://127.0.0.1:4173/lp/',
+        agencyCode,
+      })),
+    });
+
+    const rows = buildAgencyRows([
+      record('A001', []),
+      record('A002', [
+        { category: 'agency-display', severity: 'medium' },
+        { category: 'agency-redirect', severity: 'critical' },
+      ]),
+      record('A003', [{ category: 'js-error', severity: 'high' }]),
+      record('none', [{ category: 'js-error', severity: 'critical' }]),
+    ]);
+
+    expect(
+      rows.map((row) => row.code),
+      '重大度の重い順に並び、コードなしは含めないこと',
+    ).toEqual(['A002', 'A003', 'A001']);
+
+    const a002 = rows.find((row) => row.code === 'A002');
+    expect(a002?.cells.redirect, 'リダイレクトの列に反映されること').toBe('critical');
+    expect(a002?.cells.display, '表示の列に反映されること').toBe('medium');
+    expect(a002?.counts.redirect, '件数を数えること').toBe(1);
+
+    const a003 = rows.find((row) => row.code === 'A003');
+    expect(a003?.cells.error, 'エラーの列に反映されること').toBe('high');
+
+    const a001 = rows.find((row) => row.code === 'A001');
+    expect(a001?.worst, '検知が無ければ問題なしとすること').toBeNull();
+    expect(
+      Object.values(a001?.cells ?? {}).every((value) => value === null),
+      '検知が無いコードも行として残すこと (確認済みを示すため)',
+    ).toBe(true);
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

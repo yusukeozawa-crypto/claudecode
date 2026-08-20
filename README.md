@@ -175,6 +175,8 @@ QA_ENV=staging npx playwright test
 | `npm run test:crawl` | 基本巡回のみ実行 |
 | `npm run test:health` | リンク切れ・エラー検知のみ実行 |
 | `npm run test:text` | 誤字脱字・表記揺れチェックのみ実行 |
+| `npm run ui` | **ブラウザの操作画面を開く** (run-qa.cmd と同じ入口。実行・進行状況・結果・設定・履歴) |
+| `npm run selftest:ui` | 操作画面の自己検査 (受付・公開範囲・URL 検証) |
 | `npm run update` | ツール自身を最新版に更新 (Git 不要。`.env` / `reports` / `screenshots` は残る) |
 | `npm run discover:staging` / `npm run discover:production` | 実サイトの仕様を調査して `reports/discovery/` に記録 (読み取りのみ) |
 | `npm run update:screenshots` | 基準画像を更新 (意図した見た目の変更時。**更新前に `npm test` で Critical / High が 0 であることを確認する** — 不具合を基準画像に焼き付けないため。CI と同じ Linux 以外では中止される) |
@@ -680,6 +682,7 @@ aiCheck:
 | [docs/specification.md](docs/specification.md) | ツール全体の仕様 |
 | [docs/agency-code-scenarios.md](docs/agency-code-scenarios.md) | 代理店ごとの個別仕様・リダイレクト・申込引き継ぎ・セキュリティ |
 | [docs/handoff-discovery.md](docs/handoff-discovery.md) | 実サイトの仕様調査ツール (npm run discover) |
+| [docs/ui.md](docs/ui.md) | ブラウザの操作画面 (実行・進行状況・結果・設定・履歴) |
 | [docs/checks.md](docs/checks.md) | 各検査項目の判定ロジックと閾値 |
 | [docs/severity.md](docs/severity.md) | 重大度の分類基準 |
 | [docs/operations.md](docs/operations.md) | 運用手順 (実サイト適用・トラブルシューティング) |

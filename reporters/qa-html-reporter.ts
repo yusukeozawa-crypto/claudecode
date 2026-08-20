@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type {
-  FullConfig, FullResult, Reporter, TestCase, TestResult,
+  FullConfig, FullResult, Reporter, Suite, TestCase, TestResult,
 } from '@playwright/test/reporter';
 import { SEVERITY_LABEL, SEVERITY_ORDER, sortBySeverity } from '../utils/findings';
 import { loadConfig, PROJECT_ROOT } from '../utils/config';
@@ -22,6 +22,31 @@ import type { Finding, QaConfig, QaRecord, Severity } from '../utils/types';
 const REPORT_DIR = path.join(PROJECT_ROOT, 'reports');
 const HTML_PATH = path.join(REPORT_DIR, 'qa-report.html');
 const JSON_PATH = path.join(REPORT_DIR, 'qa-report.json');
+/** 進行状況 (ブラウザ UI が読む)。検査中に 1 テストごとに更新する */
+const PROGRESS_PATH = path.join(REPORT_DIR, 'progress.json');
+/** 過去の実行結果 (ブラウザ UI の履歴) */
+const HISTORY_DIR = path.join(REPORT_DIR, 'history');
+
+/**
+ * テストを人が分かる単位にまとめる。
+ * 「いま何を確認しているか」を検査中に見せるため。
+ */
+const GROUPS: Array<{ label: string; match: RegExp }> = [
+  { label: '代理店の表示', match: /@consistency|agency-display|agency-cta/ },
+  { label: 'リダイレクト', match: /@redirect/ },
+  { label: '申込への引き継ぎ', match: /@handoff/ },
+  { label: 'ページの表示・エラー', match: /@crawl|@health/ },
+  { label: 'セキュリティ', match: /@security/ },
+  { label: '文言', match: /@text/ },
+  { label: '見た目の比較', match: /@visual/ },
+  { label: '検出ロジックの自己検査', match: /@selfcheck/ },
+  { label: '仕様調査', match: /@discover/ },
+];
+
+function groupLabel(testCase: TestCase): string {
+  const key = `${testCase.titlePath().join(' ')} ${testCase.location.file}`;
+  return GROUPS.find((group) => group.match.test(key))?.label ?? 'その他';
+}
 
 interface FindingsAttachment {
   context: {
@@ -51,9 +76,23 @@ export default class QaHtmlReporter implements Reporter {
   /** マスキングに使う設定 (読み込みに失敗した場合は null) */
   private qaConfig: QaConfig | null = null;
 
-  onBegin(config: FullConfig): void {
+  /** 進行状況 (ブラウザ UI 用) */
+  private plannedTotal = 0;
+  private completed = 0;
+  private readonly groupProgress = new Map<string, { done: number; total: number }>();
+  private currentLabel = '';
+
+  onBegin(config: FullConfig, suite: Suite): void {
     this.startedAt = new Date();
     this.projectNames = config.projects.map((project) => project.name);
+    const tests = suite.allTests();
+    this.plannedTotal = tests.length;
+    for (const testCase of tests) {
+      const label = groupLabel(testCase);
+      const entry = this.groupProgress.get(label) ?? { done: 0, total: 0 };
+      entry.total += 1;
+      this.groupProgress.set(label, entry);
+    }
     try {
       const qaConfig = loadConfig();
       this.qaConfig = qaConfig;
@@ -63,6 +102,44 @@ export default class QaHtmlReporter implements Reporter {
       this.failOnSeverities = qaConfig.runtime.failOnSeverities;
     } catch {
       // 設定読み込みに失敗した場合もレポート生成自体は継続する
+    }
+    this.writeProgress(true);
+  }
+
+  /**
+   * 進行状況をファイルに書く。ブラウザ UI がこれを読んで表示する。
+   * 書き込み失敗で検査を止めないよう、例外は無視する。
+   */
+  private writeProgress(running: boolean): void {
+    try {
+      fs.mkdirSync(REPORT_DIR, { recursive: true });
+      const counts = countBySeverity(this.records.flatMap((record) => record.findings));
+      fs.writeFileSync(
+        PROGRESS_PATH,
+        JSON.stringify(
+          {
+            running,
+            environment: this.environmentName,
+            environmentLabel: this.environmentLabel,
+            startedAt: this.startedAt.toISOString(),
+            updatedAt: new Date().toISOString(),
+            total: this.plannedTotal,
+            completed: this.completed,
+            current: this.currentLabel,
+            findings: counts,
+            groups: [...this.groupProgress.entries()].map(([label, entry]) => ({
+              label,
+              done: entry.done,
+              total: entry.total,
+            })),
+          },
+          null,
+          2,
+        ),
+        'utf8',
+      );
+    } catch {
+      // 進行状況の書き込み失敗は検査結果に影響しない
     }
   }
 
@@ -119,6 +196,13 @@ export default class QaHtmlReporter implements Reporter {
         : result.error?.message,
       attachedScreenshots: screenshots,
     });
+
+    // 進行状況の更新 (ブラウザ UI 用)
+    this.completed += 1;
+    this.currentLabel = groupLabel(testCase);
+    const group = this.groupProgress.get(this.currentLabel);
+    if (group) group.done += 1;
+    this.writeProgress(true);
   }
 
   async onEnd(result: FullResult): Promise<void> {
@@ -150,6 +234,8 @@ export default class QaHtmlReporter implements Reporter {
     };
 
     fs.writeFileSync(JSON_PATH, JSON.stringify({ summary, records: this.records }, null, 2), 'utf8');
+    this.writeProgress(false);
+    this.saveHistory(summary);
     fs.writeFileSync(HTML_PATH, renderHtml(summary, this.records), 'utf8');
 
     const relativeHtml = path.relative(PROJECT_ROOT, HTML_PATH);
@@ -184,6 +270,32 @@ export default class QaHtmlReporter implements Reporter {
     // HTML を開かないと何が起きたか分からない状態だと、
     // 「失敗したことは分かるが原因が分からない」で止まってしまう。
     this.printAttentionFindings(allFindings);
+  }
+
+  /**
+   * 実行結果を履歴として残す (ブラウザ UI の一覧用)。
+   * 全文ではなく要約だけを保存する (件数が増えても軽いままにするため)。
+   */
+  private saveHistory(summary: ReportSummary): void {
+    try {
+      fs.mkdirSync(HISTORY_DIR, { recursive: true });
+      const stamp = summary.startedAt.replace(/[:.]/g, '-');
+      fs.writeFileSync(
+        path.join(HISTORY_DIR, `${stamp}-${summary.environment || 'unknown'}.json`),
+        JSON.stringify(summary, null, 2),
+        'utf8',
+      );
+      // 古い履歴は 50 件で打ち切る (フォルダが無限に増えないように)
+      const files = fs
+        .readdirSync(HISTORY_DIR)
+        .filter((name) => name.endsWith('.json'))
+        .sort();
+      for (const name of files.slice(0, Math.max(0, files.length - 50))) {
+        fs.rmSync(path.join(HISTORY_DIR, name), { force: true });
+      }
+    } catch {
+      // 履歴の保存失敗は検査結果に影響しない
+    }
   }
 
   /**
@@ -324,6 +436,106 @@ function statusLabel(status: QaRecord['status']): string {
   }
 }
 
+/** 代理店コードごとの結果 1 行 */
+interface AgencyRow {
+  code: string;
+  /** 観点ごとの最悪の重大度 (無ければ null = 問題なし) */
+  cells: Record<string, Severity | null>;
+  /** 観点ごとの件数 */
+  counts: Record<string, number>;
+  worst: Severity | null;
+  checked: boolean;
+}
+
+/** 代理店一覧表の列。種別をまとめて「何の観点か」で並べる */
+const AGENCY_COLUMNS: Array<{ key: string; label: string; categories: string[] }> = [
+  { key: 'display', label: '表示', categories: ['agency-display', 'text-rule', 'layout', 'horizontal-scroll', 'visual-diff'] },
+  { key: 'redirect', label: 'リダイレクト', categories: ['agency-redirect', 'redirect-mechanism', 'redirect-loop'] },
+  { key: 'persistence', label: 'コード保持', categories: ['agency-persistence'] },
+  { key: 'handoff', label: '申込引き継ぎ', categories: ['agency-handoff'] },
+  { key: 'error', label: 'エラー', categories: ['js-error', 'network-error', 'image-error', 'broken-link', 'timeout'] },
+  { key: 'security', label: 'セキュリティ', categories: ['security'] },
+];
+
+/** 重大度の重い順 (null = 問題なし) */
+function worseOf(a: Severity | null, b: Severity | null): Severity | null {
+  if (!a) return b;
+  if (!b) return a;
+  return SEVERITY_ORDER.indexOf(a) <= SEVERITY_ORDER.indexOf(b) ? a : b;
+}
+
+/**
+ * 代理店コードごとの一覧表を組み立てる。
+ *
+ * 「今回どのコードを検査して、それぞれどうだったか」を 1 画面で見るため。
+ * 抽選で毎回対象が変わるので、検査したコードを明示することが重要。
+ */
+export function buildAgencyRows(records: QaRecord[]): AgencyRow[] {
+  const rows = new Map<string, AgencyRow>();
+  const emptyCells = (): Record<string, Severity | null> =>
+    Object.fromEntries(AGENCY_COLUMNS.map((column) => [column.key, null]));
+  const emptyCounts = (): Record<string, number> =>
+    Object.fromEntries(AGENCY_COLUMNS.map((column) => [column.key, 0]));
+
+  const ensure = (code: string): AgencyRow => {
+    const existing = rows.get(code);
+    if (existing) return existing;
+    const created: AgencyRow = { code, cells: emptyCells(), counts: emptyCounts(), worst: null, checked: true };
+    rows.set(code, created);
+    return created;
+  };
+
+  // 検査した代理店コード (検知が無くても行を作る = 「確認済み」を示す)
+  for (const record of records) {
+    const code = record.agencyCode;
+    if (!code || code === 'none') continue;
+    ensure(code);
+  }
+
+  for (const record of records) {
+    for (const finding of record.findings) {
+      const code = finding.agencyCode ?? record.agencyCode;
+      if (!code || code === 'none') continue;
+      const row = ensure(code);
+      const column = AGENCY_COLUMNS.find((entry) => entry.categories.includes(finding.category));
+      const key = column?.key ?? 'display';
+      row.cells[key] = worseOf(row.cells[key], finding.severity);
+      row.counts[key] += 1;
+      row.worst = worseOf(row.worst, finding.severity);
+    }
+  }
+
+  return [...rows.values()].sort((a, b) => {
+    const order = SEVERITY_ORDER.indexOf(a.worst ?? 'low') - SEVERITY_ORDER.indexOf(b.worst ?? 'low');
+    if (a.worst && b.worst && order !== 0) return order;
+    if (a.worst && !b.worst) return -1;
+    if (!a.worst && b.worst) return 1;
+    return a.code.localeCompare(b.code);
+  });
+}
+
+function renderAgencyTable(records: QaRecord[]): string {
+  const rows = buildAgencyRows(records);
+  if (rows.length === 0) return '<p class="empty">代理店コードを使った検査はありませんでした。</p>';
+
+  const body = rows
+    .map((row) => {
+      const cells = AGENCY_COLUMNS.map((column) => {
+        const severity = row.cells[column.key];
+        const count = row.counts[column.key];
+        if (!severity) return '<td class="ok">OK</td>';
+        return `<td class="ng sev-${severity}"><span class="badge badge-${severity}">${SEVERITY_LABEL[severity]}</span> ${count} 件</td>`;
+      }).join('');
+      return `<tr class="${row.worst ? `agency-ng sev-${row.worst}` : 'agency-ok'}"><th scope="row">${escapeHtml(row.code)}</th>${cells}</tr>`;
+    })
+    .join('');
+
+  return `<table id="agencies">
+      <thead><tr><th>代理店コード</th>${AGENCY_COLUMNS.map((column) => `<th>${column.label}</th>`).join('')}</tr></thead>
+      <tbody>${body}</tbody>
+    </table>`;
+}
+
 function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   const findings = sortBySeverity(records.flatMap((record) => record.findings));
 
@@ -440,6 +652,10 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   .badge-medium { background: var(--medium); } .badge-low { background: var(--low); }
   .badge-pass { background: #14683a; } .badge-fail { background: var(--critical); } .badge-skip { background: #9aa4af; }
   .muted { color: #6b7280; font-size: 12px; }
+  #agencies th[scope="row"] { background: #fafbfc; font-family: ui-monospace, monospace; white-space: nowrap; }
+  #agencies td { text-align: center; white-space: nowrap; }
+  #agencies td.ok { color: #14683a; font-weight: 700; }
+  #agencies tr.agency-ng th[scope="row"] { background: #fdecea; }
   .title { font-weight: 600; }
   .expected { color: #14683a; } .actual { color: var(--critical); }
   .url { word-break: break-all; max-width: 260px; font-size: 12px; }
@@ -489,6 +705,12 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
         : 'CI は成功として終了します。'
     }</span>
   </div>
+
+  <h2>代理店コードごとの結果 (${buildAgencyRows(records).length} コード)</h2>
+  <div class="panel">
+    ${renderAgencyTable(records)}
+  </div>
+  <p class="muted">OK = その観点で検知なし。検査した代理店コードは実行ごとに抽選されます。</p>
 
   <h2>検知した不具合 (${findings.length} 件)</h2>
   <div class="filters">

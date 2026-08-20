@@ -13,3 +13,5 @@ blob-report/
 .playwright/
 *.log
 .DS_Store
+reports/history/
+reports/progress.json

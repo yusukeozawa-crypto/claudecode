@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>公開後QA</title>
+<style>
+  :root {
+    --critical: #b3261e; --high: #d97706; --medium: #2563eb; --low: #6b7280;
+    --bg: #f4f6f8; --panel: #fff; --border: #dde2e8; --text: #1f2328; --accent: #12243a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--accent); color: #fff; padding: 16px 24px; display: flex; align-items: baseline; gap: 16px; }
+  header h1 { margin: 0; font-size: 18px; }
+  header .env { font-size: 13px; color: #9fb3c8; }
+  main { padding: 20px 24px 60px; max-width: 1100px; }
+  section { margin-bottom: 28px; }
+  h2 { font-size: 15px; margin: 0 0 10px; color: #44505c; }
+  .targets { display: flex; gap: 12px; flex-wrap: wrap; }
+  button.target {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px; min-width: 220px; text-align: left; cursor: pointer; font: inherit;
+  }
+  button.target:hover:not(:disabled) { border-color: #9db4cc; }
+  button.target:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.target .name { font-size: 16px; font-weight: 700; display: block; }
+  button.target .note { font-size: 12px; color: #6b7280; display: block; margin-top: 4px; }
+  button.target .last { font-size: 12px; margin-top: 8px; display: block; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  button.small {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 14px; cursor: pointer; font: inherit; font-size: 13px;
+  }
+  button.small:hover:not(:disabled) { border-color: #9db4cc; }
+  button.small:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.stop { border-color: #f3b7b2; color: var(--critical); }
+  .verdict { border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
+  .verdict .big { font-size: 28px; font-weight: 700; display: block; }
+  .verdict .sub { font-size: 13px; margin-top: 6px; display: block; opacity: 0.9; }
+  .verdict.pass { background: #e9f7ef; border: 1px solid #b7e0c4; color: #14683a; }
+  .verdict.warn { background: #fff8e6; border: 1px solid #f0d79a; color: #8a5a00; }
+  .verdict.fail { background: #fdecea; border: 1px solid #f3b7b2; color: var(--critical); }
+  .verdict.running { background: #eef4fb; border: 1px solid #bcd3ec; color: #14406e; }
+  .bar { height: 10px; background: #dbe6f2; border-radius: 999px; overflow: hidden; margin-top: 12px; }
+  .bar > span { display: block; height: 100%; background: #2563eb; transition: width 0.3s; }
+  .groups { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: 12px; }
+  .groups span { background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
+  .groups span.done { border-color: #b7e0c4; color: #14683a; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; white-space: nowrap; }
+  th { background: #f0f2f5; }
+  td.center { text-align: center; }
+  .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .ok { color: #14683a; font-weight: 700; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; color: #fff; font-size: 11px; font-weight: 700; }
+  .badge.critical { background: var(--critical); } .badge.high { background: var(--high); }
+  .badge.medium { background: var(--medium); } .badge.low { background: var(--low); }
+  .muted { color: #6b7280; font-size: 12px; }
+  details.log { margin-top: 12px; }
+  details.log summary { cursor: pointer; font-size: 13px; color: #44505c; }
+  pre.log {
+    background: #1f2328; color: #e6e6e6; padding: 12px; border-radius: 8px; overflow: auto;
+    max-height: 260px; font-size: 12px; line-height: 1.5; margin: 8px 0 0;
+  }
+  iframe.report { width: 100%; height: 70vh; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  #settings-details > summary { cursor: pointer; }
+  .settings-title { font-size: 15px; font-weight: 700; color: #44505c; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Webサイト公開後 自動QA</h1>
+  <span class="env" id="env-label"></span>
+</header>
+<main>
+  <section id="verdict-section">
+    <div class="verdict" id="verdict">
+      <span class="big" id="verdict-big">読み込み中...</span>
+      <span class="sub" id="verdict-sub"></span>
+      <div class="bar" id="bar" hidden><span id="bar-fill" style="width:0%"></span></div>
+      <div class="groups" id="groups"></div>
+    </div>
+    <div class="actions">
+      <button class="small stop" id="stop" hidden>実行を止める</button>
+      <button class="small" id="open-report" hidden>レポートを別画面で開く</button>
+    </div>
+    <details class="log" id="log-details">
+      <summary>実行ログ (うまくいかないときに開く)</summary>
+      <pre class="log" id="log"></pre>
+    </details>
+  </section>
+
+  <section>
+    <h2>検査する</h2>
+    <div class="targets" id="targets"></div>
+    <div class="actions">
+      <button class="small" data-action="update">最新版に更新</button>
+      <button class="small" data-action="discover-staging">仕様調査 (ステージング)</button>
+      <button class="small" data-action="discover-production">仕様調査 (本番)</button>
+    </div>
+  </section>
+
+  <section id="settings-section">
+    <details id="settings-details">
+      <summary><span class="settings-title">対象サイトの設定</span></summary>
+    <div class="panel" style="padding: 16px; margin-top: 10px;">
+      <div class="row" style="margin-bottom: 12px;">
+        <label>環境
+          <select id="env-target">
+            <option value="staging">ステージング</option>
+            <option value="production">本番</option>
+          </select>
+        </label>
+        <span class="muted" id="env-current"></span>
+      </div>
+      <div class="row">
+        <label>サイトの URL<br><input id="env-base" type="url" placeholder="https://lp.example.jp" size="34"></label>
+        <label>申込サイトの URL (任意)<br><input id="env-application" type="url" placeholder="https://days.example.jp" size="30"></label>
+      </div>
+      <div class="row" style="margin-top: 10px;">
+        <label>ベーシック認証 ユーザー名<br><input id="env-user" type="text" autocomplete="off" size="18"></label>
+        <label>パスワード<br><input id="env-pass" type="password" autocomplete="off" size="18"></label>
+        <button class="small" id="env-save">保存する</button>
+      </div>
+      <p class="muted" id="env-note" style="margin-bottom: 0;">
+        URL はドメインまでで保存されます (ページのパスは設定ファイル側が持ちます)。
+        認証情報は空欄なら変更しません。保存先は .env で、Git には入りません。
+      </p>
+    </div>
+    </details>
+  </section>
+
+  <section id="agency-section" hidden>
+    <h2>代理店コードごとの結果 <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
+    <div class="panel"><table id="agencies"></table></div>
+    <p class="muted">OK = その観点で検知なし。検査する代理店コードは実行ごとに抽選されます。</p>
+  </section>
+
+  <section id="history-section" hidden>
+    <h2>これまでの実行</h2>
+    <div class="panel"><table id="history"></table></div>
+  </section>
+
+  <section id="report-section" hidden>
+    <h2>レポート</h2>
+    <iframe class="report" id="report-frame" title="QAレポート"></iframe>
+  </section>
+</main>
+<script>
+  var SEVERITIES = ['critical', 'high', 'medium', 'low'];
+  var LABELS = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+  var busy = false;
+
+  function text(value) {
+    var div = document.createElement('div');
+    div.textContent = value == null ? '' : String(value);
+    return div.innerHTML;
+  }
+
+  function post(url) {
+    busy = true;
+    return fetch(url, { method: 'POST' })
+      .then(function (res) { return res.json(); })
+      .then(function (body) {
+        if (!body.ok && body.error) alert(body.error);
+      })
+      .catch(function () { alert('操作に失敗しました。黒い画面が閉じていないか確認してください。'); })
+      .then(function () { busy = false; refresh(); });
+  }
+
+  function formatTime(iso) {
+    if (!iso) return '-';
+    var date = new Date(iso);
+    return isNaN(date.getTime()) ? '-' : date.toLocaleString('ja-JP');
+  }
+
+  function renderTargets(state) {
+    var container = document.getElementById('targets');
+    container.innerHTML = state.targets.map(function (target) {
+      var info = (state.env || {})[target.key] || {};
+      var configured = info.configured;
+      var last = state.history.filter(function (entry) { return entry.environment === target.key; })[0];
+      var lastText = last
+        ? formatTime(last.startedAt) + ' — ' + (last.gateFailed ? '問題あり' : '異常なし')
+        : '未実行';
+      return '<button class="target" data-target="' + text(target.key) + '"' +
+        (configured && !state.running ? '' : ' disabled') + '>' +
+        '<span class="name">' + text(target.label) + '</span>' +
+        '<span class="note">' + text(configured ? (info.baseUrl || target.note) : 'URL が未設定です — 下の「対象サイトの設定」から登録してください') + '</span>' +
+        '<span class="last muted">前回: ' + text(lastText) + '</span>' +
+        '</button>';
+    }).join('');
+    Array.prototype.forEach.call(container.querySelectorAll('[data-target]'), function (button) {
+      button.addEventListener('click', function () {
+        post('/api/run?kind=test&key=' + encodeURIComponent(button.getAttribute('data-target')));
+      });
+    });
+  }
+
+  function renderVerdict(state) {
+    var box = document.getElementById('verdict');
+    var big = document.getElementById('verdict-big');
+    var sub = document.getElementById('verdict-sub');
+    var bar = document.getElementById('bar');
+    var fill = document.getElementById('bar-fill');
+    var groups = document.getElementById('groups');
+    var stop = document.getElementById('stop');
+    var progress = state.progress;
+
+    stop.hidden = !state.running;
+    document.getElementById('open-report').hidden = !state.hasReport;
+
+    if (state.running) {
+      var done = progress ? progress.completed : 0;
+      var total = progress ? progress.total : 0;
+      var percent = total > 0 ? Math.round((done / total) * 100) : 0;
+      box.className = 'verdict running';
+      big.textContent = '検査中... ' + percent + '%';
+      sub.textContent = (state.runningLabel || '') +
+        (progress && progress.current ? ' — いま確認中: ' + progress.current : '') +
+        (total > 0 ? ' (' + done + ' / ' + total + ')' : '');
+      bar.hidden = false;
+      fill.style.width = percent + '%';
+      groups.innerHTML = progress && progress.groups
+        ? progress.groups.map(function (group) {
+            var complete = group.done >= group.total;
+            return '<span class="' + (complete ? 'done' : '') + '">' +
+              text(group.label) + ' ' + group.done + '/' + group.total + '</span>';
+          }).join('')
+        : '';
+      return;
+    }
+
+    bar.hidden = true;
+    groups.innerHTML = '';
+    var summary = state.summary;
+    if (!summary) {
+      box.className = 'verdict';
+      big.textContent = 'まだ検査していません';
+      sub.textContent = '下のボタンから検査したい環境を選んでください。';
+      return;
+    }
+
+    var counts = summary.findings || {};
+    var blocking = (counts.critical || 0) + (counts.high || 0);
+    var others = (counts.medium || 0) + (counts.low || 0);
+    if (blocking > 0) {
+      box.className = 'verdict fail';
+      big.textContent = '問題あり — 対応が必要な検知 ' + blocking + ' 件';
+      sub.textContent = 'Critical ' + (counts.critical || 0) + ' / High ' + (counts.high || 0) +
+        '。下のレポートで内容を確認してください。';
+    } else if (others > 0) {
+      box.className = 'verdict pass';
+      big.textContent = '異常なし';
+      sub.textContent = '対応が必要な検知はありません。参考情報 ' + others + ' 件 (Medium ' +
+        (counts.medium || 0) + ' / Low ' + (counts.low || 0) + ') は記録のみで対応は不要です。';
+    } else {
+      box.className = 'verdict pass';
+      big.textContent = '異常なし';
+      sub.textContent = '検知はありませんでした。';
+    }
+    sub.textContent += ' — ' + (summary.environmentLabel || '') + ' / ' +
+      formatTime(summary.startedAt) + ' / テスト ' + summary.tests.total + ' 件';
+  }
+
+  function renderAgencies(state) {
+    var section = document.getElementById('agency-section');
+    var table = document.getElementById('agencies');
+    var data = state.agencies || { columns: [], rows: [] };
+    if (!data.rows || data.rows.length === 0) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    // 実行中は前回の結果を出しているので、そう分かるようにする
+    document.getElementById('agency-stale').hidden = !state.running;
+    var head = '<thead><tr><th>代理店コード</th>' +
+      data.columns.map(function (column) { return '<th>' + text(column.label) + '</th>'; }).join('') +
+      '</tr></thead>';
+    var body = '<tbody>' + data.rows.map(function (row) {
+      var cells = data.columns.map(function (column) {
+        var severity = row.cells[column.key];
+        if (!severity) return '<td class="center ok">OK</td>';
+        return '<td class="center"><span class="badge ' + text(severity) + '">' +
+          text(LABELS[severity] || severity) + '</span> ' + row.counts[column.key] + '</td>';
+      }).join('');
+      return '<tr><td class="code">' + text(row.code) + '</td>' + cells + '</tr>';
+    }).join('') + '</tbody>';
+    table.innerHTML = head + body;
+  }
+
+  function renderHistory(state) {
+    var section = document.getElementById('history-section');
+    var table = document.getElementById('history');
+    if (!state.history || state.history.length === 0) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    table.innerHTML = '<thead><tr><th>日時</th><th>対象</th><th>結果</th><th>検知</th><th>テスト</th></tr></thead><tbody>' +
+      state.history.map(function (entry) {
+        var counts = entry.findings || {};
+        return '<tr><td>' + text(formatTime(entry.startedAt)) + '</td>' +
+          '<td>' + text(entry.environmentLabel || entry.environment) + '</td>' +
+          '<td>' + (entry.gateFailed ? '<span class="badge critical">問題あり</span>' : '<span class="ok">異常なし</span>') + '</td>' +
+          '<td>' + SEVERITIES.map(function (severity) {
+            return LABELS[severity] + ' ' + (counts[severity] || 0);
+          }).join(' / ') + '</td>' +
+          '<td>' + (entry.tests ? entry.tests.total : '-') + '</td></tr>';
+      }).join('') + '</tbody>';
+  }
+
+  function renderReport(state) {
+    var section = document.getElementById('report-section');
+    var frame = document.getElementById('report-frame');
+    if (!state.hasReport || state.running) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    var url = '/reports/qa-report.html?t=' + encodeURIComponent(state.summary ? state.summary.generatedAt : '');
+    if (frame.getAttribute('data-src') !== url) {
+      frame.setAttribute('data-src', url);
+      frame.src = url;
+    }
+  }
+
+  function refresh() {
+    return fetch('/api/state')
+      .then(function (res) { return res.json(); })
+      .then(function (state) {
+        document.getElementById('env-label').textContent =
+          state.summary ? (state.summary.environmentLabel || '') + ' / ' + (state.summary.baseUrl || '') : '';
+        latestEnv = state.env || {};
+        // URL が 1 つも登録されていない = まず設定が必要なので開いておく
+        var anyConfigured = Object.keys(latestEnv).some(function (key) {
+          return key !== 'local' && latestEnv[key] && latestEnv[key].configured;
+        });
+        var settings = document.getElementById('settings-details');
+        if (!anyConfigured && !settings.dataset.touched) settings.open = true;
+        settings.addEventListener('toggle', function () { settings.dataset.touched = '1'; });
+        renderVerdict(state);
+        renderTargets(state);
+        if (document.activeElement === document.body) renderEnvForm();
+        renderAgencies(state);
+        renderHistory(state);
+        renderReport(state);
+        document.getElementById('log').textContent = (state.log || []).join('\n');
+        Array.prototype.forEach.call(document.querySelectorAll('[data-action]'), function (button) {
+          button.disabled = state.running;
+        });
+        // 実行中はログを自動で開き、経過が見えるようにする
+        if (state.running) document.getElementById('log-details').open = true;
+      })
+      .catch(function () {
+        document.getElementById('verdict-big').textContent = '画面とつながっていません';
+        document.getElementById('verdict-sub').textContent =
+          '黒い画面 (run-qa) が閉じている可能性があります。もう一度起動してください。';
+      });
+  }
+
+  var latestEnv = {};
+
+  function renderEnvForm() {
+    var target = document.getElementById('env-target').value;
+    var info = latestEnv[target] || {};
+    document.getElementById('env-base').value = info.baseUrl || '';
+    document.getElementById('env-application').value = info.applicationBaseUrl || '';
+    document.getElementById('env-current').textContent = info.configured
+      ? '設定済み' + (info.hasCredentials ? ' (ベーシック認証あり)' : '')
+      : '未設定';
+  }
+
+  document.getElementById('env-target').addEventListener('change', renderEnvForm);
+  document.getElementById('env-save').addEventListener('click', function () {
+    var payload = {
+      target: document.getElementById('env-target').value,
+      baseUrl: document.getElementById('env-base').value,
+      applicationBaseUrl: document.getElementById('env-application').value,
+      basicUser: document.getElementById('env-user').value,
+      basicPass: document.getElementById('env-pass').value,
+    };
+    busy = true;
+    fetch('/api/env', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (body) {
+        if (!body.ok) {
+          alert(body.error || '保存できませんでした');
+          return;
+        }
+        document.getElementById('env-pass').value = '';
+        document.getElementById('env-note').textContent =
+          '保存しました: ' + body.saved +
+          (body.droppedPath ? '  (ページのパス ' + body.droppedPath + ' は設定ファイル側が持つため外しました)' : '');
+      })
+      .catch(function () { alert('保存に失敗しました'); })
+      .then(function () { busy = false; refresh(); });
+  });
+
+  document.getElementById('stop').addEventListener('click', function () { post('/api/stop'); });
+  document.getElementById('open-report').addEventListener('click', function () {
+    window.open('/reports/qa-report.html', '_blank');
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-action]'), function (button) {
+    button.addEventListener('click', function () {
+      post('/api/run?kind=action&key=' + encodeURIComponent(button.getAttribute('data-action')));
+    });
+  });
+
+  refresh();
+  setInterval(function () { if (!busy) refresh(); }, 1500);
+</script>
+</body>
+</html>

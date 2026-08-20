@@ -1,7 +1,9 @@
 @echo off
 rem ============================================================
 rem  Post-release QA launcher for Windows.
-rem  Double-click this file to run the QA checks.
+rem  Double-click this file: it starts the local UI server and opens
+rem  the control screen in your browser. Keep this window open.
+rem  (The old text menu is still available: npm run qa)
 rem  Requires Node.js: https://nodejs.org/ja
 rem
 rem  This file is intentionally ASCII-only. All Japanese output is
@@ -19,7 +21,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-node scripts\launcher.mjs %*
+node scripts\ui-server.mjs %*
 set "QA_EXIT=%ERRORLEVEL%"
 echo.
 pause
