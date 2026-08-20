@@ -32,19 +32,31 @@ selectors:
   agencyBanner: agency-banner
   agencyLogo: agency-logo
   fallbackNotice: fallback-notice
-  ctaPrimary: cta-primary
+  # 申込ボタン (確認済み: 「今すぐ申込む」)。
+  #   text= は部分一致・大文字小文字を区別しない。
+  #   文言が変わった場合はここを直せば全代理店の検査に反映される。
+  ctaPrimary: "text=今すぐ申込"
 
 application:
-  # [未実測] 申込ドメイン・引き継ぎ方式が未確認。
-  # 申込導線の検査は agencies.yml の application が null のため実行されない。
+  # 申込サイトの URL は environments.yml (= .env の STAGING_APPLICATION_BASE_URL /
+  # PRODUCTION_APPLICATION_BASE_URL) で環境ごとに設定する。
+  #
+  # [未実測] 引き継ぎ方式 (クエリ / Cookie / サーバーセッション / JavaScript) が未確認。
+  #   agencies.yml の application は null のままなので、合否判定は行わない。
+  #   代わりに tests/agency/agency-cta.spec.ts が
+  #   「申込サイトへの導線があるか」「リンクにコードが乗るか」を実測して記録する。
+  #   方式が確定したら agency-profiles.yml の application を設定する。
   sessionApiPattern: "**/api/session*"
   # 絶対に発生させてはならないリクエスト (申込完了・データ送信)。
   #   [要確認] 実サイトの申込完了 URL に合わせて必ず設定すること。
   #   本番で押してはならない操作を止める安全装置なので、
   #   申込導線の検査を有効にする前に実物に合わせる。
   forbiddenRequestPatterns:
-    - "**/entry/complete"
-    - "**/api/application/submit"
+    - "**/entry/complete*"
+    - "**/api/application/submit*"
+    # 申込完了 URL が未確認のため、明らかに完了を意味するパスも予防的に遮断する
+    - "**/apply/complete*"
+    - "**/application/complete*"
   forbiddenTestIds:
     - application-submit
 

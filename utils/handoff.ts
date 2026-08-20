@@ -872,3 +872,157 @@ export async function verifyFallbackHandoff(
 
   return findings;
 }
+
+/** 申込サイトへ向かうリンク / フォームの観測結果 */
+export interface ApplicationLinkInfo {
+  kind: 'link' | 'form';
+  /** 表示テキスト (どのボタンかを人が判別するため) */
+  text: string;
+  /** 申込サイト側のパス */
+  path: string;
+  /** 代理店コードが URL に乗っているか */
+  hasCode: boolean;
+  /** 画面に表示されているか */
+  visible: boolean;
+}
+
+/**
+ * 申込サイトへの導線を DOM から観測する。
+ *
+ * 引き継ぎ方式 (どこにコードが乗るか) が未確定でも実行できる検査。
+ * クリックも送信も行わないため、本番の読み取り専用環境でも安全に実行できる。
+ *
+ * 「リンクが見つからない」= 不具合とは断定しない。
+ * JavaScript で遷移するボタンは DOM からは分からないため、
+ * 断定せず記録し、実測 (npm run discover) で確定させる。
+ */
+export async function observeApplicationLinks(
+  page: Page,
+  config: QaConfig,
+  agencyCode: string | null,
+): Promise<ApplicationLinkInfo[]> {
+  const expectedHost = expectedApplicationHost(config, null);
+  const paramName = config.agency.paramName;
+
+  const raw = await page
+    .evaluate(() => {
+      const isVisible = (element: Element): boolean => {
+        const rect = element.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return false;
+        const style = window.getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0;
+      };
+      const text = (element: Element): string =>
+        (element.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+
+      const links = Array.from(document.querySelectorAll('a[href]')).map((element) => ({
+        kind: 'link' as const,
+        href: (element as HTMLAnchorElement).href,
+        text: text(element),
+        visible: isVisible(element),
+      }));
+      const forms = Array.from(document.querySelectorAll('form[action]')).map((element) => ({
+        kind: 'form' as const,
+        href: (element as HTMLFormElement).action,
+        text: text(element) || '(フォーム)',
+        visible: isVisible(element),
+      }));
+      return [...links, ...forms];
+    })
+    .catch(() => [] as Array<{ kind: 'link' | 'form'; href: string; text: string; visible: boolean }>);
+
+  const found: ApplicationLinkInfo[] = [];
+  const seen = new Set<string>();
+  for (const entry of raw) {
+    let parsed: URL;
+    try {
+      parsed = new URL(entry.href);
+    } catch {
+      continue;
+    }
+    if (parsed.host !== expectedHost) continue;
+    const key = `${entry.kind}|${parsed.pathname}|${entry.text}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    found.push({
+      kind: entry.kind,
+      text: entry.text,
+      path: parsed.pathname,
+      hasCode: agencyCode !== null && parsed.searchParams.get(paramName) === agencyCode,
+      visible: entry.visible,
+    });
+  }
+  return found;
+}
+
+/**
+ * 申込導線が生きているかを記録する。
+ *
+ * 引き継ぎ方式が未確定な段階でも「申込サイトへ行けるか」「コードが URL に乗るか」
+ * を実測して残す。断定できない部分は Medium 以下で記録し、
+ * 推測で Critical を出さない (正常なサイトを不具合として報告しないため)。
+ */
+export function describeApplicationLinks(
+  links: ApplicationLinkInfo[],
+  config: QaConfig,
+  agencyCode: string | null,
+  url: string,
+): FindingInput[] {
+  const expectedHost = expectedApplicationHost(config, null);
+  const visible = links.filter((link) => link.visible);
+
+  if (links.length === 0) {
+    return [
+      {
+        category: 'agency-handoff',
+        severity: 'medium',
+        title: '申込サイトへのリンクを DOM から見つけられませんでした',
+        expected: `${expectedHost} を指すリンクまたはフォームがあること`,
+        actual: 'リンク・フォームのいずれも見つかりません',
+        url,
+        agencyCode: agencyCode ?? 'none',
+        detail:
+          'JavaScript でボタン遷移している場合は DOM からは分かりません。' +
+          'npm run discover で CTA をクリックして実際の遷移先と引き継ぎ方式を確定してください。',
+      },
+    ];
+  }
+
+  const sample = (visible.length > 0 ? visible : links)
+    .slice(0, 5)
+    .map((link) => `${link.kind === 'form' ? '[フォーム] ' : ''}「${link.text || '(テキストなし)'}」→ ${link.path}${link.hasCode ? ` (${config.agency.paramName} あり)` : ''}`)
+    .join(' / ');
+
+  const findings: FindingInput[] = [
+    {
+      category: 'agency-handoff',
+      severity: 'low',
+      title: '[確認OK] 申込サイトへの導線を確認しました',
+      expected: `${expectedHost} への導線があること`,
+      actual: `${links.length} 件 (表示中 ${visible.length} 件): ${sample}`,
+      url,
+      agencyCode: agencyCode ?? 'none',
+      detail: '「文言」がボタンの表示名です。config/agency.yml の selectors.ctaPrimary はこの文言に合わせてください。',
+    },
+  ];
+
+  // コードありで入ったのに、どのリンクにもコードが乗っていない場合は
+  // クエリ以外の方式 (Cookie / サーバーセッション / JS) の可能性がある。
+  // 方式を確定していない段階では不具合と断定せず、実測すべき事実として残す。
+  if (agencyCode !== null && !links.some((link) => link.hasCode)) {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'low',
+      title: '申込サイトへのリンクに代理店コードが乗っていません',
+      expected: `${config.agency.paramName}=${agencyCode} がリンクに含まれる (クエリ方式の場合)`,
+      actual: 'リンクの URL にコードが含まれていません',
+      url,
+      agencyCode,
+      detail:
+        'クエリ以外の方式 (Cookie / サーバーセッション / クリック時に JavaScript が付与) の可能性があります。' +
+        'npm run discover で実際の通信を確認してください。',
+    });
+  }
+
+  return findings;
+}

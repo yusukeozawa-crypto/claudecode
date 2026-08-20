@@ -7,7 +7,7 @@
 #
 #   再生成: npm run agencies:build
 #
-#   全 211 件 / マスタ 214 件
+#   全 212 件 / マスタ 214 件
 #
 #   実際に検査する代理店は実行ごとに抽選される (scope を参照)。
 #   毎回同じ代理店だけを検査すると、残りに潜む問題を見逃し続けるため。
@@ -913,6 +913,21 @@ agencies:
     application: null
   - code: littlefamily61
     label: 株式会社エディオン — みらやく掲載可
+    profile: mirayaku-visible
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily99
+    label: Amazonみらやく用（未使用） — みらやく掲載可
     profile: mirayaku-visible
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/

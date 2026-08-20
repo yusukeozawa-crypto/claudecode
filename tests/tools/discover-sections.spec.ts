@@ -39,13 +39,15 @@ function representatives(specs: AgencySpec[]): AgencySpec[] {
 function renderBlocks(title: string, blocks: ReturnType<typeof diffSignatures>['visibleOnlyInA']): string[] {
   if (blocks.length === 0) return [`- ${title}: なし`, ''];
   const lines = [`- ${title}: ${blocks.length} 件`, ''];
-  lines.push('| セレクタ (config にそのまま書ける形) | 種類 | 表示テキストの先頭 |');
-  lines.push('|---|---|---|');
+  lines.push('| セレクタ (config にそのまま書ける形) | 種類 | 表示サイズ | 表示テキストの先頭 |');
+  lines.push('|---|---|---|---|');
   for (const block of blocks.slice(0, 30)) {
     const sample = block.textSample.replace(/\|/g, '\\|') || '(テキストなし)';
-    lines.push(`| \`${toSelectorHint(block)}\` | ${block.keyKind} | ${sample} |`);
+    // 画面上のどこを見れば確認できるかが分かるようにサイズも出す
+    const size = `${block.width}x${block.height}`;
+    lines.push(`| \`${toSelectorHint(block)}\` | ${block.keyKind} | ${size} | ${sample} |`);
   }
-  if (blocks.length > 30) lines.push(`| ... 他 ${blocks.length - 30} 件 | | |`);
+  if (blocks.length > 30) lines.push(`| ... 他 ${blocks.length - 30} 件 | | | |`);
   lines.push('');
   return lines;
 }

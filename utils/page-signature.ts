@@ -16,6 +16,11 @@ export interface BlockInfo {
   keyKind: 'testid' | 'id' | 'class';
   /** 画面に表示されているか */
   visible: boolean;
+  /** 表示されていないと判定した理由 (レポートで「なぜ差分に出ないか」を説明するため) */
+  hiddenReason?: string;
+  /** 表示サイズ (px)。高さ 0 の潰れた要素を人が確認できるようにする */
+  width: number;
+  height: number;
   /** 表示テキストの先頭 (何のセクションか分かるように) */
   textSample: string;
   /** 表示テキストの長さ */
@@ -63,11 +68,49 @@ export async function capturePageSignature(page: Page): Promise<PageSignature> {
     const MAX_BLOCKS = 400;
     const MAX_LINES = 600;
 
-    const isVisible = (element: Element): boolean => {
+    /**
+     * 「人の目に見えているか」を判定する。
+     *
+     * 高さ 0 に潰れた要素・親要素で切り取られた要素・カルーセルの
+     * 画面外スライドなどは、DOM にあっても利用者には見えていない。
+     * これらを「表示」として数えると、見えていない要素が
+     * 表示差分として報告されてしまう。
+     */
+    const visibility = (element: Element): { visible: boolean; reason?: string; width: number; height: number } => {
       const rect = element.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0) return false;
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+      const size = { width, height };
+
       const style = window.getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+      if (style.display === 'none') return { visible: false, reason: 'display:none', ...size };
+      if (style.visibility === 'hidden' || style.visibility === 'collapse') {
+        return { visible: false, reason: `visibility:${style.visibility}`, ...size };
+      }
+      if (Number(style.opacity) === 0) return { visible: false, reason: 'opacity:0', ...size };
+      if (element.getAttribute('aria-hidden') === 'true') return { visible: false, reason: 'aria-hidden', ...size };
+      // 幅または高さが 0 なら見えていない (高さ 0 に潰れたバナー・アコーディオン)
+      if (width === 0 || height === 0) return { visible: false, reason: `サイズ ${width}x${height}`, ...size };
+
+      // 祖先による打ち消し。opacity は子に継承されないため個別に辿る必要がある
+      for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+        const parentStyle = window.getComputedStyle(parent);
+        if (Number(parentStyle.opacity) === 0) return { visible: false, reason: '親が opacity:0', ...size };
+        const parentRect = parent.getBoundingClientRect();
+        const clips = parentStyle.overflow !== 'visible' || parentStyle.overflowX !== 'visible' || parentStyle.overflowY !== 'visible';
+        if (!clips) continue;
+        // 親が潰れている / 親の表示範囲と重なっていない = 切り取られて見えない
+        if (parentRect.width === 0 || parentRect.height === 0) {
+          return { visible: false, reason: '親が高さ 0 (切り取られている)', ...size };
+        }
+        const overlapWidth = Math.min(rect.right, parentRect.right) - Math.max(rect.left, parentRect.left);
+        const overlapHeight = Math.min(rect.bottom, parentRect.bottom) - Math.max(rect.top, parentRect.top);
+        if (overlapWidth <= 0 || overlapHeight <= 0) {
+          return { visible: false, reason: '親の表示範囲の外 (カルーセルの画面外スライドなど)', ...size };
+        }
+      }
+
+      return { visible: true, ...size };
     };
 
     const describe = (element: Element): { key: string; keyKind: 'testid' | 'id' | 'class' } | null => {
@@ -90,26 +133,46 @@ export async function capturePageSignature(page: Page): Promise<PageSignature> {
       document.querySelectorAll('[data-testid], section, article, aside, header, footer, [id]'),
     ).slice(0, MAX_BLOCKS * 2);
 
-    const seen = new Map<string, { key: string; keyKind: 'testid' | 'id' | 'class'; visible: boolean; textSample: string; textLength: number }>();
+    interface Entry {
+      key: string;
+      keyKind: 'testid' | 'id' | 'class';
+      visible: boolean;
+      hiddenReason?: string;
+      width: number;
+      height: number;
+      textSample: string;
+      textLength: number;
+    }
+
+    const seen = new Map<string, Entry>();
     for (const element of candidates) {
       const described = describe(element);
       if (!described) continue;
       const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim();
-      const visible = isVisible(element);
+      const state = visibility(element);
       const existing = seen.get(described.key);
       if (existing) {
         // 同じ鍵が複数あるときは「1 つでも表示されていれば表示」とみなす
-        existing.visible = existing.visible || visible;
+        if (!existing.visible && state.visible) {
+          existing.visible = true;
+          delete existing.hiddenReason;
+          existing.width = state.width;
+          existing.height = state.height;
+        }
         continue;
       }
       if (seen.size >= MAX_BLOCKS) break;
-      seen.set(described.key, {
+      const entry: Entry = {
         key: described.key,
         keyKind: described.keyKind,
-        visible,
+        visible: state.visible,
+        width: state.width,
+        height: state.height,
         textSample: text.slice(0, 80),
         textLength: text.length,
-      });
+      };
+      if (state.reason) entry.hiddenReason = state.reason;
+      seen.set(described.key, entry);
     }
 
     const bodyText = (document.body?.innerText ?? '')

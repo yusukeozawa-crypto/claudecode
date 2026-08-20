@@ -17,8 +17,9 @@ import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
-import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, toSelectorHint } from '../../utils/page-signature';
+import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
 import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
+import { describeApplicationLinks, observeApplicationLinks } from '../../utils/handoff';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
@@ -652,6 +653,8 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       key,
       keyKind: 'testid' as const,
       visible,
+      width: 1200,
+      height: visible ? 200 : 0,
       textSample: key,
       textLength: key.length,
     });
@@ -736,13 +739,83 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(ok, '通常の設定では撮影できること').not.toBeNull();
   });
 
+  test('目に見えていない要素は「表示」として数えない (見えない差分の誤報告防止)', async ({ page }) => {
+    // 高さ 0 のバナー枠・カルーセルの画面外スライドなどは DOM にあっても
+    // 利用者には見えていない。これを表示として数えると
+    // 「画面上には見えないのに表示差分として報告される」ことになる。
+    await page.goto('/broken/invisible-blocks.html');
+    const signature = await capturePageSignatureStable(page);
+    expect(signature, 'シグネチャを取得できること').not.toBeNull();
+
+    const find = (key: string) => signature!.blocks.find((block) => block.key === key);
+    const hidden = [
+      'banner-in-collapsed',
+      'banner-clipped',
+      'slide-hidden',
+      'section-faded',
+      'aria-hidden-section',
+    ];
+    for (const key of hidden) {
+      const block = find(key);
+      expect(block, `${key} が取得できること`).toBeTruthy();
+      expect(block?.visible, `${key} は見えていないと判定されること`).toBe(false);
+      expect(block?.hiddenReason, `${key} の理由が記録されること (${block?.hiddenReason})`).toBeTruthy();
+    }
+
+    for (const key of ['visible-section', 'slide-visible']) {
+      const block = find(key);
+      expect(block?.visible, `${key} は表示と判定されること`).toBe(true);
+      expect(block?.height, `${key} の高さが記録されること`).toBeGreaterThan(0);
+    }
+
+    // 見えていない要素は表示差分の比較対象にも入らない
+    const keys = visibleBlockKeys(signature!);
+    for (const key of hidden) {
+      expect(keys, `${key} は表示差分の比較に含めないこと`).not.toContain(key);
+    }
+  });
+
+  test('申込サイトへの導線を DOM から観測できる (引き継ぎ方式が未確定でも記録する)', async ({ page }) => {
+    const param = config.agency.paramName;
+    await page.goto(`/lp/?${param}=A001`);
+    await page.waitForLoadState('load');
+
+    const links = await observeApplicationLinks(page, config, 'A001');
+    expect(links.length, '申込サイトへのリンクを見つけること').toBeGreaterThan(0);
+    expect(
+      links.some((link) => link.text.length > 0),
+      'ボタンの表示文言を記録すること (設定を実物に合わせるため)',
+    ).toBe(true);
+    expect(
+      links.some((link) => link.hasCode),
+      'クエリ方式ならリンクに代理店コードが乗っていることを検出する',
+    ).toBe(true);
+
+    const findings = describeApplicationLinks(links, config, 'A001', page.url());
+    expect(findings.length, '記録が 1 件出ること').toBe(1);
+    expect(findings[0].severity, '観測結果は Low で記録すること').toBe('low');
+    expect(findings[0].title, '確認できたことが分かる文言であること').toContain('[確認OK]');
+
+    // 導線が無いページでは「断定せず記録する」(JavaScript 遷移の可能性があるため)
+    await page.goto('/broken/blank.html');
+    const none = describeApplicationLinks(
+      await observeApplicationLinks(page, config, 'A001'),
+      config,
+      'A001',
+      page.url(),
+    );
+    expect(none.length, '見つからない事実を記録すること').toBe(1);
+    expect(none[0].severity, '推測で Critical を出さないこと').toBe('medium');
+    expect(none[0].detail, '次に何をすればよいか示すこと').toContain('discover');
+  });
+
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {
     // みらやくの表示差分はセクションの有無だけでなく、
     // フッターの表記や注釈など文言だけの違いとして現れることもある。
     // ブロックの有無しか見ないと「切り替えが効いていない」と誤判定する。
     const blocks = [
-      { key: 'footer', keyKind: 'class' as const, visible: true, textSample: '', textLength: 10 },
-      { key: 'main-hero', keyKind: 'testid' as const, visible: true, textSample: '', textLength: 10 },
+      { key: 'footer', keyKind: 'class' as const, visible: true, width: 1200, height: 120, textSample: '', textLength: 10 },
+      { key: 'main-hero', keyKind: 'testid' as const, visible: true, width: 1200, height: 480, textSample: '', textLength: 10 },
     ];
     const mirayakuOk = { url: 'https://example.test/?code=A', blocks, textLines: ['共通の説明', 'みらやく掲載あり'] };
     const mirayakuNg = { url: 'https://example.test/?code=B', blocks, textLines: ['共通の説明', 'みらやく掲載なし'] };
@@ -759,7 +832,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
 
     const blocksChanged = evaluateDisplayDifference(mirayakuOk, {
       ...mirayakuOk,
-      blocks: [...blocks, { key: 'extra', keyKind: 'testid' as const, visible: true, textSample: '', textLength: 1 }],
+      blocks: [...blocks, { key: 'extra', keyKind: 'testid' as const, visible: true, width: 300, height: 60, textSample: '', textLength: 1 }],
     });
     expect(blocksChanged.blocksDiffer, 'ブロックの違いも検出する').toBe(true);
     expect(blocksChanged.onlyInB, '増えたブロックが分かること').toContain('extra');

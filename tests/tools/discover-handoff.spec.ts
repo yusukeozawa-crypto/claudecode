@@ -238,14 +238,25 @@ test.describe('仕様調査 @discover', () => {
 
       // --- CTA をクリックして申込ドメインへ (申込完了はしない) ---
       let applicationPage: DiscoveryResult['applicationPage'] = null;
-      const ctaSelector = spec.cta ? resolveSelector(spec.cta.testId) : null;
+      // 代理店ごとの cta が未設定でも、共通の申込ボタン (agency.yml の
+      // selectors.ctaPrimary) が設定されていればそれを使う。
+      // 引き継ぎ方式を実測するには、まずボタンを押せる必要がある。
+      const commonCta = config.agency.selectors.ctaPrimary;
+      const ctaSource = spec.cta ? '代理店ごとの cta' : commonCta ? 'agency.yml の selectors.ctaPrimary' : null;
+      const ctaSelector = spec.cta
+        ? resolveSelector(spec.cta.testId)
+        : commonCta
+          ? resolveSelector(commonCta)
+          : null;
       const ctaLocator = ctaSelector ? page.locator(ctaSelector).first() : null;
       const ctaExists = ctaLocator !== null && (await ctaLocator.count()) > 0;
 
       if (!ctaSelector) {
         notes.push('CTA が未設定です (config の cta)。上記 ctaCandidates から選んで設定してください');
       } else if (!ctaLocator || !ctaExists) {
-        notes.push(`設定された CTA (${ctaSelector}) が見つかりません。上記 ctaCandidates を確認してください`);
+        notes.push(
+          `設定された CTA (${ctaSelector} / ${ctaSource}) が見つかりません。上記 ctaCandidates を確認してください`,
+        );
       } else {
         const beforeUrl = page.url();
         await ctaLocator.click({ timeout: 10000 }).catch((error) => {

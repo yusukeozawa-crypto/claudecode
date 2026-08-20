@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>検出テスト用｜見えていない要素</title>
+<style>
+  /* 高さ 0 に潰れたバナー枠 (公開前のキャンペーン枠でよくある形) */
+  #collapsed-banner { width: 100%; height: 0; overflow: hidden; }
+  /* 親で切り取られたバナー */
+  #clip-parent { width: 100%; height: 0; overflow: hidden; }
+  /* カルーセル: 表示中のスライドだけが親の範囲に入る */
+  #carousel { width: 300px; height: 150px; overflow: hidden; position: relative; }
+  #carousel .slide { width: 300px; height: 150px; position: absolute; top: 0; }
+  #slide-current { left: 0; }
+  #slide-offscreen { left: 900px; }
+  /* 親が opacity:0 (子には継承されないため個別に辿らないと見逃す) */
+  #faded-parent { opacity: 0; }
+</style>
+</head>
+<body>
+  <section data-testid="visible-section" style="height: 200px;">見えているセクション</section>
+
+  <div id="collapsed-banner">
+    <section data-testid="banner-in-collapsed">公開前のキャンペーンバナー</section>
+  </div>
+
+  <div id="clip-parent">
+    <section data-testid="banner-clipped">親で切り取られたバナー</section>
+  </div>
+
+  <div id="carousel">
+    <section data-testid="slide-visible" class="slide" id="slide-current">表示中のスライド</section>
+    <section data-testid="slide-hidden" class="slide" id="slide-offscreen">画面外のスライド</section>
+  </div>
+
+  <div id="faded-parent">
+    <section data-testid="section-faded">親が opacity:0</section>
+  </div>
+
+  <section data-testid="aria-hidden-section" aria-hidden="true" style="height: 100px;">支援技術から隠された要素</section>
+</body>
+</html>
