@@ -176,8 +176,14 @@ export class QaSession {
     return checked;
   }
 
-  /** フルページスクリーンショットの保存 (レポートにも添付する) */
-  async captureScreenshot(pageId: string, suffix?: string): Promise<string> {
+  /**
+   * フルページスクリーンショットの保存 (レポートにも添付する)。
+   *
+   * 撮影できなかった場合は Low として記録し、検査は続行する。
+   * スクリーンショットは証跡であって判定ではないため、
+   * これが失敗しただけで検査結果を失うのは本末転倒。
+   */
+  async captureScreenshot(pageId: string, suffix?: string): Promise<string | null> {
     const context = this.findings.currentContext;
     const filePath = await captureFullPage(this.page, this.config, {
       pageId,
@@ -185,6 +191,21 @@ export class QaSession {
       deviceId: context.deviceId,
       suffix,
     });
+    if (!filePath) {
+      this.findings.add({
+        category: 'visual-diff',
+        severity: 'low',
+        title: 'スクリーンショットを取得できませんでした',
+        expected: '証跡としてフルページ画像を保存すること',
+        actual: `撮影がタイムアウトしました (${this.config.visual.capture.timeoutMs ?? 60000}ms)`,
+        url: this.page.url(),
+        detail:
+          '縦に長いページを SP 幅で撮ると時間がかかります。' +
+          'config/visual.yml の capture.timeoutMs を伸ばすか、capture.fullPage を false にしてください。' +
+          '検査自体はこの画像が無くても実行されています。',
+      });
+      return null;
+    }
     await this.testInfo.attach(`screenshot-${pageId}${suffix ? `-${suffix}` : ''}`, {
       path: filePath,
       contentType: 'image/png',

@@ -16,6 +16,7 @@ import { detectTextIssues } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
+import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, toSelectorHint } from '../../utils/page-signature';
 import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { maskText, maskUrl } from '../../utils/secrets';
@@ -709,6 +710,30 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       ['ab-test-slot'],
     );
     expect(ignored.extra, '除外した鍵は差分にしない').toEqual([]);
+  });
+
+  test('スクリーンショットの撮影失敗で検査を止めない (証跡と判定を分ける)', async ({ page }) => {
+    // 縦に長いページを SP 幅で撮ると時間がかかり、タイムアウトすることがある。
+    // 撮影は証跡であって判定ではないため、失敗しても例外にしない。
+    await page.goto(`${config.environment.baseUrl}/lp/`);
+    const impossible = {
+      ...config,
+      visual: { ...config.visual, capture: { ...config.visual.capture, timeoutMs: 1 } },
+    };
+    const result = await captureFullPage(page, impossible, {
+      pageId: 'selfcheck-timeout',
+      browserId: 'chromium',
+      deviceId: 'pc',
+    });
+    expect(result, '撮影に失敗したら null を返し、例外を投げない').toBeNull();
+
+    // 通常の設定なら撮影できる
+    const ok = await captureFullPage(page, config, {
+      pageId: 'selfcheck-ok',
+      browserId: 'chromium',
+      deviceId: 'pc',
+    });
+    expect(ok, '通常の設定では撮影できること').not.toBeNull();
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

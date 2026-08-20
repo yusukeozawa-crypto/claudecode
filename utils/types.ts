@@ -359,7 +359,7 @@ export interface LayoutFile {
 // ---------- config/visual.yml ----------
 export interface VisualFile {
   enabled: boolean;
-  capture: { fullPage: boolean; outputDir: string };
+  capture: { fullPage: boolean; outputDir: string; timeoutMs?: number };
   compare: {
     threshold: number;
     maxDiffPixelRatio: number | null;

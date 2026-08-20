@@ -22,12 +22,20 @@ function snapshotName(pageId: string): string {
   return `${pageId}.png`;
 }
 
-/** フルページスクリーンショットを保存する (常に実行) */
+/**
+ * フルページスクリーンショットを保存する。
+ *
+ * 撮影に失敗した場合は null を返す (例外にしない)。
+ * スクリーンショットは証跡であって判定ではないため、
+ * これが失敗しただけで検査結果を潰してはいけない。
+ * 縦に長い LP を SP 幅で撮ると時間がかかり、既定のタイムアウトでは
+ * 足りないことがある (その場合は検査そのものが失敗扱いになっていた)。
+ */
 export async function captureFullPage(
   page: Page,
   config: QaConfig,
   options: { pageId: string; browserId: string; deviceId: string; suffix?: string },
-): Promise<string> {
+): Promise<string | null> {
   const dir = path.join(
     PROJECT_ROOT,
     config.visual.capture.outputDir,
@@ -38,14 +46,19 @@ export async function captureFullPage(
   const fileName = `${options.pageId}${options.suffix ? `__${options.suffix}` : ''}.png`;
   const filePath = path.join(dir, fileName);
 
-  await page.screenshot({
-    path: filePath,
-    fullPage: config.visual.capture.fullPage,
-    mask: maskLocators(page, config),
-    maskColor: config.visual.maskColor,
-    animations: config.visual.compare.animations,
-    caret: config.visual.compare.caret,
-  });
+  try {
+    await page.screenshot({
+      path: filePath,
+      fullPage: config.visual.capture.fullPage,
+      mask: maskLocators(page, config),
+      maskColor: config.visual.maskColor,
+      animations: config.visual.compare.animations,
+      caret: config.visual.compare.caret,
+      timeout: config.visual.capture.timeoutMs ?? 60000,
+    });
+  } catch {
+    return null;
+  }
 
   return filePath;
 }

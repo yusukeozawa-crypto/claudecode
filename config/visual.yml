@@ -10,6 +10,12 @@ enabled: true
 capture:
   fullPage: true
   outputDir: screenshots/current
+  # フルページ撮影のタイムアウト (ms)。
+  #   縦に長い LP を SP 幅 (390px) で撮ると時間がかかる。
+  #   既定の 15 秒では足りずタイムアウトすることがあるため長めにする。
+  #   スクリーンショットは証跡であり判定ではないので、
+  #   取得に失敗しても検査は続行し Low として記録する。
+  timeoutMs: 60000
 
 compare:
   # 差分許容値 (Playwright の toHaveScreenshot に渡す)

@@ -193,7 +193,22 @@ $env:QA_AGENCY_SEED="m3k8xq-a71f9c"; npm run test:agency
 一貫性検査 (`tests/agency/agency-display-consistency.spec.ts`) を主とし、
 セクションの列挙は補助とする。
 
-### 4-3. その他の実測
+### 4-3. 検査で確定した不具合 (ステージング)
+
+`npm run test:agency` の結果。**カカクコムのリダイレクトが動いていない**ことが
+PC / SP の両方で確定した。
+
+```
+[Critical] littlefamily03: リダイレクトされるべきですがリダイレクトされていません
+  期待   : /lp/service-premium/ へリダイレクト
+  実際   : リダイレクトなし
+  経路   : /lp/service/?insAgentNo=littlefamily03 -> (同じ URL) [200]
+```
+
+`littlefamily03` `littlefamily03br02` `littlefamily03br11` の 3 件で同じ。
+HTTP 200 が直接返っており、3xx も meta refresh も JavaScript 遷移も無い。
+
+### 4-4. その他の実測
 
 - **キャンペーンバナー** `#lf-campaign-banner-202609-1` 〜 `-5` は
   代理店コードが付くと消える (コードなしのときだけ表示)。
