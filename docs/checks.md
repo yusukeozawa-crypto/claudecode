@@ -89,6 +89,25 @@
 | `pageError.ignoreMessages` | 同上 |
 | `network.ignoreUrlPatterns` | glob (計測タグ・広告ドメインを既定で除外) |
 | `network.ignoreThirdParty` | `true` の場合、baseUrl と別オリジンのリクエスト失敗を無視する |
+| `transientNetworkPatterns` | 実行端末側の一時的な通信断 (`ERR_NETWORK_CHANGED` など)。除外はせず **Low** に落とす |
+
+### 実行環境の通信断とサイトの不具合を分ける
+
+Wi-Fi の切り替えや回線の瞬断で `Failed to load resource: net::ERR_NETWORK_CHANGED`
+のようなエラーが出ることがある。これは検査対象サイトの不具合ではないため、
+`transientNetworkPatterns` に一致する console / リクエスト失敗は
+「実行環境の通信が一時的に切れました」という Low として記録する
+(完全に無視はしない。頻発する場合は実行環境の問題)。
+
+### 代理店コードは発生した URL から取る
+
+console / pageerror / ネットワークエラーの検知結果には、
+エラーが起きたページの URL に含まれる代理店コードパラメータ
+(`config/agency.yml` の `paramName`) を代理店として記録する。
+URL にコードが無い場合のみ、検査文脈のコードを使う。
+これによりレポートの「代理店」列と「再現URL」が食い違わない。
+
+いずれも `tests/self-check/detectors.spec.ts` で検証している。
 
 ### ページ読み込みの遅延・タイムアウト
 

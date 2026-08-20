@@ -132,6 +132,30 @@ export class PageMonitor {
     );
   }
 
+  /**
+   * 実行環境側の一時的な通信断かどうか。
+   *   Wi-Fi 切り替えや回線の瞬断で出るエラーは検査対象サイトの不具合ではないため、
+   *   High ではなく Low として記録する (config/errors.yml の transientNetworkPatterns)。
+   */
+  private isTransientNetwork(text: string): boolean {
+    return matchesAnyMessage(text, this.config.errors.transientNetworkPatterns ?? []);
+  }
+
+  /**
+   * URL に含まれる代理店コードパラメータを読む。
+   *   レポートの「代理店」列と「再現URL」がずれないようにするため、
+   *   エラーが起きたページの URL から実際のコードを取り出す。
+   *   パラメータが無い場合は undefined を返し、検査文脈のコードを使う。
+   */
+  private agencyCodeFromUrl(url: string): string | undefined {
+    try {
+      const value = new URL(url).searchParams.get(this.config.agency.paramName);
+      return value && value.length > 0 ? value : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   detach(): void {
     if (this.detached) return;
     this.detached = true;
@@ -169,18 +193,28 @@ export class PageMonitor {
         expected: 'JavaScript エラーが発生しないこと',
         actual: entry.message,
         url: entry.url,
+        agencyCode: this.agencyCodeFromUrl(entry.url),
         detail: entry.stack?.split('\n').slice(0, 5).join('\n'),
       });
     }
 
     for (const entry of this.consoleEntries) {
+      const transient = this.isTransientNetwork(entry.text);
       findings.push({
         category: 'js-error',
-        title: `コンソールに ${entry.level} が出力されました`,
-        expected: `console.${entry.level} が出力されないこと`,
+        severity: transient ? 'low' : undefined,
+        title: transient
+          ? '実行環境の通信が一時的に切れました (サイトの不具合ではありません)'
+          : `コンソールに ${entry.level} が出力されました`,
+        expected: transient
+          ? '検査を実行した端末のネットワークが安定していること'
+          : `console.${entry.level} が出力されないこと`,
         actual: entry.text,
         url: entry.url,
-        detail: entry.location,
+        agencyCode: this.agencyCodeFromUrl(entry.url),
+        detail: transient
+          ? `${entry.location ?? ''} / 回線が復帰してから再実行してください`.trim()
+          : entry.location,
       });
     }
 
@@ -195,6 +229,7 @@ export class PageMonitor {
         expected: 'HTTP 2xx / 3xx を返すこと',
         actual: `HTTP ${entry.status} ${entry.method} ${entry.url}`,
         url: entry.documentUrl,
+        agencyCode: this.agencyCodeFromUrl(entry.documentUrl),
         detail: `resourceType=${entry.resourceType}`,
       });
     }
@@ -202,15 +237,24 @@ export class PageMonitor {
     for (const entry of this.requestFailures) {
       const isTimeout = /timedout|timeout/i.test(entry.failure);
       const isImage = entry.resourceType === 'image';
+      const transient = this.isTransientNetwork(entry.failure);
       findings.push({
-        category: isTimeout ? 'timeout' : isImage ? 'image-error' : 'network-error',
-        title: isTimeout
-          ? 'リクエストがタイムアウトしました'
-          : 'リクエストが失敗しました',
-        expected: 'すべてのリクエストが正常に完了すること',
+        category: transient ? 'network-error' : isTimeout ? 'timeout' : isImage ? 'image-error' : 'network-error',
+        severity: transient ? 'low' : undefined,
+        title: transient
+          ? '実行環境の通信が一時的に切れました (サイトの不具合ではありません)'
+          : isTimeout
+            ? 'リクエストがタイムアウトしました'
+            : 'リクエストが失敗しました',
+        expected: transient
+          ? '検査を実行した端末のネットワークが安定していること'
+          : 'すべてのリクエストが正常に完了すること',
         actual: `${entry.failure} (${entry.method} ${entry.url})`,
         url: entry.documentUrl,
-        detail: `resourceType=${entry.resourceType}`,
+        agencyCode: this.agencyCodeFromUrl(entry.documentUrl),
+        detail: transient
+          ? `resourceType=${entry.resourceType} / 回線が復帰してから再実行してください`
+          : `resourceType=${entry.resourceType}`,
       });
     }
 

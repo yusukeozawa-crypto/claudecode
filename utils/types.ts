@@ -376,6 +376,8 @@ export interface VisualFile {
 export interface ErrorsFile {
   console: { enabled: boolean; levels: string[]; ignoreMessages: string[] };
   pageError: { enabled: boolean; ignoreMessages: string[] };
+  /** 実行環境側の一時的な通信断 (サイトの不具合ではない) */
+  transientNetworkPatterns?: string[];
   network: {
     enabled: boolean;
     failStatuses: number[];

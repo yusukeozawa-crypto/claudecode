@@ -884,6 +884,100 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).toBe(0);
   });
 
+  test('実行環境の一時的な通信断は Low として記録する (サイトの不具合と混同しない)', async ({ page }) => {
+    const patterns = config.errors.transientNetworkPatterns ?? [];
+    expect(patterns.length, 'config/errors.yml に transientNetworkPatterns が定義されていること').toBeGreaterThan(0);
+
+    const monitor = new PageMonitor(page, config);
+    monitor.detach();
+    const documentUrl = `${config.environment.baseUrl}/lp/`;
+
+    // Wi-Fi 切り替えなどで出るエラー (検査対象サイトの不具合ではない)
+    monitor.consoleEntries.push({
+      level: 'error',
+      text: `Failed to load resource: net::${patterns[0]}`,
+      url: documentUrl,
+      location: 'https://example.com/tag.js:0:0',
+    });
+    monitor.requestFailures.push({
+      url: 'https://example.com/tag.js',
+      method: 'GET',
+      resourceType: 'script',
+      failure: `net::${patterns[0]}`,
+      documentUrl,
+    });
+    // サイト側の本当のエラー (こちらは従来どおり High)
+    monitor.consoleEntries.push({
+      level: 'error',
+      text: 'Uncaught TypeError: undefined is not a function',
+      url: documentUrl,
+    });
+
+    const findings = monitor.toFindings();
+    const transient = findings.filter((finding) => finding.actual?.includes(patterns[0]));
+    expect(transient.length, '通信断は console / requestfailed の 2 件が記録されること').toBe(2);
+    for (const finding of transient) {
+      expect(finding.severity, '実行環境の通信断は Low であること').toBe('low');
+      expect(finding.title, 'サイトの不具合ではないと分かる文言であること').toContain('実行環境');
+    }
+
+    const real = findings.find((finding) => finding.actual?.includes('Uncaught TypeError'));
+    expect(real, 'サイト側のエラーは引き続き記録されること').toBeTruthy();
+    expect(real?.severity, 'サイト側のエラーは既定 (High) のままであること').toBeUndefined();
+  });
+
+  test('エラーの代理店コードは発生した URL のコードと一致する', async ({ page }) => {
+    const param = config.agency.paramName;
+    const monitor = new PageMonitor(page, config);
+    monitor.detach();
+
+    const errorUrl = `${config.environment.baseUrl}/lp/?${param}=SELFCHECK-URL`;
+    monitor.consoleEntries.push({ level: 'error', text: 'console error', url: errorUrl });
+    monitor.pageErrors.push({ message: 'page error', url: errorUrl });
+    monitor.networkErrors.push({
+      url: `${config.environment.baseUrl}/missing.json`,
+      status: 404,
+      method: 'GET',
+      resourceType: 'fetch',
+      documentUrl: errorUrl,
+    });
+    // コードが URL に無いページ (リダイレクトで落ちた場合など) は検査文脈のコードを使う
+    monitor.requestFailures.push({
+      url: `${config.environment.baseUrl}/x.js`,
+      method: 'GET',
+      resourceType: 'script',
+      failure: 'net::ERR_FAILED',
+      documentUrl: `${config.environment.baseUrl}/lp/`,
+    });
+
+    const collector = new FindingCollector(config, {
+      environment: config.environmentName,
+      environmentLabel: config.environment.label,
+      baseUrl: config.environment.baseUrl,
+      browserId: 'chromium',
+      deviceId: 'pc',
+      deviceLabel: 'PC',
+      agencyCode: 'SELFCHECK-CONTEXT',
+    });
+    collector.addAll(monitor.toFindings());
+
+    const findings = collector.all;
+    const fromUrl = findings.filter((finding) => finding.url.includes('SELFCHECK-URL'));
+    expect(fromUrl.length, 'URL にコードがある 3 件が対象になること').toBe(3);
+    for (const finding of fromUrl) {
+      expect(
+        finding.agencyCode,
+        `代理店列と再現URLが一致すること: ${finding.title}`,
+      ).toBe('SELFCHECK-URL');
+    }
+
+    const withoutParam = findings.find((finding) => finding.actual?.includes('ERR_FAILED'));
+    expect(
+      withoutParam?.agencyCode,
+      'URL にコードが無い場合は検査文脈のコードを使うこと',
+    ).toBe('SELFCHECK-CONTEXT');
+  });
+
   test('ページ間の表記揺れを検出できる', async () => {
     const rule = config.text.unifyRules.find(
       (entry) => !entry.detectOnly && entry.preferred && entry.variants.length > 0,

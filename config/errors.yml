@@ -14,6 +14,15 @@ pageError:
   enabled: true
   ignoreMessages: []
 
+# 実行環境側の一時的な通信断。
+#   Wi-Fi の切り替えや回線の瞬断で発生する。検査対象サイトの不具合ではないため
+#   Low として記録する (完全に無視はしない。頻発するなら実行環境の問題)。
+transientNetworkPatterns:
+  - "ERR_NETWORK_CHANGED"
+  - "ERR_INTERNET_DISCONNECTED"
+  - "ERR_NETWORK_IO_SUSPENDED"
+  - "ERR_NETWORK_ACCESS_DENIED"
+
 network:
   enabled: true
   # 不具合とみなす HTTP ステータス
