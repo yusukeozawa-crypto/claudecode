@@ -1,0 +1,2 @@
+# .cmd はダブルクリックで実行するため CRLF を維持する (LF だと goto/ラベルが誤動作する環境がある)
+*.cmd text eol=crlf

@@ -13,6 +13,7 @@
     "mock:serve": "node fixtures/mock-site/server.mjs",
     "mock:serve:application": "node fixtures/mock-site/application-server.mjs",
     "prepare:browsers": "playwright install chromium",
+    "qa": "node scripts/launcher.mjs",
     "report": "node scripts/serve-report.mjs",
     "test": "playwright test",
     "test:agency": "playwright test --grep @agency",
