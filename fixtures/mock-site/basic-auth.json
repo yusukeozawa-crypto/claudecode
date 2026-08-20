@@ -1,0 +1,5 @@
+{
+  "_comment": "モックサイト /protected/ の Basic 認証情報 (固定のダミー値)。実サイトの認証情報は .env / GitHub Secrets から渡す。",
+  "username": "qa-user",
+  "password": "qa-pass"
+}

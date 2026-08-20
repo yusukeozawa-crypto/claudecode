@@ -12,6 +12,7 @@
  */
 import http from 'node:http';
 import fs from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AGENCIES, escapeHtml, getAgency, isValidCode, issueHandoffToken } from './agency-master.mjs';
@@ -23,6 +24,13 @@ const HOST = process.env.MOCK_SITE_HOST || '127.0.0.1';
 const APPLICATION_ORIGIN = process.env.MOCK_APPLICATION_ORIGIN || 'http://localhost:4174';
 
 const PARAM_NAME = 'agency_code';
+
+/**
+ * /protected/ の Basic 認証情報。
+ * テスト側と同じ値を参照するため JSON を単一の情報源とする
+ * (import 属性はバージョン差があるため readFileSync で読む)。
+ */
+const BASIC_AUTH = JSON.parse(readFileSync(path.join(ROOT, 'basic-auth.json'), 'utf8'));
 const STORAGE_KEY = 'agency_code';
 
 /** 代理店コードにより表示・非表示が変わるセクション (LP 種別ごと) */
@@ -197,6 +205,36 @@ const server = http.createServer(async (req, res) => {
         `<body><h1 data-testid="reflect-page">入力値の反射 (検証用)</h1>` +
         // エスケープせずに出力する (これが検出されるべき脆弱性)
         `<p>入力: ${raw}</p></body></html>`,
+    );
+    return;
+  }
+
+  // Basic 認証で保護されたページ (ステージング環境の再現)。
+  // 認証情報が httpCredentials として実際に送られるかの検証用。
+  if (pathname === '/protected/') {
+    const auth = req.headers.authorization ?? '';
+    let ok = false;
+    if (auth.startsWith('Basic ')) {
+      const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf8');
+      const separator = decoded.indexOf(':');
+      ok =
+        separator !== -1 &&
+        decoded.slice(0, separator) === BASIC_AUTH.username &&
+        decoded.slice(separator + 1) === BASIC_AUTH.password;
+    }
+    if (!ok) {
+      res.writeHead(401, {
+        'content-type': MIME['.html'],
+        'www-authenticate': 'Basic realm="staging"',
+        'cache-control': 'no-store',
+      });
+      res.end('<!doctype html><html lang="ja"><head><meta charset="utf-8"></head><body><h1>401 Unauthorized</h1></body></html>');
+      return;
+    }
+    res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' });
+    res.end(
+      '<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>認証済み</title></head>' +
+        '<body><h1 data-testid="protected-page">認証済みページ</h1></body></html>',
     );
     return;
   }

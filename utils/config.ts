@@ -55,6 +55,23 @@ function readYaml<T>(fileName: string): T {
   return interpolate(parsed);
 }
 
+/**
+ * Basic 認証情報を正規化する。
+ *
+ * config/environments.yml には ${STAGING_BASIC_USER} のような参照だけを書き、
+ * 値は .env / GitHub Secrets から渡す。未設定の環境変数は空文字に展開されるため、
+ * 「認証なし」と「空文字の認証情報」を区別して null に落とす
+ * (空文字のまま渡すと Playwright が空の Authorization を送ってしまう)。
+ */
+export function normalizeHttpCredentials(
+  credentials: { username: string; password: string } | null | undefined,
+): { username: string; password: string } | null {
+  const username = credentials?.username?.trim();
+  const password = credentials?.password?.trim();
+  if (!username || !password) return null;
+  return { username, password };
+}
+
 let cached: QaConfig | null = null;
 
 export function loadConfig(): QaConfig {
@@ -78,9 +95,7 @@ export function loadConfig(): QaConfig {
   // 末尾スラッシュを正規化
   environment.baseUrl = environment.baseUrl.replace(/\/+$/, '');
   environment.applicationBaseUrl = (environment.applicationBaseUrl ?? '').replace(/\/+$/, '');
-  if (!environment.httpCredentials?.username || !environment.httpCredentials?.password) {
-    environment.httpCredentials = null;
-  }
+  environment.httpCredentials = normalizeHttpCredentials(environment.httpCredentials);
 
   const config: QaConfig = {
     environmentName,

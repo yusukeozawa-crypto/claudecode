@@ -70,6 +70,20 @@ STAGING_BASE_URL=https://staging.example.jp
 STAGING_APPLICATION_BASE_URL=https://staging-application.example-insurance.jp
 ```
 
+ステージングに **Basic 認証**（サイトを開いた瞬間にブラウザのポップアップで
+ID / パスワードを聞かれる方式）がある場合は、次の 2 行も設定します。
+書いておけば自動で認証を通過して検査します（リンク検査にも適用されます）。
+
+```
+STAGING_BASIC_USER=xxxxx
+STAGING_BASIC_PASS=xxxxx
+```
+
+- `.env` は Git にコミットされません（`.gitignore` 済み）
+- 設定を忘れた場合は素通りせず、検査がエラーで停止します
+- **ページ内の HTML ログインフォーム**（メールアドレスとパスワードを画面の
+  入力欄に打つ方式）は Basic 認証とは別物で、現時点では未対応です
+
 ### ② 実仕様を実測する
 
 ```bash
