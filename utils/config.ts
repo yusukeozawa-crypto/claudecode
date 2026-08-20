@@ -13,11 +13,21 @@ import type {
 export const PROJECT_ROOT = path.resolve(__dirname, '..');
 const CONFIG_DIR = path.join(PROJECT_ROOT, 'config');
 
-/** .env を読み込む (依存パッケージを増やさない簡易実装) */
-function loadDotEnv(): void {
-  const envPath = path.join(PROJECT_ROOT, '.env');
-  if (!fs.existsSync(envPath)) return;
-  for (const rawLine of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+/**
+ * .env を読み込む (依存パッケージを増やさない簡易実装)。
+ *
+ * 同じキーが複数回書かれている場合は「後に書いた行」を採用する。
+ * 追記して設定を上書きするのが自然な操作であり、
+ * 先の行を優先すると「追記したのに効かない」ことになる
+ * (空の行が残っていると値のある行が無視される)。
+ *
+ * シェルで設定された環境変数は .env より優先する
+ * (QA_ENV=staging のような一時的な指定を .env で上書きしないため)。
+ */
+export function parseEnvLines(text: string): Record<string, string> {
+  // BOM 付きで保存された場合に最初のキーが壊れないよう除去する
+  const values: Record<string, string> = {};
+  for (const rawLine of text.replace(/^\uFEFF/, '').split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line || line.startsWith('#')) continue;
     const eq = line.indexOf('=');
@@ -25,6 +35,16 @@ function loadDotEnv(): void {
     const key = line.slice(0, eq).trim();
     let value = line.slice(eq + 1).trim();
     if (/^(['"]).*\1$/.test(value)) value = value.slice(1, -1);
+    // 後に書いた行を採用する (追記で上書きできるようにする)
+    values[key] = value;
+  }
+  return values;
+}
+
+function loadDotEnv(): void {
+  const envPath = path.join(PROJECT_ROOT, '.env');
+  if (!fs.existsSync(envPath)) return;
+  for (const [key, value] of Object.entries(parseEnvLines(fs.readFileSync(envPath, 'utf8')))) {
     if (process.env[key] === undefined) process.env[key] = value;
   }
 }

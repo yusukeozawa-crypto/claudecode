@@ -6,7 +6,7 @@
  * (気づかないまま検査が素通りするのを防ぐ)。
  */
 import { test, expect } from '../qa-fixtures';
-import { loadConfig, resolveSelector, validateConfig } from '../../utils/config';
+import { loadConfig, parseEnvLines, resolveSelector, validateConfig } from '../../utils/config';
 import { isForbiddenRequest } from '../../utils/handoff';
 import { waitForFinalLanding } from '../../utils/agency-entry';
 import type { QaConfig } from '../../utils/types';
@@ -143,6 +143,33 @@ test.describe('設定検証の自己検査 @selfcheck', () => {
       }),
       'applicationBaseUrl',
     );
+  });
+
+  test('.env に同じキーが複数行あるとき後の行を採用する', async () => {
+    // 追記で設定を上書きするのは自然な操作。
+    // 先の行を優先すると「追記したのに効かない」ことになる
+    // (空の行が残っていると値のある行が無視される)。
+    const lines = [
+      '# コメント行',
+      'STAGING_BASE_URL=https://first.example.test',
+      'PRODUCTION_BASE_URL=',
+      'STAGING_BASE_URL=https://last.example.test',
+      'PRODUCTION_BASE_URL=https://prod.example.test',
+    ];
+    expect(parseEnvLines(lines.join('\n')), '後の行が採用されること').toMatchObject({
+      STAGING_BASE_URL: 'https://last.example.test',
+      PRODUCTION_BASE_URL: 'https://prod.example.test',
+    });
+
+    expect(
+      parseEnvLines('\uFEFFSTAGING_BASE_URL=https://bom.example.test'),
+      'BOM 付きでも最初のキーが壊れないこと',
+    ).toMatchObject({ STAGING_BASE_URL: 'https://bom.example.test' });
+
+    expect(
+      parseEnvLines('STAGING_BASIC_PASS="quoted value"'),
+      '前後の引用符は取り除くこと',
+    ).toMatchObject({ STAGING_BASIC_PASS: 'quoted value' });
   });
 
   test('存在しないページ id の参照を検出する', async () => {

@@ -162,15 +162,26 @@ function writeEnvValues(updates) {
   }
 
   const remaining = new Map(Object.entries(updates));
-  const rewritten = lines.map((line) => {
+  const written = new Set();
+  const rewritten = [];
+  for (const line of lines) {
     const match = /^(\s*)([A-Z0-9_]+)\s*=/.exec(line);
-    if (!match) return line;
+    if (!match) {
+      rewritten.push(line);
+      continue;
+    }
     const key = match[2];
-    if (!remaining.has(key)) return line;
-    const value = remaining.get(key);
-    remaining.delete(key);
-    return `${key}=${value}`;
-  });
+    if (remaining.has(key)) {
+      rewritten.push(`${key}=${remaining.get(key)}`);
+      remaining.delete(key);
+      written.add(key);
+      continue;
+    }
+    // 同じキーが複数行あると「どちらが効くのか」が分かりにくくなるため、
+    // 書き換えた対象キーの重複行は残さない
+    if (written.has(key)) continue;
+    rewritten.push(line);
+  }
 
   for (const [key, value] of remaining) rewritten.push(`${key}=${value}`);
   fs.writeFileSync(ENV_PATH, `${rewritten.join('\n').replace(/\n+$/, '')}\n`, 'utf8');
