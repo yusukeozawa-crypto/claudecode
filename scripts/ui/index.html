@@ -66,6 +66,25 @@
   }
   iframe.report { width: 100%; height: 70vh; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
   .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .filters { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; }
+  .finding {
+    background: var(--panel); border: 1px solid var(--border); border-left-width: 4px;
+    border-radius: 8px; padding: 12px 16px; margin-bottom: 10px;
+  }
+  .finding.critical { border-left-color: var(--critical); }
+  .finding.high { border-left-color: var(--high); }
+  .finding.medium { border-left-color: var(--medium); }
+  .finding.low { border-left-color: var(--low); }
+  .finding .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .finding .name { font-weight: 700; }
+  .finding dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: 13px; }
+  .finding dt { color: #6b7280; }
+  .finding dd { margin: 0; word-break: break-word; }
+  .finding dd.expected { color: #14683a; }
+  .finding dd.actual { color: var(--critical); }
+  .finding dd.where { color: #44505c; }
+  .finding a { color: #1a56a8; font-size: 12px; word-break: break-all; }
+  .empty { padding: 16px; color: #14683a; font-weight: 700; }
   #settings-details > summary { cursor: pointer; }
   .settings-title { font-size: 15px; font-weight: 700; color: #44505c; }
 </style>
@@ -103,6 +122,23 @@
     </div>
   </section>
 
+  <section id="findings-section" hidden>
+    <h2>対応が必要なこと <span class="muted" id="findings-note"></span></h2>
+    <div class="filters" id="findings-filters"></div>
+    <div id="findings"></div>
+  </section>
+
+  <section id="agency-section" hidden>
+    <h2>代理店コードごとの結果 <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
+    <div class="panel"><table id="agencies"></table></div>
+    <p class="muted">OK = その観点で検知なし。検査する代理店コードは実行ごとに抽選されます。</p>
+  </section>
+
+  <section id="history-section" hidden>
+    <h2>これまでの実行</h2>
+    <div class="panel"><table id="history"></table></div>
+  </section>
+
   <section id="settings-section">
     <details id="settings-details">
       <summary><span class="settings-title">対象サイトの設定</span></summary>
@@ -133,20 +169,17 @@
     </details>
   </section>
 
-  <section id="agency-section" hidden>
-    <h2>代理店コードごとの結果 <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
-    <div class="panel"><table id="agencies"></table></div>
-    <p class="muted">OK = その観点で検知なし。検査する代理店コードは実行ごとに抽選されます。</p>
-  </section>
-
-  <section id="history-section" hidden>
-    <h2>これまでの実行</h2>
-    <div class="panel"><table id="history"></table></div>
-  </section>
-
   <section id="report-section" hidden>
-    <h2>レポート</h2>
-    <iframe class="report" id="report-frame" title="QAレポート"></iframe>
+    <h2>詳細レポート</h2>
+    <p class="muted">
+      スクリーンショット・テスト実行一覧・Playwright の詳細はレポート側にあります。
+      画面で判断できないときだけ開いてください。
+    </p>
+    <div class="actions">
+      <button class="small" id="open-report-2">レポートを開く</button>
+      <button class="small" id="toggle-report">この画面に表示する</button>
+    </div>
+    <iframe class="report" id="report-frame" title="QAレポート" hidden></iframe>
   </section>
 </main>
 <script>
@@ -251,7 +284,7 @@
       box.className = 'verdict fail';
       big.textContent = '問題あり — 対応が必要な検知 ' + blocking + ' 件';
       sub.textContent = 'Critical ' + (counts.critical || 0) + ' / High ' + (counts.high || 0) +
-        '。下のレポートで内容を確認してください。';
+        '。下の「対応が必要なこと」を確認してください。';
     } else if (others > 0) {
       box.className = 'verdict pass';
       big.textContent = '異常なし';
@@ -313,6 +346,76 @@
       }).join('') + '</tbody>';
   }
 
+  // 既定では対応が必要なもの (Critical / High) だけを出す。
+  // 参考情報 (Medium / Low) は毎回出るため、既定で隠して件数だけ示す。
+  var shown = { critical: true, high: true, medium: false, low: false };
+
+  function renderFindings(state) {
+    var section = document.getElementById('findings-section');
+    var list = document.getElementById('findings');
+    var filters = document.getElementById('findings-filters');
+    var note = document.getElementById('findings-note');
+    var all = state.findings || [];
+    if (!state.summary || state.running) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+
+    var totals = { critical: 0, high: 0, medium: 0, low: 0 };
+    all.forEach(function (group) { totals[group.severity] += group.count; });
+
+    filters.innerHTML = SEVERITIES.map(function (severity) {
+      return '<label><input type="checkbox" data-severity="' + severity + '"' +
+        (shown[severity] ? ' checked' : '') + '> ' + LABELS[severity] +
+        ' (' + totals[severity] + ')</label>';
+    }).join('');
+    Array.prototype.forEach.call(filters.querySelectorAll('[data-severity]'), function (input) {
+      input.addEventListener('change', function () {
+        shown[input.getAttribute('data-severity')] = input.checked;
+        renderFindings(state);
+      });
+    });
+
+    var visible = all.filter(function (group) { return shown[group.severity]; });
+    if (visible.length === 0) {
+      var blocking = totals.critical + totals.high;
+      list.innerHTML = '<div class="panel"><p class="empty">' +
+        (blocking === 0
+          ? '対応が必要な検知はありません。'
+          : '表示する重大度が選ばれていません。') +
+        '</p></div>';
+      note.textContent = blocking === 0 && (totals.medium + totals.low) > 0
+        ? '(参考情報 ' + (totals.medium + totals.low) + ' 件は上のチェックで表示できます)'
+        : '';
+      return;
+    }
+    note.textContent = '';
+
+    list.innerHTML = visible.map(function (group) {
+      var where = [];
+      if (group.devices.length > 0) where.push(group.devices.join(' / ').toUpperCase());
+      if (group.agencies.length > 0) where.push('代理店 ' + group.agencies.slice(0, 6).join(', ') +
+        (group.agencies.length > 6 ? ' ...他 ' + (group.agencies.length - 6) : ''));
+      if (group.pages.length > 0) where.push(group.pages.slice(0, 4).join(', '));
+      return '<div class="finding ' + text(group.severity) + '">' +
+        '<div class="head">' +
+          '<span class="badge ' + text(group.severity) + '">' + text(LABELS[group.severity]) + '</span>' +
+          '<span class="name">' + text(group.title) + '</span>' +
+          '<span class="muted">' + group.count + ' 件 / ' + text(group.category) + '</span>' +
+        '</div>' +
+        '<dl>' +
+          (group.expected ? '<dt>期待</dt><dd class="expected">' + text(group.expected) + '</dd>' : '') +
+          (group.actual ? '<dt>実際</dt><dd class="actual">' + text(group.actual) + '</dd>' : '') +
+          (group.detail ? '<dt>補足</dt><dd>' + text(group.detail) + '</dd>' : '') +
+          (where.length > 0 ? '<dt>場所</dt><dd class="where">' + text(where.join(' / ')) + '</dd>' : '') +
+          '<dt>再現</dt><dd><a href="' + text(group.url) + '" target="_blank" rel="noopener">' +
+            text(group.url) + '</a></dd>' +
+        '</dl>' +
+      '</div>';
+    }).join('');
+  }
+
   function renderReport(state) {
     var section = document.getElementById('report-section');
     var frame = document.getElementById('report-frame');
@@ -321,8 +424,9 @@
       return;
     }
     section.hidden = false;
+    // 埋め込みは既定で隠す (判定と代理店一覧はこの画面に出しているため二重になる)
     var url = '/reports/qa-report.html?t=' + encodeURIComponent(state.summary ? state.summary.generatedAt : '');
-    if (frame.getAttribute('data-src') !== url) {
+    if (!frame.hidden && frame.getAttribute('data-src') !== url) {
       frame.setAttribute('data-src', url);
       frame.src = url;
     }
@@ -345,6 +449,7 @@
         renderVerdict(state);
         renderTargets(state);
         if (document.activeElement === document.body) renderEnvForm();
+        renderFindings(state);
         renderAgencies(state);
         renderHistory(state);
         renderReport(state);
@@ -402,6 +507,23 @@
       })
       .catch(function () { alert('保存に失敗しました'); })
       .then(function () { busy = false; refresh(); });
+  });
+
+  document.getElementById('open-report-2').addEventListener('click', function () {
+    window.open('/reports/qa-report.html', '_blank');
+  });
+  document.getElementById('toggle-report').addEventListener('click', function () {
+    var frame = document.getElementById('report-frame');
+    var button = document.getElementById('toggle-report');
+    if (frame.hidden) {
+      frame.hidden = false;
+      frame.src = '/reports/qa-report.html';
+      frame.setAttribute('data-src', frame.src);
+      button.textContent = '閉じる';
+    } else {
+      frame.hidden = true;
+      button.textContent = 'この画面に表示する';
+    }
   });
 
   document.getElementById('stop').addEventListener('click', function () { post('/api/stop'); });

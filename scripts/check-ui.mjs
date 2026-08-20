@@ -19,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 process.env.QA_UI_IMPORT = '1';
-const { server, agencySummary } = await import('./ui-server.mjs');
+const { server, agencySummary, findingGroups } = await import('./ui-server.mjs');
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const failures = [];
@@ -154,6 +154,40 @@ await check('代理店ごとの一覧をまとめられる', () => {
   assert.equal(a002.counts.display, 1);
   const a001 = summary.rows[1];
   assert.equal(a001.cells.display, null, '検知が無ければ OK (null) にすること');
+});
+
+await check('検知結果を同じ内容でまとめられる', () => {
+  const groups = findingGroups([
+    {
+      agencyCode: 'A001',
+      deviceId: 'pc',
+      findings: [
+        { severity: 'critical', category: 'agency-display', title: '誤表示', expected: 'X', actual: 'Y', url: 'u', deviceId: 'pc', agencyCode: 'A001' },
+      ],
+    },
+    {
+      agencyCode: 'A001',
+      deviceId: 'sp',
+      findings: [
+        { severity: 'critical', category: 'agency-display', title: '誤表示', expected: 'X', actual: 'Y', url: 'u', deviceId: 'sp', agencyCode: 'A001' },
+      ],
+    },
+    {
+      agencyCode: 'A002',
+      deviceId: 'pc',
+      findings: [{ severity: 'low', category: 'text-rule', title: '表記', url: 'u', deviceId: 'pc', agencyCode: 'A002' }],
+    },
+  ]);
+  assert.equal(groups.length, 2, 'PC と SP で同じ内容なら 1 件にまとめること');
+  assert.equal(groups[0].severity, 'critical', '重い方を先に出すこと');
+  assert.equal(groups[0].count, 2, '件数を数えること');
+  assert.deepEqual(groups[0].devices, ['pc', 'sp'], 'どの端末で出たか分かること');
+  assert.deepEqual(groups[0].agencies, ['A001'], 'どの代理店で出たか分かること');
+});
+
+await check('検知結果が画面の状態に含まれる', async () => {
+  const { body } = await json('/api/state');
+  assert.ok(Array.isArray(body.findings), '検知結果の一覧が返ること');
 });
 
 await new Promise((resolve) => server.close(resolve));

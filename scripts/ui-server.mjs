@@ -216,6 +216,52 @@ export function agencySummary(records) {
   return { columns: COLUMNS.map(({ key, label }) => ({ key, label })), rows: sorted };
 }
 
+/**
+ * 検知結果を「同じ内容」でまとめる (画面に出す用)。
+ *
+ * PC と SP、複数の代理店で同じ問題が出ると同じ行が並ぶため、
+ * 内容が同じものは 1 件にまとめ、端末と代理店を並べて示す。
+ * 画面で対応を判断できるだけの情報 (期待・実際・再現URL) を持たせる。
+ */
+export function findingGroups(records, limit = 200) {
+  const groups = new Map();
+  for (const record of records) {
+    for (const finding of record.findings ?? []) {
+      const key = [finding.severity, finding.category, finding.title, finding.expected, finding.actual].join('|');
+      let group = groups.get(key);
+      if (!group) {
+        group = {
+          severity: finding.severity,
+          category: finding.category,
+          title: finding.title,
+          expected: finding.expected ?? null,
+          actual: finding.actual ?? null,
+          detail: finding.detail ?? null,
+          url: finding.url,
+          devices: [],
+          agencies: [],
+          pages: [],
+          count: 0,
+        };
+        groups.set(key, group);
+      }
+      group.count += 1;
+      const push = (list, value) => {
+        if (value && !list.includes(value)) list.push(value);
+      };
+      push(group.devices, finding.deviceId ?? record.deviceId);
+      push(group.agencies, finding.agencyCode ?? record.agencyCode);
+      push(group.pages, finding.pageName ?? finding.pageId ?? record.pageName);
+    }
+  }
+  return [...groups.values()]
+    .sort((a, b) => {
+      const order = SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity);
+      return order !== 0 ? order : b.count - a.count;
+    })
+    .slice(0, limit);
+}
+
 function state() {
   const report = readJson(path.join(REPORT_DIR, 'qa-report.json'));
   return {
@@ -224,6 +270,7 @@ function state() {
     progress: readJson(PROGRESS_PATH),
     summary: report?.summary ?? null,
     agencies: report ? agencySummary(report.records ?? []) : { columns: [], rows: [] },
+    findings: report ? findingGroups(report.records ?? []) : [],
     log: logLines.slice(-40),
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),
     env: envStatus(),
