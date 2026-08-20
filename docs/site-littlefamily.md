@@ -80,7 +80,50 @@ $env:QA_AGENCY_SEED="m3k8xq-a71f9c"; npm run test:agency
 > `littlefamily99` はスプレッドシート内で `○` と `エラー` の 2 通りの記載がある。
 > どちらが正か確認が必要。
 
-## 3. 未実測の項目 (discover で確認する)
+## 3. リダイレクトの現在の想定
+
+代理店コードごとに、次の 5 点を仕様として持ち、実測値と突き合わせている。
+
+| 項目 | カカクコム (`littlefamily03*`) | それ以外 |
+|---|---|---|
+| 流入 URL | `/lp/service/?insAgentNo=<コード>` | 同じ |
+| 最終的に表示される URL | `/lp/service-premium/` | `/lp/service/` |
+| リダイレクトするか | する | しない |
+| リダイレクト回数 | **1 回** | **0 回** |
+| 経路に含まれるべき URL | `/lp/service-premium/` | — |
+| 実装方式 | **未実測** (照合せず実測値を記録) | リダイレクトなし |
+
+**このうち「リダイレクト回数」は実測しておらず、私が置いた仮の値**。
+ここが実際と違えば「リダイレクト回数が仕様と異なります」(High) になる。
+
+「リダイレクト回数」は次の合計として数えている。
+
+| 数えるもの | 内容 |
+|---|---|
+| HTTP 3xx | 301 / 302 / 303 / 307 / 308 |
+| meta refresh | `<meta http-equiv="refresh" content="0;url=...">` |
+| JavaScript による遷移 | メインフレームの追加のドキュメント要求 |
+| SPA ルーティング | ドキュメント要求を伴わない**パスの変更** |
+
+**数えないもの** (実サイトで誤検知の原因になるため除外している):
+
+- クエリだけの書き換え (`history.replaceState` で `?utm_source=` を付ける等)
+- フラグメントだけの変更 (`#section`)
+- iframe 内の遷移 (広告・タグマネージャ)
+- 同一 URL の再取得 (ループとみなさない。ループ判定は HTTP 3xx の重複のみ)
+
+想定が合っているかは、レポートの「実際」に内訳が出るので判別できる。
+
+```
+実際: 2 回 (HTTP 3xx: 1, ドキュメント要求: 3, SPA: 0, meta refresh: 0)
+```
+
+- `HTTP 3xx` が 1 で回数も 1 → サーバー側の 302。想定どおり
+- `ドキュメント要求` が多い → JavaScript による遷移が挟まっている
+- `SPA` が 1 以上 → クライアント側のルーティング
+- リダイレクトなしの代理店で回数が 1 以上 → **想定が違う**
+
+## 4. 未実測の項目 (discover で確認する)
 
 以下は実サイトで確認できていない。**設定するまでその項目は検査されない**
 (誤検知はしないが、見逃しになる)。
@@ -107,7 +150,7 @@ cat reports/discovery/suggested-agencies.yml
 出力される推奨値を `config/agency-profiles.yml` / `config/agency.yml` に反映し、
 `npm run agencies:build` で再生成する。
 
-## 4. いま実行して分かること
+## 5. いま実行して分かること
 
 未実測の項目があっても、次は検査できる。
 
@@ -122,7 +165,7 @@ cat reports/discovery/suggested-agencies.yml
 - URL に個人情報や不要なパラメータが付いていないか
 - open redirect / URL パラメータの HTML への出力
 
-## 5. 申込導線 (days ドメイン)
+## 6. 申込導線 (days ドメイン)
 
 申込は LP とは別ドメイン (`days.littlefamily-ssi-stg.com`)、入口は
 `/solicitation/step1` であることが分かっている。ただし
@@ -141,7 +184,7 @@ cat reports/discovery/suggested-agencies.yml
 3 は実測に頼らず、実装を確認して設定すること
 (誤って申込を完了させると取り消せない)。
 
-## 6. コーポレートサイト
+## 7. コーポレートサイト
 
 `www.littlefamily-ssi.com` は LP とは別ホストのため、`config/pages.yml` には
 入れられない (`baseUrl` 配下ではない)。検査する場合は

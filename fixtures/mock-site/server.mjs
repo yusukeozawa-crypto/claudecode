@@ -239,6 +239,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // URL の書き換えだけを行うページ (遷移として数えないことの検証用)。
+  //   実サイトでは計測タグ・同意バナー・ABテストのスクリプトが
+  //   history.replaceState でクエリを書き換えたり # を付けたりする。
+  //   kind=query  … クエリだけ書き換える (遷移ではない)
+  //   kind=hash   … フラグメントだけ付ける (遷移ではない)
+  //   kind=path   … パスを変える (SPA 遷移として数える)
+  if (pathname === '/url-rewrite') {
+    const kind = url.searchParams.get('kind') ?? 'query';
+    const script =
+      kind === 'path'
+        ? "history.pushState({}, '', '/url-rewrite-moved/');"
+        : kind === 'hash'
+          ? "location.hash = 'section';"
+          : "history.replaceState({}, '', location.pathname + '?utm_source=test');";
+    res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' });
+    res.end(
+      '<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>URL 書き換え</title></head>' +
+        `<body><h1 data-testid="url-rewrite-page">URL 書き換え (${escapeHtml(kind)})</h1>` +
+        `<script>${script}</script></body></html>`,
+    );
+    return;
+  }
+
   if (pathname === '/server-error') {
     res.writeHead(500, { 'content-type': MIME['.html'] });
     res.end('<h1>500 Internal Server Error</h1>');

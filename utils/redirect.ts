@@ -64,9 +64,15 @@ export class RedirectTracker {
       if (frame !== page.mainFrame()) return;
       const url = frame.url();
       if (this.lastFrameUrl !== null && url !== this.lastFrameUrl) {
-        // ドキュメント要求を伴わない URL 変更は SPA ルーティングとみなす
+        // ドキュメント要求を伴わない URL 変更は SPA ルーティングとみなす。
+        //
+        // ただし「パスが変わっていない URL 変更」は遷移として数えない。
+        // 実サイトでは計測タグや同意バナー、ABテストのスクリプトが
+        // history.replaceState でクエリを書き換えたり、# を付けたりする。
+        // これを遷移として数えると、リダイレクトしていないページが
+        // 「リダイレクト回数が仕様と異なる」と誤検知される。
         const hadDocumentRequest = this.hops.some((hop) => hop.url === url);
-        if (!hadDocumentRequest) {
+        if (!hadDocumentRequest && changedPath(this.lastFrameUrl, url)) {
           this.historyChanges += 1;
           this.hops.push({ url, status: null, location: null, kind: 'history' });
         }
@@ -129,10 +135,14 @@ export class RedirectTracker {
     }
     const finalUrl = this.page.url();
     const httpRedirectCount = this.hops.filter((hop) => hop.kind === 'http').length;
-    const visited = this.hops.map((hop) => hop.url);
+    // ループ判定。
+    //   実際のリダイレクト (HTTP 3xx) の重複で判定する。
+    //   通常のドキュメント要求の重複まで対象にすると、
+    //   再読み込みや同一 URL の再取得をループと誤検知する。
+    const redirectUrls = this.hops.filter((hop) => hop.kind === 'http').map((hop) => hop.url);
     const loopDetected =
       httpRedirectCount > maxRedirects ||
-      visited.some((url, index) => visited.indexOf(url) !== index && url !== finalUrl && index > 0);
+      redirectUrls.some((url, index) => redirectUrls.indexOf(url) !== index);
 
     return {
       entryUrl,
@@ -179,6 +189,24 @@ export function normalizePath(url: string): string {
     return parsed.pathname.endsWith('/') ? parsed.pathname : `${parsed.pathname}/`;
   } catch {
     return url;
+  }
+}
+
+/**
+ * 2 つの URL でパス (オリジン + パス) が変わったか。
+ *
+ * クエリやフラグメントだけの違いは「遷移」とみなさない。
+ * 実サイトでは計測タグ・同意バナー・ABテストのスクリプトが
+ * history.replaceState でクエリを書き換えることが多く、
+ * それを遷移として数えると誤検知になる。
+ */
+function changedPath(before: string, after: string): boolean {
+  try {
+    const a = new URL(before);
+    const b = new URL(after);
+    return a.origin !== b.origin || normalizePath(a.pathname) !== normalizePath(b.pathname);
+  } catch {
+    return before !== after;
   }
 }
 

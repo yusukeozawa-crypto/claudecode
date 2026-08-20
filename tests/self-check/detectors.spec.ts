@@ -15,7 +15,7 @@ import { checkPageLinks } from '../../utils/links';
 import { detectTextIssues } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
-import { detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
+import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
@@ -568,6 +568,69 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
 
     const unlimited = await collectLinks(page, config);
     expect(unlimited.length, '上限を上げれば多く収集されること').toBeGreaterThan(links.length);
+  });
+
+  test('URL の書き換えだけの変更は遷移として数えない (誤検知の確認)', async ({ page }) => {
+    // 実サイトでは計測タグ・同意バナー・ABテストのスクリプトが
+    // history.replaceState でクエリを書き換えたり # を付けたりする。
+    // これを遷移として数えると、リダイレクトしていないページが
+    // 「リダイレクト回数が仕様と異なる」と誤検知される。
+    for (const kind of ['query', 'hash'] as const) {
+      const entryUrl = `${config.environment.baseUrl}/url-rewrite?kind=${kind}`;
+      const tracker = new RedirectTracker(page);
+      try {
+        await page.goto(entryUrl);
+        await page.waitForTimeout(300);
+        const trace = tracker.build(entryUrl, config.agencies.redirect.maxRedirects);
+        expect(trace.historyChangeCount, `${kind} の書き換えは SPA 遷移として数えない`).toBe(0);
+        expect(
+          verifyRedirectTrace(
+            trace,
+            {
+              code: null,
+              entryPath: '/url-rewrite',
+              expectedFinalPath: '/url-rewrite',
+              redirected: false,
+              redirectMechanism: 'none',
+              expectedRedirectCount: 0,
+              expectedRedirectPaths: [],
+            },
+            config,
+          ).filter((finding) => finding.severity === 'critical' || finding.severity === 'high'),
+          `${kind}: リダイレクトなしの仕様に対して Critical / High を出さない`,
+        ).toEqual([]);
+      } finally {
+        tracker.detach();
+      }
+    }
+  });
+
+  test('パスが変わる URL 変更は SPA 遷移として数える (見逃しの確認)', async ({ page }) => {
+    const entryUrl = `${config.environment.baseUrl}/url-rewrite?kind=path`;
+    const tracker = new RedirectTracker(page);
+    try {
+      await page.goto(entryUrl);
+      await page.waitForTimeout(300);
+      const trace = tracker.build(entryUrl, config.agencies.redirect.maxRedirects);
+      expect(trace.historyChangeCount, 'パスの変更は SPA 遷移として数える').toBe(1);
+      expect(trace.mechanism, '遷移方式は SPA と判定される').toBe('spa');
+    } finally {
+      tracker.detach();
+    }
+  });
+
+  test('同じ URL を再取得してもリダイレクトループと誤判定しない', async ({ page }) => {
+    // 3xx を伴わない同一 URL の再取得はループではない
+    const entryUrl = `${config.environment.baseUrl}/lp/`;
+    const tracker = new RedirectTracker(page);
+    try {
+      await page.goto(entryUrl);
+      await page.goto(entryUrl);
+      const trace = tracker.build(entryUrl, config.agencies.redirect.maxRedirects);
+      expect(trace.loopDetected, '同一 URL の再取得はループではない').toBe(false);
+    } finally {
+      tracker.detach();
+    }
   });
 
   test('代理店の組み合わせ検証に上限が効く (代理店数が多いサイトで破綻しない)', async () => {
