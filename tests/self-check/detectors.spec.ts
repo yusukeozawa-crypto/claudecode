@@ -16,6 +16,7 @@ import { detectTextIssues } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
+import { capturePageSignatureStable, diffSignatures, toSelectorHint } from '../../utils/page-signature';
 import { agencyPairs, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
@@ -617,6 +618,47 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     } finally {
       tracker.detach();
     }
+  });
+
+  test('代理店コードによる表示差分を洗い出せる (セクション名を知らなくても特定できる)', async ({ page }) => {
+    // 実サイトでは、どの要素が代理店によって出る / 出ないのかが
+    // 事前に分からない。差分から特定できることを確認する。
+    const withoutCode = `${config.environment.baseUrl}/lp/`;
+    await page.goto(withoutCode);
+    const baseline = await capturePageSignatureStable(page);
+    expect(baseline, '基準ページのシグネチャを取得できること').not.toBeNull();
+
+    const spec = config.agencies.agencies[0];
+    await page.goto(`${withoutCode}?${config.agency.paramName}=${spec.code}`);
+    const withCode = await capturePageSignatureStable(page);
+    expect(withCode, '代理店ページのシグネチャを取得できること').not.toBeNull();
+
+    const diff = diffSignatures(baseline!, withCode!);
+    const appeared = diff.visibleOnlyInB.map((block) => block.key);
+    const disappeared = diff.visibleOnlyInA.map((block) => block.key);
+
+    expect(appeared, '代理店コードで出るセクションを検出できること').toContain('agency-contact');
+    expect(disappeared, '代理店コードで消えるセクションを検出できること').toContain('default-contact');
+    // 設定にそのまま書ける形で出ること
+    expect(toSelectorHint(diff.visibleOnlyInB[0]!), 'data-testid はそのまま使える').not.toContain('css=');
+  });
+
+  test('数字だけが違うテキストは差分として報告しない (時刻・カウンタの誤検知防止)', async () => {
+    const base = {
+      url: 'https://example.test/',
+      blocks: [],
+      textLines: ['現在時刻 2026/8/20 6:17:00', '残り 3 名', '共通の文言'],
+    };
+    const other = {
+      url: 'https://example.test/?code=X',
+      blocks: [],
+      textLines: ['現在時刻 2026/8/20 6:17:59', '残り 7 名', '共通の文言', '代理店だけの文言'],
+    };
+    const diff = diffSignatures(base, other);
+    expect(diff.textOnlyInB, '数字違いは差分にしない / 本当の追加だけを出す').toEqual([
+      '代理店だけの文言',
+    ]);
+    expect(diff.textOnlyInA, '数字違いは差分にしない').toEqual([]);
   });
 
   test('リダイレクト回数が未設定なら照合せず実測値を記録する', async () => {

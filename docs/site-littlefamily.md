@@ -23,6 +23,12 @@
 - `littlefamily01` は自社コード。代理店コードを無効化してオリジナルを表示する
 - 株式会社カカクコム・インシュアランス (`littlefamily03` および支店コード
   `littlefamily03br01`〜`br50`) だけ、LP に入った時点で専用 LP へリダイレクトする
+  (支店コードもリダイレクトする — 確認済み)
+- リダイレクト後、URL に `insAgentNo` は**おそらく残らない**。
+  そのため代理店の紐づけは URL 以外 (Cookie / サーバー側セッション) で
+  行われている可能性が高い。`config/agency.yml` の `storage` は
+  未確認のため `none` にしてあり、**保存値の検査は行っていない**。
+  discover の出力に Cookie 名が出るので、それを見て設定する
 - 「みらやく掲載可否」(○ / ×) によってセクションの表示・非表示が決まる
 
 ## 2. 214 件をどう扱うか
@@ -137,13 +143,54 @@ $env:QA_AGENCY_SEED="m3k8xq-a71f9c"; npm run test:agency
 | 項目 | 設定場所 | 現在の値 | 影響 |
 |---|---|---|---|
 | リダイレクトの実装方式 | `agency-profiles.yml` の `redirectMechanism` | `unknown` | 方式の妥当性は判定せず、実測値を Low として記録する |
-| みらやくセクションの `data-testid` | `agency-profiles.yml` の `visibleSections` / `hiddenSections` | 空 | **「× なのに表示されている」を検知できない** |
+| みらやくセクションのセレクタ | `agency-profiles.yml` の `visibleSections` / `hiddenSections` | 空 | **「× なのに表示されている」を検知できない**。`npm run discover` の表示差分から特定する (下記) |
 | 代理店名・電話番号などの表示 | `agency-profiles.yml` の `expectedTexts` | 空 | 表示内容の照合を行わない |
 | 共通セレクタ | `agency.yml` の `selectors` | 仮の値 | 一致する要素が無い間、それを使う検査は「検出なし」になる |
 | 代理店コードの保存先 | `agency.yml` の `storage` | `none` | 保存値の検査を行わない |
 | 描画完了の判定 | `agency.yml` の `readyIndicator` | `none` | 待たずに検査する (クライアント描画なら取りこぼす可能性) |
 | 申込への引き継ぎ方式 | `agency-profiles.yml` の `application` | `null` | **申込導線の検査を一切行わない** |
 | 申込完了 URL (押してはならない操作) | `agency.yml` の `forbiddenRequestPatterns` | 仮の値 | 申込導線の検査を有効にする前に必ず実物に合わせる |
+
+### みらやくセクションの特定手順
+
+どの要素が「みらやく」なのかは分かっていない。
+`npm run discover` が**代理店コードによる表示差分**を出すので、そこから特定する。
+
+```powershell
+$env:QA_ENV="staging"; npm run discover
+```
+
+`reports/discovery/agency-section-diff.md` に、コードなしの通常 LP を基準として
+「このコードでは出るブロック / 出ないブロック」が、
+**設定にそのまま書ける形のセレクタ**で並ぶ。
+
+```
+## littlefamily04 (アドバンスクリエイト株式会社 — みらやく掲載可)
+
+- コードなしでは出ないが、このコードでは出るブロック: 3 件
+
+| セレクタ | 種類 | 表示テキストの先頭 |
+|---|---|---|
+| `mirayaku-section`  | testid | みらやく のご案内 ... |
+| `css=#mirayaku`     | id     | ...                  |
+```
+
+みらやく ○ の代理店と × の代理店を見比べて、○ にだけ出るブロックが
+みらやくセクション。特定できたら次のように設定する。
+
+```yaml
+profiles:
+  mirayaku-visible:
+    visibleSections: [mirayaku-section]
+  mirayaku-hidden:
+    hiddenSections: [mirayaku-section]
+```
+
+以降は「○ なのに出ていない」「× なのに出ている」を Critical として検知できる。
+
+比較は「DOM にあるか」ではなく**「表示されているか」**で行う
+(`display: none` で残す実装が多いため)。
+時刻やカウンタのように数字だけが変わるテキストは差分から除外している。
 
 ### 実測の手順
 
