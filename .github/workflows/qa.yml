@@ -129,18 +129,74 @@ jobs:
           exit 1
 
   # ============================================================
+  # preflight: 実サイト検査を実行できる状態かを判定する。
+  #   URL が GitHub Secrets に未設定の場合、
+  #     - 手動実行 (workflow_dispatch) では失敗させる
+  #       (実行を指示した人に理由を伝える必要があるため)
+  #     - 定時実行・push では qa ジョブをスキップする
+  #       (導入前は URL が未設定なのが正常な状態であり、
+  #        毎日失敗通知が届くのを避ける)
+  # ============================================================
+  preflight:
+    name: 実サイト検査の実行判定
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+
+    env:
+      QA_ENV: ${{ github.event.inputs.environment || 'staging' }}
+      STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+      PRODUCTION_BASE_URL: ${{ secrets.PRODUCTION_BASE_URL }}
+      STAGING_APPLICATION_BASE_URL: ${{ secrets.STAGING_APPLICATION_BASE_URL }}
+      PRODUCTION_APPLICATION_BASE_URL: ${{ secrets.PRODUCTION_APPLICATION_BASE_URL }}
+
+    steps:
+      - name: 必要な Secrets の設定を確認
+        id: check
+        run: |
+          if [ "$QA_ENV" = "production" ]; then
+            LP_URL="$PRODUCTION_BASE_URL"; APP_URL="$PRODUCTION_APPLICATION_BASE_URL"
+            LP_NAME="PRODUCTION_BASE_URL"; APP_NAME="PRODUCTION_APPLICATION_BASE_URL"
+          else
+            LP_URL="$STAGING_BASE_URL"; APP_URL="$STAGING_APPLICATION_BASE_URL"
+            LP_NAME="STAGING_BASE_URL"; APP_NAME="STAGING_APPLICATION_BASE_URL"
+          fi
+          MISSING=""
+          [ -z "$LP_URL" ] && MISSING="$MISSING $LP_NAME"
+          [ -z "$APP_URL" ] && MISSING="$MISSING $APP_NAME"
+
+          if [ -z "$MISSING" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "対象環境 $QA_ENV の URL 設定を確認しました (値は出力しません)"
+            exit 0
+          fi
+
+          echo "configured=false" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "::error::GitHub Secrets が未設定です:$MISSING"
+            echo "リポジトリの Settings > Secrets and variables > Actions で設定してください。"
+            echo "LP ドメインと申込ドメインの両方が必要です (docs/operations.md 参照)。"
+            exit 1
+          fi
+          echo "::notice::GitHub Secrets ($MISSING ) が未設定のため、実サイト検査をスキップしました。"
+          echo "導入前は未設定が正常な状態です。設定すると次回から自動で実行されます。"
+
+  # ============================================================
   # qa: 実サイト (ステージング / 本番) に対する公開後QA。
   #   URL・認証情報は GitHub Secrets から取得する。
   #   Pull Request では実行しない (Secrets を使うため)。
   # ============================================================
   qa:
     name: 公開後QA (${{ github.event.inputs.environment || 'staging' }})
-    # 実サイトを対象にするジョブは main への push・手動実行・定時実行のみ。
-    # 作業ブランチや Pull Request では実行しない (Secrets を使うため)。
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    # 実サイトを対象にするジョブは main への push・手動実行・定時実行のみ
+    # (preflight の if で制御)。URL 未設定なら実行しない。
+    needs: preflight
+    if: needs.preflight.outputs.configured == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -166,27 +222,6 @@ jobs:
     steps:
       - name: リポジトリを取得
         uses: actions/checkout@v4
-
-      - name: 必要な Secrets の設定を確認
-        # URL が未設定のまま実行すると分かりにくいエラーになるため、先に明示的に止める
-        run: |
-          if [ "$QA_ENV" = "production" ]; then
-            LP_URL="$PRODUCTION_BASE_URL"; APP_URL="$PRODUCTION_APPLICATION_BASE_URL"
-            LP_NAME="PRODUCTION_BASE_URL"; APP_NAME="PRODUCTION_APPLICATION_BASE_URL"
-          else
-            LP_URL="$STAGING_BASE_URL"; APP_URL="$STAGING_APPLICATION_BASE_URL"
-            LP_NAME="STAGING_BASE_URL"; APP_NAME="STAGING_APPLICATION_BASE_URL"
-          fi
-          MISSING=""
-          [ -z "$LP_URL" ] && MISSING="$MISSING $LP_NAME"
-          [ -z "$APP_URL" ] && MISSING="$MISSING $APP_NAME"
-          if [ -n "$MISSING" ]; then
-            echo "::error::GitHub Secrets が未設定です:$MISSING"
-            echo "リポジトリの Settings > Secrets and variables > Actions で設定してください。"
-            echo "LP ドメインと申込ドメインの両方が必要です (docs/operations.md 参照)。"
-            exit 1
-          fi
-          echo "対象環境 $QA_ENV の URL 設定を確認しました (値は出力しません)"
 
       - name: Node.js をセットアップ
         # actions/* の major は Node 20 ランタイム対象のため実行時に警告が出る。
