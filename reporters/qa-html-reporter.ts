@@ -173,6 +173,60 @@ export default class QaHtmlReporter implements Reporter {
       console.log('判定          : 判定基準に該当する不具合を検知したため CI は失敗として終了します');
     }
     console.log('====================================================');
+
+    // 対応が必要な検知内容をその場に出す。
+    // HTML を開かないと何が起きたか分からない状態だと、
+    // 「失敗したことは分かるが原因が分からない」で止まってしまう。
+    this.printAttentionFindings(allFindings);
+  }
+
+  /**
+   * 対応が必要な検知内容をコンソールに出す。
+   *
+   * 同じ内容が代理店・端末ごとに何十件も並ぶため、内容単位でまとめる。
+   * 全件は npm run findings で見られる。
+   */
+  private printAttentionFindings(findings: Finding[]): void {
+    const attention = findings.filter((finding) => this.failOnSeverities.includes(finding.severity));
+    if (attention.length === 0) return;
+
+    const groups = new Map<string, { finding: Finding; items: Finding[] }>();
+    for (const finding of sortBySeverity(attention)) {
+      const key = [finding.severity, finding.category, finding.title, finding.expected, finding.actual].join(' | ');
+      const group = groups.get(key);
+      if (group) group.items.push(finding);
+      else groups.set(key, { finding, items: [finding] });
+    }
+
+    const MAX_GROUPS = 8;
+    console.log('');
+    console.log(`---------- 対応が必要な検知 (${groups.size} 種類 / 延べ ${attention.length} 件) ----------`);
+    let index = 0;
+    for (const { finding, items } of groups.values()) {
+      index += 1;
+      if (index > MAX_GROUPS) {
+        console.log('');
+        console.log(`... 他 ${groups.size - MAX_GROUPS} 種類。すべて見るには: npm run findings`);
+        break;
+      }
+      const devices = [...new Set(items.map((item) => item.deviceId).filter(Boolean))];
+      const codes = [...new Set(items.map((item) => item.agencyCode).filter(Boolean))];
+      console.log('');
+      console.log(`[${SEVERITY_LABEL[finding.severity]}] ${finding.title}`);
+      console.log(`  期待   : ${finding.expected ?? '-'}`);
+      console.log(`  実際   : ${finding.actual ?? '-'}`);
+      if (finding.detail) console.log(`  詳細   : ${finding.detail}`);
+      if (devices.length > 0) console.log(`  端末   : ${devices.join(', ')}`);
+      if (codes.length > 0) {
+        const shown = codes.slice(0, 5).join(', ');
+        console.log(`  代理店 : ${shown}${codes.length > 5 ? ` ...他 ${codes.length - 5} 件` : ''}`);
+      }
+      console.log(`  件数   : ${items.length}`);
+      console.log(`  再現URL: ${finding.url}`);
+    }
+    console.log('');
+    console.log('--------------------------------------------------------');
+    console.log('詳しく見る: npm run findings   画面で見る: reports/qa-report.html');
   }
 
   /** Critical / High があれば終了コードを 1 にする */
