@@ -64,6 +64,64 @@ npm run report              # レポートをブラウザで閲覧 (http://127.0
 
 ---
 
+## 1.5 チームで使う場合
+
+複数人が各自の PC で実行する場合の運用ルールです。
+
+### 各メンバーの初回セットアップ
+
+```bash
+git clone <このリポジトリ>
+cd <リポジトリ>
+npm install
+npm run prepare:browsers
+cp .env.example .env      # URL を記入 (下記参照)
+npm test                  # モックサイトで動作確認 (対象サイト不要)
+```
+
+Node.js のバージョンは `.nvmrc` に合わせてください (`nvm use`)。
+`npm run typecheck` が通らない場合はバージョン違いを疑ってください。
+
+### 共有するもの / しないもの
+
+| 対象 | 扱い |
+|---|---|
+| `config/*.yml` (代理店仕様・ページ・ルール) | **リポジトリで共有**。全員が同じ期待値を使う |
+| `screenshots/baseline/` | **リポジトリで共有**。ただし更新は CI のみ (下記) |
+| `.env` (対象 URL・認証情報) | **共有しない**。各自が自分の PC に置く。値はパスワード管理ツール等で受け渡す |
+| `reports/` `screenshots/current/` | 生成物。`.gitignore` 済み |
+
+### 基準画像は各自の PC で更新しない
+
+基準画像はフォント描画に依存するため、**Mac / Windows で更新すると CI と他メンバーで
+差分が出続けます** (更新合戦になります)。`npm run update:screenshots` は
+CI と同じ Linux 以外では中止するようになっています。
+
+見た目を意図的に変更した場合の手順:
+
+1. 変更をコミットして push する
+2. CI (`self-test`) の Artifact から `screenshots/baseline` を取得する
+3. それをコミットする
+
+### 各メンバーの普段の実行
+
+視覚差分は OS 差で Low が出るため、ローカルでは除外した実行を使うと結果が読みやすくなります。
+
+```bash
+npm run test:local              # 視覚差分以外をすべて実行 (モックサイト)
+npm run test:local:staging      # 同じくステージング対象
+```
+
+視覚差分の判定は CI (Linux) に任せる、という分担です。
+
+### 設定を変更するときの流れ
+
+`config/agencies.yml` などを変更したら、**push して CI が緑になることを確認**してから
+他メンバーに伝えてください。設定不備は起動時に検証されるため、
+壊れた設定を共有してもすぐ気づけます。
+
+---
+
 ## 2. 実行
 
 ### 対象環境の切り替え
@@ -102,6 +160,8 @@ QA_ENV=staging npx playwright test
 | `npm test` | 全テストを実行 (既定環境) |
 | `npm run test:staging` | ステージング環境で全テストを実行 |
 | `npm run test:production` | 本番環境で全テストを実行 (読み取り・画面遷移のみ) |
+| `npm run test:local` | 視覚差分以外をすべて実行 (各メンバーのローカル実行向け) |
+| `npm run test:local:staging` | 同じくステージング対象 |
 | `npm run test:pc` | PC (1440×900) のみ実行 |
 | `npm run test:sp` | SP (390×844 / モバイル UA) のみ実行 |
 | `npm run test:agency` | 代理店ごとのテスト (表示 / リダイレクト / 引き継ぎ) を実行 |
@@ -113,7 +173,7 @@ QA_ENV=staging npx playwright test
 | `npm run test:crawl` | 基本巡回のみ実行 |
 | `npm run test:health` | リンク切れ・エラー検知のみ実行 |
 | `npm run test:text` | 誤字脱字・表記揺れチェックのみ実行 |
-| `npm run update:screenshots` | 基準画像を更新 (意図した見た目の変更時。**更新前に `npm test` で Critical / High が 0 であることを確認する** — 不具合を基準画像に焼き付けないため) |
+| `npm run update:screenshots` | 基準画像を更新 (意図した見た目の変更時。**更新前に `npm test` で Critical / High が 0 であることを確認する** — 不具合を基準画像に焼き付けないため。CI と同じ Linux 以外では中止される) |
 | `npm run report` | 生成済みレポートをローカルで閲覧 |
 | `npm run gate` | 重大度ゲートの判定のみ実行 (CI 用) |
 | `npm run typecheck` | 型チェック |
