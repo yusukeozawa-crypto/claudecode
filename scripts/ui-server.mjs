@@ -64,6 +64,12 @@ const ACTIONS = {
 let current = null;
 /** 直近の実行ログ (画面に出す。長くなりすぎないよう末尾のみ保持) */
 let logLines = [];
+/**
+ * 更新後に再起動が必要かどうか。
+ *   画面を開いたまま更新すると、画面 (HTML) は新しくなるが
+ *   動いているサーバーは古いままになる。食い違いに気づけるよう画面に出す。
+ */
+let restartRequired = false;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -285,6 +291,7 @@ function state() {
     log: logLines.slice(-40),
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),
     sizes: Object.entries(SIZES).map(([key, value]) => ({ key, label: value.label })),
+    restartRequired,
     env: envStatus(),
     history: historyList(),
     hasReport: fs.existsSync(path.join(REPORT_DIR, 'qa-report.html')),
@@ -326,6 +333,11 @@ function startRun(kind, key, size = 'min') {
   child.stderr.on('data', append);
   child.on('close', (code) => {
     logLines.push(`[終了] ${entry.label} (終了コード ${code})`);
+    // 更新後は古いサーバーが動き続けるため、開き直しが必要
+    if (kind === 'action' && key === 'update' && code === 0) {
+      restartRequired = true;
+      logLines.push('[要再起動] 黒い画面を閉じて run-qa をもう一度開いてください');
+    }
     current = null;
   });
   return { ok: true };

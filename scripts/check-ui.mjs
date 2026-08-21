@@ -102,6 +102,16 @@ await check('件数の選択肢が返る', async () => {
   const { body } = await json('/api/state');
   const keys = (body.sizes ?? []).map((size) => size.key);
   assert.deepEqual(keys, ['min', 'standard', 'all'], '最小 / 標準 / 全件を返すこと');
+  assert.equal(body.restartRequired, false, '更新前は再起動の案内を出さないこと');
+});
+
+await check('画面は選択肢が無くても操作できる (古いサーバー対策)', async () => {
+  const response = await fetch(base);
+  const html = await response.text();
+  // 更新直後は画面だけ新しくなり、動いているサーバーが古い状態になる。
+  // 選択肢が返らない場合でも既定値を出し、開き直しを促す必要がある。
+  assert.ok(html.includes("state.sizes || []"), '選択肢が無い場合の既定値を持つこと');
+  assert.ok(html.includes('restart-notice'), '開き直しの案内を持つこと');
 });
 
 await check('reports の外のファイルは返さない', async () => {

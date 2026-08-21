@@ -87,6 +87,11 @@
   .empty { padding: 16px; color: #14683a; font-weight: 700; }
   #settings-details > summary { cursor: pointer; }
   .settings-title { font-size: 15px; font-weight: 700; color: #44505c; }
+  .notice {
+    background: #fff8e6; border: 1px solid #f0d79a; color: #8a5a00;
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; line-height: 1.7;
+  }
+  .notice code { background: #fdf1d5; padding: 1px 5px; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -95,6 +100,11 @@
   <span class="env" id="env-label"></span>
 </header>
 <main>
+  <div class="notice" id="restart-notice" hidden>
+    <strong>ツールを更新しました。開き直してください。</strong><br>
+    この画面を動かしている黒いウィンドウを閉じて、<code>run-qa.cmd</code> をもう一度開いてください。
+    (画面だけ新しくなり、動いているプログラムが古いままのため)
+  </div>
   <section id="verdict-section">
     <div class="verdict" id="verdict">
       <span class="big" id="verdict-big">読み込み中...</span>
@@ -447,12 +457,21 @@
         document.getElementById('env-label').textContent =
           state.summary ? (state.summary.environmentLabel || '') + ' / ' + (state.summary.baseUrl || '') : '';
         latestEnv = state.env || {};
+        // 選択肢はサーバーから受け取る。古いサーバー (更新前) は返さないため、
+        // その場合は既定の選択肢を出しつつ、開き直しを促す
         var sizeSelect = document.getElementById('size');
-        if (sizeSelect.options.length === 0 && (state.sizes || []).length > 0) {
-          sizeSelect.innerHTML = state.sizes.map(function (size) {
+        var sizes = (state.sizes || []).length > 0 ? state.sizes : [
+          { key: 'min', label: '最小 (パターンごと 1 社)' },
+          { key: 'standard', label: '標準 (パターンごと 3 社)' },
+          { key: 'all', label: '全件 (時間がかかります)' },
+        ];
+        if (sizeSelect.options.length === 0) {
+          sizeSelect.innerHTML = sizes.map(function (size) {
             return '<option value="' + text(size.key) + '">' + text(size.label) + '</option>';
           }).join('');
         }
+        var needsRestart = state.restartRequired === true || (state.sizes || []).length === 0;
+        document.getElementById('restart-notice').hidden = !needsRestart;
         // URL が 1 つも登録されていない = まず設定が必要なので開いておく
         var anyConfigured = Object.keys(latestEnv).some(function (key) {
           return key !== 'local' && latestEnv[key] && latestEnv[key].configured;
