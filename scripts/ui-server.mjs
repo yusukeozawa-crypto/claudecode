@@ -287,6 +287,8 @@ function state() {
     progress: readJson(PROGRESS_PATH),
     summary: report?.summary ?? null,
     agencies: report ? agencySummary(report.records ?? []) : { columns: [], rows: [] },
+    // 代理店コード → 会社名 / みらやく掲載可否 (コードだけでは判断できない)
+    agencyMeta: report?.summary?.agencyMeta ?? {},
     findings: report ? findingGroups(report.records ?? []) : [],
     log: logLines.slice(-40),
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),

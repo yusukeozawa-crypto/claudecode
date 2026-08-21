@@ -18,7 +18,7 @@ import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
-import { agencyPairs, resolvePerProfile, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
+import { agencyPairs, agencySpecs, resolvePerProfile, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
 import { describeApplicationLinks, installRequestGuards, observeApplicationLinks } from '../../utils/handoff';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
@@ -1142,6 +1142,69 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     } finally {
       if (original === undefined) delete process.env.QA_AGENCY_PER_PROFILE;
       else process.env.QA_AGENCY_PER_PROFILE = original;
+    }
+  });
+
+  test('必ず検査するコードは件数や抽選に関係なく毎回選ばれる', async () => {
+    // カカクコム (littlefamily03) のように運用上必ず確認したいコードは、
+    // 件数を最小にしても抽選の結果に左右されず対象に入る必要がある。
+    // 実サイトの設定に依存しないよう、検査用の設定を組み立てて確認する。
+    const template = config.agencies.agencies[0];
+    const make = (code: string, profile: string): typeof template => ({ ...template, code, profile });
+    const agencies = [
+      make('MUST-KAKAKUCOM', 'kakakucom'),
+      make('MUST-DIRECT', 'direct'),
+      ...Array.from({ length: 20 }, (_, index) => make(`OTHER-${index}`, 'mirayaku-hidden')),
+      ...Array.from({ length: 20 }, (_, index) => make(`VISIBLE-${index}`, 'mirayaku-visible')),
+    ];
+    const target: typeof config = {
+      ...config,
+      agencies: {
+        ...config.agencies,
+        agencies,
+        scope: { mode: 'sample', perProfile: 1, always: ['MUST-KAKAKUCOM', 'MUST-DIRECT'] },
+      },
+    };
+
+    const originalSeed = process.env.QA_AGENCY_SEED;
+    const originalPer = process.env.QA_AGENCY_PER_PROFILE;
+    try {
+      for (const seed of ['seed-a', 'seed-b', 'seed-c']) {
+        for (const perProfile of ['1', '3']) {
+          process.env.QA_AGENCY_SEED = seed;
+          process.env.QA_AGENCY_PER_PROFILE = perProfile;
+          const codes = agencySpecs(target).map((spec) => spec.code);
+          for (const code of ['MUST-KAKAKUCOM', 'MUST-DIRECT']) {
+            expect(codes, `${code} は seed=${seed} / 件数=${perProfile} でも対象になること`).toContain(code);
+          }
+        }
+      }
+      // 実サイトの設定でもカカクコムが必ず入る指定になっていること
+      if (config.environmentName !== 'local') {
+        expect(config.agencies.scope?.always ?? [], 'カカクコムを必ず検査する設定であること').toContain(
+          'littlefamily03',
+        );
+      }
+    } finally {
+      if (originalSeed === undefined) delete process.env.QA_AGENCY_SEED;
+      else process.env.QA_AGENCY_SEED = originalSeed;
+      if (originalPer === undefined) delete process.env.QA_AGENCY_PER_PROFILE;
+      else process.env.QA_AGENCY_PER_PROFILE = originalPer;
+    }
+  });
+
+  test('代理店コードには会社名と みらやく掲載可否が付いている', async () => {
+    // コードだけでは人が判断できないため、レポートと画面に会社名と
+    // みらいの約束の掲載可否 (○ / ×) を出せる必要がある。
+    const specs = agencySpecs(config);
+    for (const spec of specs) {
+      expect(spec.company, `${spec.code} に会社名があること`).toBeTruthy();
+    }
+    for (const spec of specs) {
+      expect(
+        ['○', '×'],
+        `${spec.code} の みらやく掲載可否が ○ か × であること (実際: ${spec.mirayaku})`,
+      ).toContain(spec.mirayaku);
     }
   });
 

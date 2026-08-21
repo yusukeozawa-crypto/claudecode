@@ -85,6 +85,10 @@ function buildAgency(row, profile) {
   return {
     code: row.code,
     label,
+    // レポートと画面に「どの会社か」「みらいの約束の掲載可否」を出すために持つ
+    // (コードだけでは人が判断できない)
+    company: row.company,
+    mirayaku: row.mirayaku,
     // 実行時の抽選でパターンごとに選ぶために保持する
     profile: row.profile,
     // サイト側でコードとして扱われないパターン (支店コードなど) は

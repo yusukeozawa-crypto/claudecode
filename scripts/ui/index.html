@@ -92,6 +92,8 @@
     border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; line-height: 1.7;
   }
   .notice code { background: #fdf1d5; padding: 1px 5px; border-radius: 4px; }
+  #agencies td.company { white-space: normal; min-width: 190px; }
+  #agencies td.mirayaku { font-weight: 700; }
 </style>
 </head>
 <body>
@@ -328,7 +330,8 @@
     section.hidden = false;
     // 実行中は前回の結果を出しているので、そう分かるようにする
     document.getElementById('agency-stale').hidden = !state.running;
-    var head = '<thead><tr><th>代理店コード</th>' +
+    var meta = state.agencyMeta || {};
+    var head = '<thead><tr><th>代理店コード</th><th>会社名</th><th>みらやく</th>' +
       data.columns.map(function (column) { return '<th>' + text(column.label) + '</th>'; }).join('') +
       '</tr></thead>';
     var body = '<tbody>' + data.rows.map(function (row) {
@@ -338,7 +341,11 @@
         return '<td class="center"><span class="badge ' + text(severity) + '">' +
           text(LABELS[severity] || severity) + '</span> ' + row.counts[column.key] + '</td>';
       }).join('');
-      return '<tr><td class="code">' + text(row.code) + '</td>' + cells + '</tr>';
+      var info = meta[row.code] || {};
+      return '<tr><td class="code">' + text(row.code) + '</td>' +
+        '<td class="company">' + text(info.company || '-') + '</td>' +
+        '<td class="center mirayaku">' + text(info.mirayaku || '-') + '</td>' +
+        cells + '</tr>';
     }).join('') + '</tbody>';
     table.innerHTML = head + body;
   }

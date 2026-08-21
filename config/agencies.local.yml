@@ -41,6 +41,9 @@ agencies:
   # ----------------------------------------------------------
   - code: A001
     label: リダイレクトなし・クエリ引き継ぎ
+    # レポート・画面の表示用 (コードだけでは人が判断できない)
+    company: 株式会社エーワン保険サービス
+    mirayaku: "○"
     # 表示の一貫性検査 (@consistency) 用の分類。
     # A002 / A003 は「代理店専用LP」で同じ表示になるはず。
     profile: solo
@@ -118,6 +121,9 @@ agencies:
   # ----------------------------------------------------------
   - code: A002
     label: HTTP リダイレクト・一時トークン引き継ぎ
+    # レポート・画面の表示用 (コードだけでは人が判断できない)
+    company: 株式会社ビーツー保険
+    mirayaku: "○"
     profile: partner
     entryPath: /lp/
     expectedFinalPath: /partner/a002/
@@ -181,6 +187,9 @@ agencies:
   # ----------------------------------------------------------
   - code: A003
     label: meta refresh リダイレクト・POST 引き継ぎ
+    # レポート・画面の表示用 (コードだけでは人が判断できない)
+    company: シースリー少額短期保険株式会社
+    mirayaku: "×"
     profile: partner
     entryPath: /lp/
     expectedFinalPath: /partner/a003/
@@ -246,6 +255,9 @@ agencies:
   # ----------------------------------------------------------
   - code: A004
     label: 専用LPが入口・再訪時にリダイレクト
+    # レポート・画面の表示用 (コードだけでは人が判断できない)
+    company: エーフォー限定プラン保険株式会社
+    mirayaku: "○"
     profile: premium
     entryPath: /partner/a004/
     expectedFinalPath: /partner/a004/
@@ -278,6 +290,9 @@ agencies:
   # ----------------------------------------------------------
   - code: A001BR01
     label: 支店コード (通常LPのまま変化なし)
+    # レポート・画面の表示用 (コードだけでは人が判断できない)
+    company: 株式会社エーワン保険サービス (支店)
+    mirayaku: "○"
     profile: branch
     # サイト側で代理店コードとして扱われない。
     # 保存・引き継ぎ・代理店表示のいずれも期待しない。

@@ -227,6 +227,8 @@ export default class QaHtmlReporter implements Reporter {
       },
       findings: counts,
       agencySampling: describeAgencySampling(),
+      // コードだけでは人が判断できないため、会社名と みらやく掲載可否を持たせる
+      agencyMeta: describeAgencyMeta(),
       // 判定基準は config/runtime.yml の failOnSeverities に従う。
       // ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
       failOnSeverities: this.failOnSeverities,
@@ -382,6 +384,7 @@ interface ReportSummary {
   tests: { total: number; passed: number; failed: number; skipped: number };
   /** 代理店の抽選シードと対象件数 (同じ組み合わせを再現するために記録する) */
   agencySampling: { seed: string; scope: string; selected: number; total: number } | null;
+  agencyMeta: Record<string, { company: string; mirayaku: string }>;
   findings: Record<Severity, number>;
   gateFailed: boolean;
 }
@@ -406,6 +409,29 @@ function describeKnownIssues(): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * 代理店コード → 会社名 / みらいの約束 (みらやく) 掲載可否。
+ * レポートと画面の一覧表に出すため。無効コードは「検査用」と示す。
+ */
+function describeAgencyMeta(): Record<string, { company: string; mirayaku: string }> {
+  const meta: Record<string, { company: string; mirayaku: string }> = {};
+  try {
+    const config = loadConfig();
+    for (const agency of config.agencies.agencies) {
+      meta[agency.code] = {
+        company: agency.company ?? agency.label ?? '',
+        mirayaku: agency.mirayaku ?? '',
+      };
+    }
+    for (const invalid of config.agencies.invalidCodes ?? []) {
+      meta[invalid.code] = { company: `無効コードの検査用 (${invalid.label})`, mirayaku: '-' };
+    }
+  } catch {
+    // 設定が読めない場合は空のまま (表にはコードだけ出る)
+  }
+  return meta;
 }
 
 function describeAgencySampling(): ReportSummary['agencySampling'] {
@@ -514,7 +540,7 @@ export function buildAgencyRows(records: QaRecord[]): AgencyRow[] {
   });
 }
 
-function renderAgencyTable(records: QaRecord[]): string {
+function renderAgencyTable(records: QaRecord[], meta: ReportSummary['agencyMeta']): string {
   const rows = buildAgencyRows(records);
   if (rows.length === 0) return '<p class="empty">代理店コードを使った検査はありませんでした。</p>';
 
@@ -526,12 +552,20 @@ function renderAgencyTable(records: QaRecord[]): string {
         if (!severity) return '<td class="ok">OK</td>';
         return `<td class="ng sev-${severity}"><span class="badge badge-${severity}">${SEVERITY_LABEL[severity]}</span> ${count} 件</td>`;
       }).join('');
-      return `<tr class="${row.worst ? `agency-ng sev-${row.worst}` : 'agency-ok'}"><th scope="row">${escapeHtml(row.code)}</th>${cells}</tr>`;
+      const info = meta[row.code] ?? { company: '', mirayaku: '' };
+      return `<tr class="${row.worst ? `agency-ng sev-${row.worst}` : 'agency-ok'}">` +
+        `<th scope="row">${escapeHtml(row.code)}</th>` +
+        `<td class="company">${escapeHtml(info.company || '-')}</td>` +
+        `<td class="mirayaku">${escapeHtml(info.mirayaku || '-')}</td>` +
+        `${cells}</tr>`;
     })
     .join('');
 
   return `<table id="agencies">
-      <thead><tr><th>代理店コード</th>${AGENCY_COLUMNS.map((column) => `<th>${column.label}</th>`).join('')}</tr></thead>
+      <thead><tr>
+        <th>代理店コード</th><th>会社名</th><th>みらやく</th>
+        ${AGENCY_COLUMNS.map((column) => `<th>${column.label}</th>`).join('')}
+      </tr></thead>
       <tbody>${body}</tbody>
     </table>`;
 }
@@ -654,6 +688,8 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   .muted { color: #6b7280; font-size: 12px; }
   #agencies th[scope="row"] { background: #fafbfc; font-family: ui-monospace, monospace; white-space: nowrap; }
   #agencies td { text-align: center; white-space: nowrap; }
+  #agencies td.company { text-align: left; white-space: normal; min-width: 180px; }
+  #agencies td.mirayaku { font-weight: 700; }
   #agencies td.ok { color: #14683a; font-weight: 700; }
   #agencies tr.agency-ng th[scope="row"] { background: #fdecea; }
   .title { font-weight: 600; }
@@ -708,17 +744,20 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
 
   <h2>代理店コードごとの結果 (${buildAgencyRows(records).length} コード)</h2>
   <div class="panel">
-    ${renderAgencyTable(records)}
+    ${renderAgencyTable(records, summary.agencyMeta ?? {})}
   </div>
   <p class="muted">OK = その観点で検知なし。検査した代理店コードは実行ごとに抽選されます。</p>
 
   <h2>検知した不具合 (${findings.length} 件)</h2>
   <div class="filters">
     表示する重大度:
-    ${SEVERITY_ORDER.map(
-      (severity) =>
-        `<label><input type="checkbox" checked data-filter="${severity}"> ${SEVERITY_LABEL[severity]}</label>`,
-    ).join('')}
+    ${SEVERITY_ORDER.map((severity) => {
+      // 既定は対応が必要なもの (Critical / High) だけ。
+      // Medium / Low は毎回出る記録なので、件数だけ見せて既定では隠す。
+      const checked = severity === 'critical' || severity === 'high';
+      const count = summary.findings[severity] ?? 0;
+      return `<label><input type="checkbox" ${checked ? 'checked' : ''} data-filter="${severity}"> ${SEVERITY_LABEL[severity]} (${count})</label>`;
+    }).join('')}
   </div>
   <div class="panel">
     ${
@@ -766,12 +805,15 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
     }
   })();
   document.querySelectorAll('[data-filter]').forEach(function (input) {
-    input.addEventListener('change', function () {
+    var apply = function () {
       var severity = input.getAttribute('data-filter');
       document.querySelectorAll('#findings tbody tr[data-severity="' + severity + '"]').forEach(function (row) {
         row.style.display = input.checked ? '' : 'none';
       });
-    });
+    };
+    input.addEventListener('change', apply);
+    // 読み込み時にも適用する (既定で Medium / Low を隠すため)
+    apply();
   });
 </script>
 </body>

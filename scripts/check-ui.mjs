@@ -212,6 +212,15 @@ await check('検知結果を同じ内容でまとめられる', () => {
   assert.deepEqual(groups[0].agencies, ['A001'], 'どの代理店で出たか分かること');
 });
 
+await check('会社名と みらやく掲載可否が画面に渡る', async () => {
+  const { body } = await json('/api/state');
+  assert.equal(typeof body.agencyMeta, 'object', '代理店の情報が返ること');
+  const response = await fetch(base);
+  const html = await response.text();
+  assert.ok(html.includes('会社名'), '会社名の列を持つこと');
+  assert.ok(html.includes('みらやく'), 'みらやくの列を持つこと');
+});
+
 await check('検知結果が画面の状態に含まれる', async () => {
   const { body } = await json('/api/state');
   assert.ok(Array.isArray(body.findings), '検知結果の一覧が返ること');

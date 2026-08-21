@@ -223,6 +223,10 @@ export interface AgencySpec {
   entryPath: string;
   expectedFinalPath: string;
   redirected: boolean;
+  /** 会社名 (レポート・画面の表示用。コードだけでは人が判断できない) */
+  company?: string;
+  /** みらいの約束 (みらやく) の掲載可否: ○ / × */
+  mirayaku?: string;
   /** 挙動パターン名 (抽選のグループ分けに使う) */
   profile?: string;
   /**
