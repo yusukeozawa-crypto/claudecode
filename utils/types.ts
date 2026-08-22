@@ -209,7 +209,8 @@ export interface AgencyFile {
      * 代理店名を読み取る場所。上から順に最初に見つかった要素を使う。
      * 見つからない場合はページ全体から探す (判定は甘くなる)。
      */
-    headerSelectors?: string[];
+    /** ヘッダーの代理店名を出す端末 (既定は pc と sp の両方) */
+    headerDevices?: string[];
     footerSelectors?: string[];
   };
   /**

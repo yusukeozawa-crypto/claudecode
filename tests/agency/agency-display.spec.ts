@@ -43,7 +43,7 @@ test.describe('代理店ごとの表示 @agency', () => {
       qa.addAll(await verifySections(page, spec, label));
       qa.addAll(await verifyTexts(page, spec.expectedTexts, label));
       // このサイトの中心的な仕様 (代理店名の表示 / あんしんパックの有無)
-      qa.addAll(await verifyDisplayRules(page, config, spec, label));
+      qa.addAll(await verifyDisplayRules(page, config, spec, label, qa.deviceId));
       qa.addAll(await verifyAssets(page, spec.expectedAssets, label));
       qa.addAll(await verifyCtaText(page, spec, label));
       qa.addAll(await verifyNoOtherAgencyInfo(page, config, spec.code, label));

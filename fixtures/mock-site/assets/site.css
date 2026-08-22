@@ -47,3 +47,13 @@ footer.site-footer { margin-top: 32px; padding: 24px 16px; background: #f4f6f8; 
   nav.global-nav ul { gap: 10px; font-size: 14px; }
   table.price-table { display: block; overflow-x: auto; }
 }
+
+/*
+  実サイトと同じく、ヘッダーの代理店名は PC のみ表示する
+  (実サイトは Tailwind の hidden / md:block で幅により隠している)。
+  端末を区別せずに判定すると、スマートフォンで毎回「出ていない」と
+  報告してしまう。この差をモックでも再現しておく。
+*/
+@media (max-width: 767px) {
+  .header-agency { display: none !important; }
+}

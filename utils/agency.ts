@@ -664,9 +664,17 @@ export async function verifyDisplayRules(
   config: QaConfig,
   spec: { company?: string; agencyName?: 'shown' | 'hidden'; anshinPack?: 'present' | 'absent' | 'ignore' },
   label: string,
+  /** 検査中の端末 (pc / sp)。ヘッダーの表示端末が分かれているため必要 */
+  deviceId?: string,
 ): Promise<FindingInput[]> {
   const texts = config.agency.agencyNameTexts;
   if (!texts) return [];
+
+  // ヘッダーの代理店名を出す端末。設定が無ければ全端末で出るものとして扱う。
+  const headerDevices = texts.headerDevices ?? null;
+  const headerExpected = headerDevices === null || deviceId === undefined
+    ? true
+    : headerDevices.includes(deviceId);
 
   // 表示されているテキストで判定する (DOM に残っていても非表示なら「無い」)
   const rawBody = await page.evaluate(() => document.body?.innerText ?? '').catch(() => '');
@@ -686,13 +694,9 @@ export async function verifyDisplayRules(
   const footerPrefix = texts.footer.split('{company}')[0];
   const displayed = await page
     .evaluate(
-      ({ prefix, headerSelectors, footerSelectors }: {
-        prefix: string;
-        headerSelectors: string[];
-        footerSelectors: string[];
-      }) => {
-        const pick = (selectors: string[]): HTMLElement | null => {
-          for (const selector of selectors) {
+      ({ prefix, footerSelectors }: { prefix: string; footerSelectors: string[] }) => {
+        const footerElement = (() => {
+          for (const selector of footerSelectors) {
             try {
               const element = document.querySelector(selector);
               if (element instanceof HTMLElement) return element;
@@ -701,44 +705,66 @@ export async function verifyDisplayRules(
             }
           }
           return null;
-        };
-        const whole = document.body?.innerText ?? '';
-        const footerElement = pick(footerSelectors);
-        const headerElement = pick(headerSelectors);
-        // 「募集代理店：」の直後から行末までを会社名とみなす
-        const nameFrom = (text: string): string => {
-          if (prefix === '') return '';
-          const index = text.indexOf(prefix);
-          if (index < 0) return '';
-          return text.slice(index + prefix.length).split('\n')[0].trim().slice(0, 60);
-        };
-        return {
-          name: nameFrom(footerElement?.innerText ?? whole),
-          headerText: headerElement?.innerText ?? '',
-          foundHeaderElement: Boolean(headerElement),
-          foundFooterElement: Boolean(footerElement),
-        };
-      },
-      {
-        prefix: footerPrefix,
-        headerSelectors: texts.headerSelectors ?? ['header'],
-        footerSelectors: texts.footerSelectors ?? ['footer'],
-      },
-    )
-    .catch(() => ({ name: '', headerText: '', foundHeaderElement: false, foundFooterElement: false }));
+        })();
 
-  // ヘッダーに出ている代理店名。
-  //   ヘッダーの要素が見つからない場合はページ全体で見る (判定は甘くなる)。
-  const headerName =
-    displayed.name !== '' &&
-    (displayed.foundHeaderElement ? displayed.headerText.includes(displayed.name) : body.includes(displayed.name))
-      ? displayed.name
-      : '';
-  const footerName = displayed.name;
-  const locateHint = displayed.foundHeaderElement
-    ? undefined
-    : 'ヘッダーの要素が見つからなかったため、ページ全体から探しました ' +
-      '(config/agency.yml の agencyNameTexts.headerSelectors に実サイトの指定を足すと精度が上がります)。';
+        // 「募集代理店：」を含む最も内側の要素を集める。
+        //   実サイトのヘッダーは Tailwind のユーティリティクラスだけで
+        //   組まれており (hidden border-b md:block …)、クラス名は
+        //   見た目を変えるたびに変わる。クラスで指す代わりに、
+        //   文言のある場所をそのまま探して位置で見分ける。
+        const occurrences: Array<{ name: string; visible: boolean; inFooter: boolean; top: number }> = [];
+        if (prefix !== '') {
+          for (const element of Array.from(document.querySelectorAll<HTMLElement>('body *'))) {
+            const own = element.textContent ?? '';
+            if (!own.includes(prefix)) continue;
+            // 子要素にも含まれるなら、より内側の要素で拾う
+            const deeper = Array.from(element.children).some(
+              (child) => (child.textContent ?? '').includes(prefix),
+            );
+            if (deeper) continue;
+            const after = own.slice(own.indexOf(prefix) + prefix.length);
+            const name = after.split('\n')[0].trim().slice(0, 60);
+            const rect = element.getBoundingClientRect();
+            occurrences.push({
+              name,
+              // display:none の要素は DOM にあっても「表示されていない」
+              visible: element.offsetParent !== null && rect.width > 0 && rect.height > 0,
+              inFooter: Boolean(footerElement && footerElement.contains(element)),
+              top: rect.top + window.scrollY,
+            });
+          }
+        }
+        occurrences.sort((a, b) => a.top - b.top);
+        return { occurrences, foundFooterElement: Boolean(footerElement) };
+      },
+      { prefix: footerPrefix, footerSelectors: texts.footerSelectors ?? ['footer'] },
+    )
+    .catch(() => ({ occurrences: [], foundFooterElement: false }));
+
+  const occurrences = displayed.occurrences;
+  // ヘッダー = フッターの外にあるもの。フッター = フッターの中にあるもの。
+  //   フッター要素が見つからない場合は、いちばん下のものをフッターとみなす。
+  const headerCandidates = occurrences.filter((entry) => !entry.inFooter);
+  const footerCandidates = displayed.foundFooterElement
+    ? occurrences.filter((entry) => entry.inFooter)
+    : occurrences.slice(-1);
+  const firstVisible = (list: typeof occurrences): typeof occurrences[number] | undefined =>
+    list.find((entry) => entry.visible && entry.name !== '');
+
+  const headerHit = firstVisible(headerCandidates);
+  const footerHit = firstVisible(footerCandidates);
+  const headerName = headerHit?.name ?? '';
+  const footerName = footerHit?.name ?? '';
+
+  // DOM にはあるが CSS で隠されている場合は、それを結果に残す。
+  //   「サイトが出していない」と「この画面幅では隠している」は別物で、
+  //   前者は不具合、後者は仕様のことがある (実サイトのヘッダーは PC のみ)。
+  const hiddenOnly = (list: typeof occurrences): boolean =>
+    list.length > 0 && list.every((entry) => !entry.visible);
+  const headerHiddenByCss = hiddenOnly(headerCandidates);
+  const locateHint = headerHiddenByCss
+    ? 'ヘッダーの枠は DOM にありますが表示されていません (CSS で隠されています)。'
+    : undefined;
 
   const findings: FindingInput[] = [];
 
@@ -792,25 +818,32 @@ export async function verifyDisplayRules(
 
     for (const entry of entries) {
       const shown = entry.name !== '';
-      const ok = shown === shouldShow;
+      // ヘッダーの代理店名を出さない端末では「なし」が正しい。
+      //   実サイトのヘッダーは PC のみ表示で、スマートフォン幅では
+      //   CSS で隠される。端末を区別しないと SP が毎回赤くなる。
+      const expectHere = entry.checkId === 'header-name' && !headerExpected ? false : shouldShow;
+      const ok = shown === expectHere;
       const value = shown ? entry.name : 'なし';
       findings.push({
         checkId: entry.checkId,
         checkOk: ok,
         // 表にはこの値がそのまま出る
         observedValue: value,
-        expectedValue: shouldShow ? '代理店名が出ること' : 'なし',
+        expectedValue: expectHere ? '代理店名が出ること' : 'なし',
         category: 'agency-display',
         severity: ok ? 'low' : 'critical',
         title: ok
           ? `[確認OK] ${label}: ${entry.where}の代理店名`
-          : shouldShow
+          : expectHere
             ? `${label}: ${entry.where}に代理店名が表示されていません`
             : `${label}: ${entry.where}に代理店名が表示されています`,
-        expected: shouldShow ? `${entry.where}に代理店名が表示されること` : `${entry.where}に代理店名が表示されないこと`,
+        expected: expectHere ? `${entry.where}に代理店名が表示されること` : `${entry.where}に代理店名が表示されないこと`,
         actual: shown ? `「${entry.name}」が表示されています` : '表示されていません',
         url: page.url(),
-        detail: entry.checkId === 'header-name' ? locateHint : undefined,
+        // 注記は「出るはずなのに出ていない」ときだけ出す。
+        //   出ないのが正しい場合 (SP・代理店なし) に出すと、
+        //   問題があるように読めてしまう。
+        detail: entry.checkId === 'header-name' && expectHere ? locateHint : undefined,
       });
     }
   }

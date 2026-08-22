@@ -14,10 +14,19 @@ agencyNameTexts:
   header: "{company}"
   footer: "募集代理店：{company}"
   forbiddenWhenHidden: 募集代理店
-  # 代理店名を読み取る場所。上から順に最初に見つかった要素を使う。
-  #   見つからない場合はページ全体から探す (判定は甘くなる)。
-  headerSelectors: ["header", "[role=banner]", ".header", "#header", ".l-header", ".p-header", ".site-header"]
+  # フッターの要素。ここに入っているものをフッター表記、
+  #   それ以外 (フッターの外) をヘッダー表記として扱う。
+  #
+  #   ヘッダー側はセレクタで指定しない。実サイトのヘッダーは
+  #   Tailwind のユーティリティクラスだけで組まれており
+  #   (hidden border-b md:block …)、見た目を変えるたびにクラスが変わる。
+  #   クラスで指すと、変わった瞬間に「検査していないのに合格」になる。
   footerSelectors: ["footer", "[role=contentinfo]", ".footer", "#footer", ".l-footer", ".p-footer", ".site-footer"]
+  # ヘッダーの代理店名を出す端末。
+  #   実サイトのヘッダーは PC のみ表示 (class に hidden md:block があり、
+  #   スマートフォン幅では CSS で隠される)。ここに sp を足せば
+  #   スマートフォンでも「出ること」を期待する。
+  headerDevices: [pc]
   anshinPack:
     - あんしんパック
     - 安心パック

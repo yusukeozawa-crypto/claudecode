@@ -58,6 +58,11 @@ export class QaSession {
     return this.config.environment.readOnly;
   }
 
+  /** 検査中の端末 (pc / sp)。端末で挙動が違う項目の判定に使う */
+  get deviceId(): string {
+    return this.findings.currentContext.deviceId;
+  }
+
   /**
    * ページへ遷移する。
    *   - リクエスト間隔を空ける (config/runtime.yml)
