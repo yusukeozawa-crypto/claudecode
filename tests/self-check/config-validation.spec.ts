@@ -60,6 +60,54 @@ test.describe('設定検証の自己検査 @selfcheck', () => {
     expect(() => validateConfig(config), '同梱の設定は妥当であること').not.toThrow();
   });
 
+  test('流入では飛ばず再訪で飛ぶ代理店の設定を通す (カカクコム)', async () => {
+    // カカクコムは URL のコードでは専用 LP へ飛ばず、
+    // 保存されたコードで再訪したときに飛ぶ。そのため
+    //   entryFinalPath      … 流入時の着地 (通常 LP)
+    //   expectedFinalPath   … 最終的な表示ページ (専用 LP)
+    // が別になる。
+    //
+    // ここを expectedFinalPath だけで照合していたため、
+    // 正しい設定を「不備」として弾き、実サイトの検査が
+    // 起動すらできなくなっていた。
+    expect(() =>
+      validateConfig(
+        broken((draft) => {
+          draft.agencies.agencies = [
+            {
+              ...draft.agencies.agencies[0],
+              code: 'revisit-case',
+              entryPath: '/lp/service/',
+              entryFinalPath: '/lp/service/',
+              expectedFinalPath: '/lp/service-premium/',
+              redirected: false,
+              landsAfterRevisit: true,
+            },
+          ];
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  test('再訪で飛ぶはずなのに行き先が同じ設定を検出する', async () => {
+    expectError(
+      broken((draft) => {
+        draft.agencies.agencies = [
+          {
+            ...draft.agencies.agencies[0],
+            code: 'revisit-same',
+            entryPath: '/lp/service/',
+            entryFinalPath: '/lp/service/',
+            expectedFinalPath: '/lp/service/',
+            redirected: false,
+            landsAfterRevisit: true,
+          },
+        ];
+      }),
+      '再訪後の着地',
+    );
+  });
+
   test('代理店コードの重複を検出する', async () => {
     expectError(
       broken((draft) => {

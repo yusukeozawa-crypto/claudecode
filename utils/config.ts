@@ -200,11 +200,24 @@ export function validateConfig(config: QaConfig): void {
     seenCodes.add(agency.code);
     if (!agency.entryPath) problems.push(`config/agencies.yml: ${agency.code} の entryPath が未設定です`);
     if (!agency.expectedFinalPath) problems.push(`config/agencies.yml: ${agency.code} の expectedFinalPath が未設定です`);
-    if (agency.redirected && agency.expectedFinalPath === agency.entryPath) {
-      problems.push(`config/agencies.yml: ${agency.code} は redirected: true ですが expectedFinalPath が entryPath と同一です`);
+    // redirected は「流入したときに移動するか」。
+    // 移動先の照合は entryFinalPath (流入時の着地) で行う。
+    //
+    // expectedFinalPath は「その代理店の最終的な表示ページ」で、
+    // カカクコムのように保存されたコードで再訪して初めて着く場合
+    // (landsAfterRevisit) は流入時の着地と別になる。
+    // ここを expectedFinalPath で照合すると、正しい設定を不備として弾く。
+    const entryLanding = agency.entryFinalPath ?? agency.expectedFinalPath;
+    if (agency.redirected && entryLanding === agency.entryPath) {
+      problems.push(`config/agencies.yml: ${agency.code} は redirected: true ですが流入時の着地が entryPath と同一です`);
     }
-    if (!agency.redirected && agency.expectedFinalPath !== agency.entryPath) {
-      problems.push(`config/agencies.yml: ${agency.code} は redirected: false ですが expectedFinalPath が entryPath と異なります`);
+    if (!agency.redirected && entryLanding !== agency.entryPath) {
+      problems.push(`config/agencies.yml: ${agency.code} は redirected: false ですが流入時の着地が entryPath と異なります`);
+    }
+    if (agency.landsAfterRevisit && agency.expectedFinalPath === entryLanding) {
+      problems.push(
+        `config/agencies.yml: ${agency.code} は landsAfterRevisit: true ですが再訪後の着地 (expectedFinalPath) が流入時と同一です`,
+      );
     }
     // application: null は「申込導線を検査しない」の明示。
     // 設定されている場合は中身が揃っていることを要求する
