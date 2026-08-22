@@ -880,6 +880,8 @@ export interface ApplicationLinkInfo {
   text: string;
   /** 申込サイト側のパス */
   path: string;
+  /** 遷移先の絶対 URL (押す・直接開くために使う) */
+  url: string;
   /** 代理店コードが URL に乗っているか */
   hasCode: boolean;
   /** 画面に表示されているか */
@@ -948,6 +950,7 @@ export async function observeApplicationLinks(
       kind: entry.kind,
       text: entry.text,
       path: parsed.pathname,
+      url: parsed.toString(),
       hasCode: agencyCode !== null && parsed.searchParams.get(paramName) === agencyCode,
       visible: entry.visible,
     });

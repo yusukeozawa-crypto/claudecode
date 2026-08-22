@@ -164,8 +164,10 @@ profiles:
     # unknown の間は方式を照合せず、実測値を記録する。
     redirectMechanism: null
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    # 流入時は専用 LP を通らない (URL のコードでは飛ばない)。
+    # ここに /lp/service-premium/ を書くと流入の検査が誤検知になる。
+    # 再訪時の経路は revisitRedirect 側で検査する。
+    expectedRedirectPaths: []
     # 専用 LP でもヘッダーとフッターに代理店名が出るのが期待。
     # あんしんパックも専用 LP に記載がある
     agencyName: shown
@@ -242,8 +244,10 @@ profiles:
       toPath: /lp/service-premium/
     redirectMechanism: null
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    # 流入時は専用 LP を通らない (URL のコードでは飛ばない)。
+    # ここに /lp/service-premium/ を書くと流入の検査が誤検知になる。
+    # 再訪時の経路は revisitRedirect 側で検査する。
+    expectedRedirectPaths: []
     agencyName: shown
     anshinPack: present
     codeApplied: true

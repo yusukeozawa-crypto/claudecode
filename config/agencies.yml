@@ -97,8 +97,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1634,8 +1633,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1663,8 +1661,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1692,8 +1689,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1721,8 +1717,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1750,8 +1745,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1779,8 +1773,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1808,8 +1801,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1837,8 +1829,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1866,8 +1857,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1895,8 +1885,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1924,8 +1913,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1953,8 +1941,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -1982,8 +1969,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2011,8 +1997,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2040,8 +2025,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2069,8 +2053,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2098,8 +2081,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2127,8 +2109,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2156,8 +2137,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2185,8 +2165,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2214,8 +2193,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2243,8 +2221,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2272,8 +2249,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2301,8 +2277,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2330,8 +2305,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2359,8 +2333,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2388,8 +2361,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2417,8 +2389,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2446,8 +2417,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2475,8 +2445,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2504,8 +2473,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2533,8 +2501,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2562,8 +2529,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2591,8 +2557,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2620,8 +2585,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2649,8 +2613,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2678,8 +2641,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2707,8 +2669,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2736,8 +2697,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2765,8 +2725,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2794,8 +2753,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2823,8 +2781,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2852,8 +2809,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2881,8 +2837,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2910,8 +2865,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2939,8 +2893,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2968,8 +2921,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -2997,8 +2949,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -3026,8 +2977,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -3055,8 +3005,7 @@ agencies:
     landsAfterRevisit: true
     redirectMechanism: unknown
     expectedRedirectCount: null
-    expectedRedirectPaths:
-      - /lp/service-premium/
+    expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}

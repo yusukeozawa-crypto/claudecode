@@ -20,7 +20,7 @@ import {
   observeCodeInApplication, verifyCodeCarried,
 } from '../../utils/handoff';
 import { enterAsAgency } from '../../utils/agency-entry';
-import { resolveSelector, expectedApplicationHost } from '../../utils/config';
+import { expectedApplicationHost } from '../../utils/config';
 
 const config = loadConfig();
 const specs = agencySpecs(config);
@@ -54,7 +54,6 @@ test.describe('申込導線の観測 @agency @cta', () => {
   //
   //   申込ボタンを押して遷移するだけで、入力も送信も行わない。
   // ------------------------------------------------------------------
-  const ctaSelectorSource = config.agency.selectors.ctaPrimary;
 
   // 引き継ぎ方式が確定している代理店 (application 設定済み) も対象にする。
   // 「申込フォームに遷移してもコードが維持される」は全代理店で必須のため、
@@ -62,7 +61,6 @@ test.describe('申込導線の観測 @agency @cta', () => {
   for (const spec of specs) {
     test(`${spec.code}: 申込フォームに遷移してもコードが維持される`, async ({ qa, page, context }) => {
       test.slow();
-      test.skip(!ctaSelectorSource, '申込ボタンのセレクタ (selectors.ctaPrimary) が未設定です');
       // サイト側でコードとして扱われない (支店コードなど) 場合は
       // 引き継がれないのが正しい挙動なので検査しない
       test.skip(
@@ -75,68 +73,91 @@ test.describe('申込導線の観測 @agency @cta', () => {
 
       if (!(await enterAsAgency(qa, spec))) return;
 
-      // 代理店ごとに申込への入口が違う場合 (POST 送信のボタンなど) は
-      // その代理店の CTA を使う。共通のセレクタで固定すると、
-      // 正常なサイトを「申込フォームへ遷移できない」と誤って報告してしまう。
-      const ctaSource = spec.cta?.testId ?? ctaSelectorSource!;
-      const cta = page.locator(resolveSelector(ctaSource)).first();
-      if ((await cta.count()) === 0) {
+      // 申込への入口は「文言」ではなく「行き先」で探す。
+      //
+      //   文言 (text=今すぐ申込) で探すと、SP と専用 LP で別の要素に当たり
+      //   押せず、正常なサイトを「申込フォームへ遷移できない」と
+      //   誤って報告していた。行き先で探せば、文言やデザインが変わっても
+      //   壊れない。
+      const expectedHost = expectedApplicationHost(config, null);
+      const before = page.url();
+      const links = await observeApplicationLinks(page, config, spec.code);
+      // リンクを優先し、無ければ送信フォーム (POST 方式の代理店) を使う
+      const clickable = [...links.filter((link) => link.kind === 'link'), ...links.filter((link) => link.kind === 'form')];
+      const target = clickable.find((link) => link.visible) ?? clickable[0] ?? null;
+
+      if (!target) {
         qa.add({
           category: 'agency-handoff',
-          severity: 'high',
-          title: `${spec.code}: 申込ボタンが見つかりません`,
-          expected: `${ctaSource} に一致するボタンがあること`,
-          actual: '一致する要素がありません',
-          url: page.url(),
+          severity: 'critical',
+          title: `${spec.code}: 申込サイトへの導線が見つかりません`,
+          expected: `${expectedHost} へ行くリンクがあること`,
+          actual: 'リンクもフォームも見つかりません',
+          url: before,
+          agencyCode: spec.code,
         });
+        qa.collectMonitorFindings();
         return;
       }
 
-      const expectedHost = expectedApplicationHost(config, null);
-      const before = page.url();
-
-      // 申込ボタンを押す。
-      //   SP では固定ヘッダー・追従バナーがボタンに重なって押せないことがある。
-      //   1 回失敗しただけで「押せない」と報告すると、実際には使えるボタンを
-      //   不具合として出してしまうため、順に手を変えて試す。
-      //     1. 画面内に入れてから押す
-      //     2. 重なりを無視して押す (force)
-      //     3. リンクなら遷移先を直接開く
-      let clickError = '';
-      await cta.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => undefined);
-      const clicked = await cta
-        .click({ timeout: 15000 })
-        .then(() => true)
-        .catch((error: unknown) => {
-          clickError = String(error).split('\n')[0];
-          return false;
+      // 押せる状態で見つからなかった場合は、それ自体を報告する。
+      //   引き継ぎの確認は遷移先を直接開いて続ける
+      //   (「押せない」と「引き継がれない」を切り分けるため)。
+      const hiddenOnly = !target.visible;
+      if (hiddenOnly) {
+        qa.add({
+          category: 'agency-handoff',
+          severity: 'high',
+          title: `${spec.code}: 申込ボタンが画面に表示されていません`,
+          expected: '申込ボタンが表示されていて押せること',
+          actual: `リンクは ${clickable.length} 件あるが、いずれも表示されていません (例: 「${target.text}」→ ${target.path})`,
+          url: before,
+          agencyCode: spec.code,
+          detail:
+            '固定ヘッダー・追従バナー・折りたたみの中に隠れている可能性があります。' +
+            '引き継ぎの確認は遷移先を直接開いて続けました。',
         });
+      }
 
-      if (!clicked) {
-        const forced = await cta
-          .click({ timeout: 8000, force: true })
+      // フォーム方式の場合は送信ボタンを押す (リンクではないため直接開けない)
+      const locator =
+        target.kind === 'form'
+          ? page.locator(`form[action="${target.url}"] :is(button, input[type="submit"])`).first()
+          : page.locator(`a[href="${target.url}"]`).first();
+      let clicked = false;
+      if (!hiddenOnly && (await locator.count()) > 0) {
+        await locator.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => undefined);
+        clicked = await locator
+          .click({ timeout: 15000 })
           .then(() => true)
           .catch(() => false);
-        if (!forced) {
-          // リンクなら href を直接開く (押せるかどうかとは別に、
-          // 引き継ぎが成立するかは確認できる)
-          const href = await cta.getAttribute('href').catch(() => null);
-          if (href) {
-            await qa.goto({ url: new URL(href, before).toString(), agencyCode: spec.code });
-          }
+        // 重なりで押せない場合は重なりを無視して押す
+        if (!clicked) {
+          clicked = await locator
+            .click({ timeout: 8000, force: true })
+            .then(() => true)
+            .catch(() => false);
+        }
+        if (!clicked) {
           qa.add({
             category: 'agency-handoff',
             severity: 'high',
             title: `${spec.code}: 申込ボタンを押せませんでした`,
             expected: '申込ボタンを押せること',
-            actual: clickError || '押しても反応しません',
+            actual: `「${target.text}」を押しても反応しません`,
             url: before,
-            detail: href
-              ? `リンク先 (${href}) を直接開いて引き継ぎの確認を続けました。ボタンに他の要素が重なっている可能性があります。`
-              : 'リンクではないため直接開けませんでした。固定ヘッダーや追従バナーが重なっていないか確認してください。',
+            agencyCode: spec.code,
+            detail: '他の要素が重なっている可能性があります。遷移先を直接開いて引き継ぎの確認を続けました。',
           });
         }
       }
+
+      // 押せなかった場合は遷移先を直接開く (引き継ぎは確認できる)。
+      // フォーム方式は送信内容が URL に無いため直接開けない
+      if (!clicked && target.kind === 'link') {
+        await qa.goto({ url: target.url, agencyCode: spec.code });
+      }
+
       // 別ドメインへの遷移を待つ (押しても遷移しない場合は下で報告する)
       await page.waitForURL((url) => url.host === expectedHost, { timeout: 20000 }).catch(() => undefined);
       await page.waitForLoadState('load').catch(() => undefined);
