@@ -7,7 +7,7 @@
 #
 #   再生成: npm run agencies:build
 #
-#   全 209 件 / マスタ 213 件
+#   全 210 件 / マスタ 214 件
 #
 #   実際に検査する代理店は実行ごとに抽選される (scope を参照)。
 #   毎回同じ代理店だけを検査すると、残りに潜む問題を見逃し続けるため。
@@ -1568,6 +1568,32 @@ agencies:
     expectedTexts: {}
     agencyName: shown
     anshinPack: present
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily02br01
+    label: 動物病院パスポートダイレクト用 — ダイレクト扱い (みらやく掲載不可)
+    company: 動物病院パスポートダイレクト用
+    mirayaku: ×
+    profile: direct-no-mirayaku
+    recognized: true
+    revisitRedirect: null
+    patternLabel: ダイレクト (みらやく×)
+    effectiveFrom: null
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: hidden
+    anshinPack: absent
     codeApplied: false
     expectedAssets: {}
     cta: null
