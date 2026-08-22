@@ -49,6 +49,13 @@ export interface Finding {
    */
   observedValue?: string;
   expectedValue?: string | null;
+  /**
+   * 仕様どおりだったか。
+   * 表の色 (白 / 赤) はこれで決める。
+   * 見えた値をそのまま出す項目 (代理店名など) では
+   * 値の一致では合否を決められないため、明示的に持つ。
+   */
+  checkOk?: boolean;
   severity: Severity;
   category: FindingCategory;
   /** 何を検査したか */
@@ -190,6 +197,12 @@ export interface AgencyFile {
      * 商品の案内ではないため、判定前に文章から取り除く。
      */
     anshinPackIgnore?: string[];
+    /**
+     * 代理店名を読み取る場所。上から順に最初に見つかった要素を使う。
+     * 見つからない場合はページ全体から探す (判定は甘くなる)。
+     */
+    headerSelectors?: string[];
+    footerSelectors?: string[];
   };
   /**
    * 代理店コードの保存先。

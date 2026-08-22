@@ -194,7 +194,11 @@ export function buildChecklist(
         continue;
       }
 
-      const ok = observed === expected;
+      // 仕様どおりだったかは検査側が持っている値で決める。
+      //   代理店名の列は「表示されている会社名」をそのまま出すため、
+      //   値の一致では合否を決められない。
+      //   古い結果 (checkOk が無い) は値の一致で判断する。
+      const ok = finding.checkOk ?? observed === expected;
       // 一度 ng になったセルは ng のままにする
       // (同じ項目を複数回検査した場合、悪い方を残す)
       if (cell.state === 'ng' && ok) continue;

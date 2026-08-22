@@ -1222,6 +1222,7 @@ export function verifyCodeCarried(
   if (observation.foundIn.length === 0) {
     findings.push({
       checkId: 'code-carry',
+      checkOk: false,
       observedValue: 'なし',
       expectedValue: 'あり',
       category: 'agency-handoff',
@@ -1242,6 +1243,7 @@ export function verifyCodeCarried(
   } else {
     findings.push({
       checkId: 'code-carry',
+      checkOk: true,
       observedValue: 'あり',
       expectedValue: 'あり',
       category: 'agency-handoff',

@@ -363,6 +363,7 @@ export function verifyRedirectTrace(
   if (!samePath(trace.finalUrl, expectation.expectedFinalPath)) {
     findings.push({
       checkId: expectation.checkId,
+      checkOk: false,
       observedValue: redirected ? 'あり' : 'なし',
       expectedValue: expectation.redirected ? 'あり' : 'なし',
       category: 'agency-redirect',
@@ -379,6 +380,7 @@ export function verifyRedirectTrace(
   if (expectation.redirected !== redirected) {
     findings.push({
       checkId: expectation.checkId,
+      checkOk: false,
       observedValue: redirected ? 'あり' : 'なし',
       expectedValue: expectation.redirected ? 'あり' : 'なし',
       category: 'agency-redirect',
@@ -477,6 +479,7 @@ export function verifyRedirectTrace(
   if (expectation.checkId && !findings.some((finding) => finding.checkId === 'redirect')) {
     findings.push({
       checkId: 'redirect',
+      checkOk: true,
       observedValue: redirected ? 'あり' : 'なし',
       expectedValue: expectation.redirected ? 'あり' : 'なし',
       category: 'agency-redirect',

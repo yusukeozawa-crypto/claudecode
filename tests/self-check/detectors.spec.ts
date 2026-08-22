@@ -1448,54 +1448,110 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     }
   });
 
-  test('代理店名の欠落と「あんしんパック」の出しすぎを検出できる (中心的な仕様)', async ({ page }) => {
-    // このサイトの中心的な仕様は 3 点で、いずれも文言で判定できる。
+  test('代理店名は「表示されている会社名」をそのまま出す (中心的な仕様)', async ({ page }) => {
+    // このサイトの中心的な仕様は次の 3 点。
     //   1. カカクコムは専用 LP へリダイレクトする (@redirect で検査)
-    //   2. みらやく可否に関わらず、代理店名がヘッダーとフッターに出る
+    //   2. 代理店名がヘッダーとフッターに出る
     //   3. みらやく不可の代理店は「あんしんパック」の記載が一切ない
+    //
+    // 代理店名は**マスタの会社名と見比べない**。
+    // マスタ (スプレッドシート) の会社名は社内の管理名になっている場合があり
+    // (例「Sasuke（募集人8）」)、見比べると正常なサイトを不具合として報告する。
+    // 表示されている会社名をそのまま出し、人が見て判断する形にしている。
     const param = config.agency.paramName;
 
-    // みらやく可の代理店 (A001): 代理店名と あんしんパック の両方がある
     await page.goto(`/lp/?${param}=A001`);
     await page.waitForLoadState('load');
     const company = '株式会社エーワン保険サービス';
-    const ok = await verifyDisplayRules(
+    const shown = await verifyDisplayRules(
       page,
       config,
       { company, agencyName: 'shown', anshinPack: 'present' },
       'A001',
     );
     expect(
-      ok.filter((finding) => finding.severity === 'critical'),
-      `正しい状態では検知しないこと: ${JSON.stringify(ok)}`,
+      shown.filter((finding) => finding.severity === 'critical'),
+      `正しい状態では検知しないこと: ${JSON.stringify(shown)}`,
     ).toEqual([]);
     expect(
-      ok.map((finding) => finding.checkId).sort(),
+      shown.map((finding) => finding.checkId).sort(),
       '3 項目すべての結果が返ること',
     ).toEqual(['anshin-pack', 'footer-name', 'header-name']);
 
-    // 代理店名が出ていない場合は検出する (見逃しの確認)
+    // 表に出る値は「表示されている会社名」そのもの
+    for (const checkId of ['header-name', 'footer-name']) {
+      const entry = shown.find((finding) => finding.checkId === checkId);
+      expect(entry?.observedValue, `${checkId} は会社名をそのまま出すこと`).toBe(company);
+      expect(entry?.checkOk, `${checkId} は仕様どおりであること`).toBe(true);
+    }
+
+    // マスタの会社名が違っていても、サイトの表示が正しければ問題にしない。
+    // (「Sasuke（募集人8）」のような管理名で誤検知していた)
+    const wrongName = await verifyDisplayRules(
+      page,
+      config,
+      { company: '社内の管理名（実際とは違う）', agencyName: 'shown', anshinPack: 'ignore' },
+      'A001',
+    );
+    expect(
+      wrongName.filter((finding) => finding.severity === 'critical'),
+      'マスタの会社名が違っても検知しないこと (サイトの表示が正しい)',
+    ).toEqual([]);
+    expect(
+      wrongName.find((finding) => finding.checkId === 'footer-name')?.observedValue,
+      '出ている会社名をそのまま出すこと',
+    ).toBe(company);
+
+    // 代理店名が出ていない場合は検出する (見逃しの確認)。
+    // コードなしで開くと出ない
+    await page.context().clearCookies();
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+    await page.goto('/lp/');
+    await page.waitForLoadState('load');
     const missing = await verifyDisplayRules(
       page,
       config,
-      { company: '出るはずのない会社', agencyName: 'shown', anshinPack: 'ignore' },
-      'A001',
+      { company, agencyName: 'shown', anshinPack: 'ignore' },
+      'コードなしを表示ありとして扱った場合',
     );
     const missingCritical = missing.filter((finding) => finding.severity === 'critical');
     expect(missingCritical.length, 'ヘッダーとフッターの両方で検出すること').toBe(2);
-    expect(
-      missingCritical.map((finding) => finding.checkId).sort(),
-      'どの項目が欠けているか分かること',
-    ).toEqual(['footer-name', 'header-name']);
+    for (const entry of missingCritical) {
+      expect(entry.observedValue, '出ていない場合は「なし」と出すこと').toBe('なし');
+      expect(entry.checkOk, '仕様どおりでないこと').toBe(false);
+    }
 
-    // 名前が一致しないとき、実際に出ている代理店名を出せること。
-    //   マスタ (スプレッドシート) の会社名が社内の管理名になっている場合があり
-    //   (例「Sasuke（募集人1）」「病院貼り付け窓口バナー用」)、
-    //   その場合はサイト側が正しい。「表示されていません」だけでは
-    //   サイトの不具合なのか名前の持ち方の問題なのか区別できない。
-    const footerFail = missing.find((finding) => finding.checkId === 'footer-name');
-    expect(footerFail?.actual, '実際に出ている代理店名を出すこと').toContain(company);
-    expect(footerFail?.detail, '名前の持ち方の問題かもしれないと示すこと').toContain('管理名');
+    // 出ないのが正しい場合 (ダイレクト等) は「なし」で問題なし
+    const hiddenOk = await verifyDisplayRules(page, config, { agencyName: 'hidden' }, 'コードなし');
+    expect(
+      hiddenOk.filter((finding) => finding.severity === 'critical'),
+      'コードなしで代理店名が出ないこと',
+    ).toEqual([]);
+    for (const entry of hiddenOk.filter((finding) => finding.checkId !== 'anshin-pack')) {
+      expect(entry.observedValue, '「なし」と出すこと').toBe('なし');
+      expect(entry.checkOk, '仕様どおりであること').toBe(true);
+    }
+
+    // 「募集代理店」という語はコードが無くても定型文として常にある。
+    // この語だけで判定すると全件が誤検知になる (実サイトで発生)
+    const pageText = await page.evaluate(() => document.body.innerText);
+    expect(pageText, '定型文があること (誤検知の再現条件)').toContain('募集代理店');
+
+    // 出てはいけないのに出ている場合は検出する
+    await page.goto(`/lp/?${param}=A001`);
+    await page.waitForLoadState('load');
+    const shouldBeHidden = await verifyDisplayRules(page, config, { agencyName: 'hidden' }, 'A001 を非表示扱い');
+    expect(
+      shouldBeHidden.filter((finding) => finding.severity === 'critical').length,
+      '会社名が出ていれば検知すること',
+    ).toBe(2);
+    expect(
+      shouldBeHidden.find((finding) => finding.checkId === 'footer-name')?.observedValue,
+      'どの会社名が出ているか分かること',
+    ).toBe(company);
 
     // みらやく不可の扱い: 「あんしんパック」があれば検出する
     const forbidden = await verifyDisplayRules(
@@ -1525,48 +1581,12 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).toEqual([]);
 
     // 「安心パックなし」は保険料の前提条件の注釈なので、
-    // 「あんしんパックの表示あり」と数えてはいけない。
-    // 数えると みらやく掲載不可の代理店が毎回 Critical になる (実サイトで発生)。
-    const pageText = await page.evaluate(() => document.body.innerText);
-    expect(pageText, '注釈があること (誤検知の再現条件)').toContain('安心パックなし');
+    // 「あんしんパックの表示あり」と数えてはいけない
+    const a003Text = await page.evaluate(() => document.body.innerText);
+    expect(a003Text, '注釈があること (誤検知の再現条件)').toContain('安心パックなし');
     const anshinResult = hidden.find((finding) => finding.checkId === 'anshin-pack');
     expect(anshinResult?.observedValue, '注釈だけなら「なし」と判定すること').toBe('なし');
     expect(anshinResult?.actual, '除外したことを併記すること (黙って無視しない)').toContain('除外');
-
-    // コードなしでは代理店名が出ない。
-    // 直前の検査でコードが保存されているため、消してから確認する
-    // (保存値からの復元は仕様どおりの動作)
-    await page.context().clearCookies();
-    await page.evaluate(() => {
-      window.localStorage.clear();
-      window.sessionStorage.clear();
-    });
-    await page.goto('/lp/');
-    await page.waitForLoadState('load');
-    const noCode = await verifyDisplayRules(page, config, { agencyName: 'hidden' }, 'コードなし');
-    expect(
-      noCode.filter((finding) => finding.severity === 'critical'),
-      'コードなしで代理店名が出ないこと',
-    ).toEqual([]);
-
-    // 「募集代理店」という語はコードが無くてもフッターの定型文として常にある。
-    // この語だけで判定すると全件が誤検知になる (実サイトで実際に起きた)。
-    const body = await page.evaluate(() => document.body.innerText);
-    expect(body, 'モックにも定型文があること (誤検知の再現条件)').toContain('募集代理店');
-    expect(
-      noCode.map((finding) => finding.observedValue),
-      '定型文があっても「なし」と判定すること (会社名で判定する)',
-    ).toEqual(['なし', 'なし']);
-
-    // 会社名が入っていれば検知すること (見逃しの確認)
-    await page.goto(`/lp/?${param}=A001`);
-    await page.waitForLoadState('load');
-    const shown = await verifyDisplayRules(page, config, { agencyName: 'hidden' }, 'A001 を非表示扱い');
-    expect(
-      shown.filter((finding) => finding.severity === 'critical').length,
-      '会社名が出ていれば検知すること',
-    ).toBe(2);
-    expect(shown[0]?.actual, 'どの会社名が出ているか分かること').toContain('株式会社エーワン保険サービス');
   });
 
   test('申込フォームでコードが維持されているかを判定できる (方式を問わない)', async ({ page }) => {

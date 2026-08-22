@@ -574,15 +574,6 @@ function fillTemplate(template: string, company: string): string {
 }
 
 /**
- * 設定に載っているすべての代理店の会社名。
- * 「代理店名が出ていないこと」を判定するとき、
- * 特定の 1 社ではなく**どの代理店名も出ていない**ことを確認するために使う。
- */
-function knownCompanies(config: QaConfig): string[] {
-  return [...new Set(config.agencies.agencies.map((agency) => agency.company ?? ''))];
-}
-
-/**
  * 代理店コードの保存先を調べる。
  *
  * 設定 (storage.type) に頼らず、Cookie と localStorage / sessionStorage を
@@ -640,6 +631,8 @@ export async function observeStorageLocation(
   return [
     {
       checkId: 'storage',
+      // 正解が未確定なので合否は判定しない (表では色を付けない)
+      checkOk: true,
       observedValue: places.length === 0 ? 'なし' : places.join('+'),
       // どこに保存するのが正しいかは未確定。赤にはしない
       expectedValue: null,
@@ -680,38 +673,80 @@ export async function verifyDisplayRules(
   const body = rawBody.replace(/\s+/g, ' ');
 
   /**
-   * 実際にフッターに出ている代理店名を拾う。
+   * 実際に表示されている代理店名を読み取る。
    *
-   * 期待した名前と一致しないとき「表示されていません」だけでは、
-   * サイトの不具合なのか、こちらが持っている名前が違うのかが分からない。
-   * マスタ (スプレッドシート) の会社名が社内の管理名になっている場合があり
-   * (例: 「Sasuke（募集人1）」「病院貼り付け窓口バナー用」)、
-   * その場合はサイト側が正しい。実際の名前を出せば一目で判断できる。
+   * 期待した名前と見比べるのではなく、**出ている名前をそのまま出す**。
+   * マスタ (スプレッドシート) の会社名は社内の管理名になっている場合があり
+   * (例「Sasuke（募集人8）」)、見比べると正常なサイトを不具合として報告する。
+   * サイトの表示が正しいので、出ている名前を表に載せて人が見て判断する。
+   *
+   * 名前はフッターの「募集代理店：<会社名>」から取り、
+   * ヘッダーにはその名前が出ているかを見る (同じ会社名が入るため)。
    */
-  const shownName = ((): string | null => {
-    const prefix = texts.footer.split('{company}')[0];
-    if (prefix === '') return null;
-    const index = rawBody.indexOf(prefix);
-    if (index < 0) return null;
-    const name = rawBody.slice(index + prefix.length).split('\n')[0].trim();
-    return name === '' ? null : name.slice(0, 60);
-  })();
-  const actualName = shownName === null
-    ? '表示されていません'
-    : `実際は「${texts.footer.split('{company}')[0]}${shownName}」が表示されています`;
-  const nameHint = shownName === null
+  const footerPrefix = texts.footer.split('{company}')[0];
+  const displayed = await page
+    .evaluate(
+      ({ prefix, headerSelectors, footerSelectors }: {
+        prefix: string;
+        headerSelectors: string[];
+        footerSelectors: string[];
+      }) => {
+        const pick = (selectors: string[]): HTMLElement | null => {
+          for (const selector of selectors) {
+            try {
+              const element = document.querySelector(selector);
+              if (element instanceof HTMLElement) return element;
+            } catch {
+              /* セレクタが不正な場合は次へ */
+            }
+          }
+          return null;
+        };
+        const whole = document.body?.innerText ?? '';
+        const footerElement = pick(footerSelectors);
+        const headerElement = pick(headerSelectors);
+        // 「募集代理店：」の直後から行末までを会社名とみなす
+        const nameFrom = (text: string): string => {
+          if (prefix === '') return '';
+          const index = text.indexOf(prefix);
+          if (index < 0) return '';
+          return text.slice(index + prefix.length).split('\n')[0].trim().slice(0, 60);
+        };
+        return {
+          name: nameFrom(footerElement?.innerText ?? whole),
+          headerText: headerElement?.innerText ?? '',
+          foundHeaderElement: Boolean(headerElement),
+          foundFooterElement: Boolean(footerElement),
+        };
+      },
+      {
+        prefix: footerPrefix,
+        headerSelectors: texts.headerSelectors ?? ['header'],
+        footerSelectors: texts.footerSelectors ?? ['footer'],
+      },
+    )
+    .catch(() => ({ name: '', headerText: '', foundHeaderElement: false, foundFooterElement: false }));
+
+  // ヘッダーに出ている代理店名。
+  //   ヘッダーの要素が見つからない場合はページ全体で見る (判定は甘くなる)。
+  const headerName =
+    displayed.name !== '' &&
+    (displayed.foundHeaderElement ? displayed.headerText.includes(displayed.name) : body.includes(displayed.name))
+      ? displayed.name
+      : '';
+  const footerName = displayed.name;
+  const locateHint = displayed.foundHeaderElement
     ? undefined
-    : 'サイト側の表示が正しく、こちらが持っている会社名が社内の管理名になっている可能性があります ' +
-      '(その場合は config/agency-master.tsv の company を実際の表示名に直してください)。';
+    : 'ヘッダーの要素が見つからなかったため、ページ全体から探しました ' +
+      '(config/agency.yml の agencyNameTexts.headerSelectors に実サイトの指定を足すと精度が上がります)。';
 
   const findings: FindingInput[] = [];
-  const company = spec.company ?? '';
-  const fill = (template: string): string => fillTemplate(template, company);
 
   // observedValue / expectedValue はチェックリストの表に「あり / なし」を
   // そのまま出すために持たせる。合否だけでは どちらだったか が表に出せない。
   const pass = (checkId: CheckId, title: string, actual: string, value: 'あり' | 'なし'): FindingInput => ({
     checkId,
+    checkOk: true,
     observedValue: value,
     expectedValue: value,
     category: 'agency-display',
@@ -729,6 +764,7 @@ export async function verifyDisplayRules(
     value: 'あり' | 'なし',
   ): FindingInput => ({
     checkId,
+    checkOk: false,
     // 期待とは逆の値が見えた、ということ
     observedValue: value,
     expectedValue: value === 'あり' ? 'なし' : 'あり',
@@ -741,54 +777,41 @@ export async function verifyDisplayRules(
   });
 
   // ---- 代理店名 (ヘッダー / フッター) ----
-  if (spec.agencyName === 'shown' && company !== '') {
-    const header = fill(texts.header);
-    const footer = fill(texts.footer);
-    findings.push(
-      body.includes(header)
-        ? pass('header-name', 'ヘッダーに代理店名が表示されている', `「${header}」を確認`, 'あり')
-        : {
-            ...fail('header-name', 'ヘッダーに代理店名が表示されていません', `「${header}」が表示されること`, actualName, 'なし'),
-            detail: nameHint,
-          },
-    );
-    findings.push(
-      body.includes(footer)
-        ? pass('footer-name', 'フッターに代理店名が表示されている', `「${footer}」を確認`, 'あり')
-        : {
-            ...fail('footer-name', 'フッターに代理店名が表示されていません', `「${footer}」が表示されること`, actualName, 'なし'),
-            detail: nameHint,
-          },
-    );
-  } else if (spec.agencyName === 'hidden') {
-    // 「代理店名が出ていないこと」の判定。
-    //
-    //   「募集代理店」という語だけで判定してはいけない。
-    //   この LP はフッターに定型文としてこの語を常に持っており、
-    //   コードなしでも出るため、全件が誤検知になる (実測で確認)。
-    //
-    //   判定は「募集代理店：<会社名>」の形で、**実在する代理店の会社名**が
-    //   入っているかで行う。会社名はマスタ全件を照合するので、
-    //   自社コードのときに他の代理店名が出ていても検知できる。
-    const shownNames = knownCompanies(config)
-      .filter((company) => company !== '')
-      .filter((company) => body.includes(fillTemplate(texts.footer, company)));
+  //
+  //   表に出すのは「表示されている会社名」そのもの。出ていなければ「なし」。
+  //   色は次で決める (値の一致では決めない)。
+  //     出るべきなのに「なし」          … 赤
+  //     出てはいけないのに出ている      … 赤
+  //     それ以外 (仕様どおり)          … 白
+  if (spec.agencyName === 'shown' || spec.agencyName === 'hidden') {
+    const shouldShow = spec.agencyName === 'shown';
+    const entries: Array<{ checkId: CheckId; where: string; name: string }> = [
+      { checkId: 'header-name', where: 'ヘッダー', name: headerName },
+      { checkId: 'footer-name', where: 'フッター', name: footerName },
+    ];
 
-    // 判定はページ全体の表示テキストで行うため、ヘッダーとフッターの
-    // 両方について「出ていない」ことを確認できている。
-    // 片方だけ結果を残すと、表で「もう片方は未検査」に見えてしまう。
-    for (const checkId of ['header-name', 'footer-name'] as CheckId[]) {
-      findings.push(
-        shownNames.length > 0
-          ? fail(
-              checkId,
-              '代理店名が表示されています',
-              '代理店名が表示されないこと',
-              `「${shownNames.join('」「')}」が表示されています`,
-              'あり',
-            )
-          : pass(checkId, '代理店名が表示されない', '代理店の会社名が無いことを確認', 'なし'),
-      );
+    for (const entry of entries) {
+      const shown = entry.name !== '';
+      const ok = shown === shouldShow;
+      const value = shown ? entry.name : 'なし';
+      findings.push({
+        checkId: entry.checkId,
+        checkOk: ok,
+        // 表にはこの値がそのまま出る
+        observedValue: value,
+        expectedValue: shouldShow ? '代理店名が出ること' : 'なし',
+        category: 'agency-display',
+        severity: ok ? 'low' : 'critical',
+        title: ok
+          ? `[確認OK] ${label}: ${entry.where}の代理店名`
+          : shouldShow
+            ? `${label}: ${entry.where}に代理店名が表示されていません`
+            : `${label}: ${entry.where}に代理店名が表示されています`,
+        expected: shouldShow ? `${entry.where}に代理店名が表示されること` : `${entry.where}に代理店名が表示されないこと`,
+        actual: shown ? `「${entry.name}」が表示されています` : '表示されていません',
+        url: page.url(),
+        detail: entry.checkId === 'header-name' ? locateHint : undefined,
+      });
     }
   }
 
