@@ -74,8 +74,24 @@ const ENV_KEYS = {
 const SIZES = {
   min: { label: '最小 (パターンごと 1 社)', env: { QA_AGENCY_PER_PROFILE: '1' } },
   standard: { label: '標準 (パターンごと 3 社)', env: { QA_AGENCY_PER_PROFILE: '3' } },
-  all: { label: '全件 (211 社・時間がかかります)', env: { QA_AGENCY_SCOPE: 'all' } },
+  wide: { label: '広め (パターンごと 5 社)', env: { QA_AGENCY_PER_PROFILE: '5' } },
+  all: { label: '全件', env: { QA_AGENCY_SCOPE: 'all' } },
 };
+
+/**
+ * 検査対象の代理店の件数。
+ *   「全件」が何社なのかを固定値で書くと、除外リストを変えたときに
+ *   すぐ古くなる。設定から数える。
+ */
+function agencyCount() {
+  try {
+    const file = path.join(root, 'config', 'agencies.yml');
+    const parsed = parseYaml(fs.readFileSync(file, 'utf8')) ?? {};
+    return Array.isArray(parsed.agencies) ? parsed.agencies.length : null;
+  } catch {
+    return null;
+  }
+}
 
 /** 検査以外の操作 */
 const ACTIONS = {
@@ -304,6 +320,7 @@ export function findingGroups(records, limit = 200) {
 
 function state() {
   const report = readJson(path.join(REPORT_DIR, 'qa-report.json'));
+  const count = agencyCount();
   return {
     running: Boolean(current),
     runningLabel: current?.label ?? null,
@@ -318,7 +335,13 @@ function state() {
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),
     // 実際に開く LP / 申込ページのパス (画面で URL をそのまま見せるため)
     entryPaths: entryPaths(),
-    sizes: Object.entries(SIZES).map(([key, value]) => ({ key, label: value.label })),
+    sizes: Object.entries(SIZES).map(([key, value]) => ({
+      key,
+      // 全件だけは実際の件数を出す (時間がかかることが事前に分かるように)
+      label: key === 'all' && count !== null
+        ? `全件 (${count} 社・時間がかかります)`
+        : value.label,
+    })),
     restartRequired,
     env: envStatus(),
     history: historyList(),

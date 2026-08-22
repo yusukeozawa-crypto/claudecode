@@ -110,7 +110,10 @@ await check('不明な件数の指定は実行しない', async () => {
 await check('件数の選択肢が返る', async () => {
   const { body } = await json('/api/state');
   const keys = (body.sizes ?? []).map((size) => size.key);
-  assert.deepEqual(keys, ['min', 'standard', 'all'], '最小 / 標準 / 全件を返すこと');
+  assert.deepEqual(keys, ['min', 'standard', 'wide', 'all'], '最小 / 標準 / 広め / 全件を返すこと');
+  // 「全件」の件数は設定から数える (固定値だと除外リストを変えたときに古くなる)
+  const all = (body.sizes ?? []).find((size) => size.key === 'all');
+  assert.match(all.label, /^全件 \(\d+ 社/, '全件は実際の件数を出すこと');
   assert.equal(body.restartRequired, false, '更新前は再起動の案内を出さないこと');
 });
 

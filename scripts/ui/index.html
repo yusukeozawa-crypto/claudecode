@@ -158,13 +158,15 @@
 
   /* ---- 検知 1 件 ---- */
   .finding {
-    background: var(--panel); border: 1px solid var(--border); border-left-width: 4px;
-    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; box-shadow: var(--shadow);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 22px; margin-bottom: 12px; box-shadow: var(--shadow);
+    /* 重大度は左端の帯で示す (枠線を太らせるより落ち着いて見える) */
+    box-shadow: inset 3px 0 0 var(--low), var(--shadow);
   }
-  .finding.critical { border-left-color: var(--critical); }
-  .finding.high { border-left-color: var(--high); }
-  .finding.medium { border-left-color: var(--medium); }
-  .finding.low { border-left-color: var(--low); }
+  .finding.critical { box-shadow: inset 3px 0 0 var(--critical), var(--shadow); }
+  .finding.high { box-shadow: inset 3px 0 0 var(--high), var(--shadow); }
+  .finding.medium { box-shadow: inset 3px 0 0 var(--medium), var(--shadow); }
+  .finding.low { box-shadow: inset 3px 0 0 var(--low), var(--shadow); }
   .finding .head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
   .finding .name { font-weight: 700; font-size: 14px; }
   .finding dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 10px 0 0; font-size: 13px; }
@@ -195,31 +197,79 @@
   .notice code { background: #fdf1d5; padding: 1px 6px; border-radius: 4px; }
 
   /* ---- チェックリスト ---- */
-  /*  列が多いので、1 画面に収まるよう余白を詰める (横スクロールを避ける) */
-  table.checklist { margin-bottom: 0; }
-  table.checklist th { font-size: 11px; vertical-align: bottom; padding: 10px 8px; line-height: 1.4; }
-  table.checklist td { padding: 10px 8px; text-align: center; white-space: nowrap; vertical-align: middle; }
-  table.checklist tbody tr:hover td { background: #fafbfc; }
-  table.checklist td.pattern { text-align: left; font-weight: 700; white-space: normal; max-width: 120px; }
-  table.checklist td.pattern .since { display: block; font-weight: 400; color: var(--faint); font-size: 11px; }
-  table.checklist td.company { white-space: normal; text-align: left; max-width: 170px; color: var(--sub); }
-  table.checklist td.mirayaku { font-weight: 700; font-size: 15px; }
-  table.checklist td.check-none { color: #ccd2d9; }
+  /*  端末ごとに 1 枚のカードにする。
+      PC と SP を 1 枚の表に混ぜると、端末で挙動が違ったときに
+      どちらが悪いのか分からなくなる。 */
+  .board {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); margin-bottom: 22px; overflow: hidden;
+  }
+  .board-head {
+    display: flex; align-items: baseline; gap: 14px;
+    padding: 15px 20px; border-bottom: 1px solid var(--border); background: #fcfcfd;
+  }
+  .board-head .device { font-size: 14px; font-weight: 700; letter-spacing: 0.02em; }
+  .board-head .counts { font-size: 12px; color: var(--faint); }
+  .board-head .counts em { font-style: normal; font-weight: 700; margin-left: 6px; }
+  .board-head .counts em.ng { color: var(--critical); }
+  .board-head .counts em.fine { color: #1c8a4d; }
+  .board-scroll { overflow-x: auto; }
+
+  /*  列が多いので、1 画面に収まるよう余白を詰める */
+  table.checklist { margin: 0; }
+  table.checklist th {
+    font-size: 11px; vertical-align: bottom; padding: 12px 10px; line-height: 1.4;
+    background: #fcfcfd; color: var(--faint); font-weight: 700; letter-spacing: 0.02em;
+    border-bottom: 1px solid var(--border); top: 44px;
+  }
+  table.checklist td {
+    padding: 12px 10px; text-align: center; white-space: nowrap; vertical-align: middle;
+    border-bottom: 1px solid var(--line);
+  }
+  table.checklist tbody tr:last-child td { border-bottom: 0; }
+  table.checklist tbody tr:hover td { background: #fbfcfd; }
+  /*  代理店の情報 (左) と検査結果 (右) の境目 */
+  table.checklist .first-check { border-left: 1px solid var(--border); }
+  table.checklist td.meta { background: #fdfdfe; }
+  table.checklist tbody tr:hover td.meta { background: #f8f9fb; }
+
+  table.checklist td.pattern { text-align: left; white-space: normal; max-width: 130px; }
+  /*  パターン名は分類なので、文字を太らせるのではなく札にする */
+  table.checklist .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; color: #3c4a5a;
+    background: #eef1f5; border-radius: 6px; padding: 3px 9px; line-height: 1.5;
+  }
+  table.checklist td.pattern .since { display: block; color: var(--faint); font-size: 10px; margin-top: 4px; }
+  table.checklist td.code { text-align: left; }
+  table.checklist .chip {
+    display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; color: #2c3947; background: #f4f6f8; border: 1px solid #e6eaee;
+    border-radius: 6px; padding: 3px 8px;
+  }
+  table.checklist td.company { white-space: normal; text-align: left; max-width: 170px; color: var(--sub); font-size: 12px; }
+  /*  みらやく掲載可否は ○ / × の 2 値なので、色の付いた丸にする */
+  table.checklist .pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  }
+  table.checklist .pill-yes { background: #e7f4ec; color: #14683a; }
+  table.checklist .pill-no { background: #f1f3f5; color: #5b6672; }
+
+  table.checklist td.check-none { color: #d3d8de; }
   table.checklist td.check-info { color: var(--sub); }
-  table.checklist td.check-ng { background: #fdeeec; color: #9c2f24; font-weight: 700; }
-  table.checklist tbody tr:hover td.check-ng { background: #fbe4e1; }
-  table.checklist td.check-ng .want { display: block; font-size: 11px; font-weight: 400; }
+  table.checklist td.check-ok { color: var(--text); }
+  table.checklist td.check-ng, table.checklist tbody tr:hover td.check-ng {
+    background: #fdf0ee; color: #9c2f24; font-weight: 700;
+    box-shadow: inset 2px 0 0 var(--critical);
+  }
+  table.checklist td.check-ng .want { display: block; font-size: 10px; font-weight: 400; margin-top: 2px; }
   /* 何を見て判断したのかを小さく併記する (検査が動いていることが分かるように) */
   table.checklist td .seen {
     display: block; font-size: 10px; color: var(--faint); font-weight: 400;
     max-width: 150px; white-space: normal; margin: 3px auto 0; line-height: 1.45;
   }
-  table.checklist td.check-ng .seen { color: #9c2f24; }
-  table.checklist tr.row-ng td.code { background: #fdeeec; }
-  .device-title {
-    font-size: 12px; font-weight: 700; margin: 24px 0 8px; color: var(--sub); letter-spacing: 0.06em;
-  }
-  .device-title:first-child { margin-top: 0; }
+  table.checklist td.check-ng .seen { color: #b0574c; }
+  table.checklist tr.row-ng td.code .chip { background: #fdf0ee; border-color: #f2d5d1; color: #9c2f24; }
 
   /* ---- 備考 ---- */
   #notes { list-style: none; margin: 0; padding: 0; }
@@ -326,7 +376,7 @@
 
   <section id="agency-section" hidden>
     <h2>チェックリスト <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
-    <div class="panel" id="checklist"></div>
+    <div id="checklist"></div>
     <p class="muted">赤いセル = 期待と違う値。— = この代理店では検査していない。「保存先」は正解が未確定のため表示のみ (赤にしません)。検査する代理店コードは実行ごとに抽選されます。</p>
   </section>
 
@@ -543,17 +593,25 @@
     // 実行中は前回の結果を出しているので、そう分かるようにする
     document.getElementById('agency-stale').hidden = !state.running;
 
-    var head = '<thead><tr><th>パターン</th><th>代理店コード</th><th>会社名</th><th>みらやく</th>' +
-      data.columns.map(function (column) { return '<th>' + text(column.label) + '</th>'; }).join('') +
+    // 代理店の情報 (左) と検査結果 (右) の境目を線で分ける。
+    // 列が多いので、どこから検査項目なのかが分かるようにする。
+    var head = '<thead><tr>' +
+      '<th class="meta">パターン</th><th class="meta">代理店コード</th>' +
+      '<th class="meta">会社名</th><th class="meta">みらやく</th>' +
+      data.columns.map(function (column, index) {
+        return '<th' + (index === 0 ? ' class="first-check"' : '') + '>' + text(column.label) + '</th>';
+      }).join('') +
       '</tr></thead>';
 
     var html = tables.map(function (table) {
+      var ngCount = table.rows.filter(function (row) { return row.failed; }).length;
       var body = '<tbody>' + table.rows.map(function (row) {
-        var cells = data.columns.map(function (column) {
+        var cells = data.columns.map(function (column, index) {
           var cell = row.cells[column.key];
+          var edge = index === 0 ? ' first-check' : '';
           // 「検知が無い」を合格にはしない。検査していない項目は — で区別する
           if (!cell || cell.state === 'none') {
-            return '<td class="check-none" title="この代理店では検査していません">—</td>';
+            return '<td class="check-none' + edge + '" title="この代理店では検査していません">—</td>';
           }
           // 何を見て判断したのかを小さく併記する。
           // 「あり」だけでは本当に見に行ったのか分からない
@@ -562,24 +620,37 @@
           }).join('');
           if (cell.state === 'info') {
             // 正解が未確定の項目 (保存先など)。実態だけ出す
-            return '<td class="check-info" title="' + text(cell.note || '') + '">' + text(cell.observed) + '</td>';
+            return '<td class="check-info' + edge + '" title="' + text(cell.note || '') + '">' +
+              text(cell.observed) + seen + '</td>';
           }
           if (cell.state === 'ok') {
-            return '<td title="' + text(cell.note || '') + '">' + text(cell.observed) + seen + '</td>';
+            return '<td class="check-ok' + edge + '" title="' + text(cell.note || '') + '">' +
+              text(cell.observed) + seen + '</td>';
           }
-          return '<td class="check-ng" title="' + text(cell.note || '') + '">' + text(cell.observed) +
+          return '<td class="check-ng' + edge + '" title="' + text(cell.note || '') + '">' +
+            text(cell.observed) +
             '<span class="want">期待: ' + text(cell.expected || '') + '</span>' + seen + '</td>';
         }).join('');
         var since = row.effectiveFrom ? '<span class="since">' + text(row.effectiveFrom) + ' 以降の想定</span>' : '';
+        var mirayaku = row.mirayaku === '○' || row.mirayaku === '×'
+          ? '<span class="pill pill-' + (row.mirayaku === '○' ? 'yes' : 'no') + '">' + text(row.mirayaku) + '</span>'
+          : text(row.mirayaku || '-');
         return '<tr class="' + (row.failed ? 'row-ng' : '') + '">' +
-          '<td class="pattern">' + text(row.pattern || '-') + since + '</td>' +
-          '<td class="code">' + text(row.code) + '</td>' +
-          '<td class="company">' + text(row.company || '-') + '</td>' +
-          '<td class="mirayaku">' + text(row.mirayaku || '-') + '</td>' +
+          '<td class="meta pattern"><span class="tag">' + text(row.pattern || '-') + '</span>' + since + '</td>' +
+          '<td class="meta code"><span class="chip">' + text(row.code) + '</span></td>' +
+          '<td class="meta company">' + text(row.company || '-') + '</td>' +
+          '<td class="meta mirayaku">' + mirayaku + '</td>' +
           cells + '</tr>';
       }).join('') + '</tbody>';
-      return '<div class="device-title">' + text(table.deviceLabel) + '</div>' +
-        '<table class="checklist">' + head + body + '</table>';
+      return '<div class="board">' +
+        '<div class="board-head">' +
+          '<span class="device">' + text(table.deviceLabel) + '</span>' +
+          '<span class="counts">' + table.rows.length + ' 社' +
+          (ngCount > 0 ? ' <em class="ng">' + ngCount + ' 社に相違</em>' : ' <em class="fine">相違なし</em>') +
+          '</span>' +
+        '</div>' +
+        '<div class="board-scroll"><table class="checklist">' + head + body + '</table></div>' +
+        '</div>';
     }).join('');
 
     var missing = data.missingPatterns || [];
