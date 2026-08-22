@@ -7,7 +7,7 @@
 #
 #   再生成: npm run agencies:build
 #
-#   全 211 件 / マスタ 214 件
+#   全 210 件 / マスタ 214 件
 #
 #   実際に検査する代理店は実行ごとに抽選される (scope を参照)。
 #   毎回同じ代理店だけを検査すると、残りに潜む問題を見逃し続けるため。
@@ -1540,32 +1540,6 @@ agencies:
   - code: littlefamily61
     label: 株式会社エディオン — みらやく掲載可
     company: 株式会社エディオン
-    mirayaku: ○
-    profile: mirayaku-visible
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく○
-    effectiveFrom: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: present
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily99
-    label: Amazonみらやく用（未使用） — みらやく掲載可
-    company: Amazonみらやく用（未使用）
     mirayaku: ○
     profile: mirayaku-visible
     recognized: true
@@ -5625,6 +5599,9 @@ excludedAgencies:
   - code: littlefamily47
     company: 株式会社ドリームコーポレーション
     reason: みらやく掲載可否が「エラー」のため期待結果を決められない
+  - code: littlefamily99
+    company: Amazonみらやく用（未使用）
+    reason: Amazon みらやく用の未使用コードのため検査対象外
 invalidCodes:
   - code: NOSUCHCODE
     label: 未登録コード

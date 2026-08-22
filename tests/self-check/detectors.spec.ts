@@ -1120,6 +1120,31 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).toBe('A002');
   });
 
+  test('スクロールで出てくる申込ボタンを「表示されていない」と誤判定しない', async ({ page }) => {
+    // このサイトはスクロールに合わせて要素をふわっと出す演出を使っており、
+    // 読み込み直後の申込ボタンは opacity: 0 になっている。
+    // SP は縦に長いのでボタンは画面の下にあり、スクロールしないまま見ると
+    // 「SP で申込ボタンが表示されていません」と誤検知する
+    // (スクリーンショットにはボタンが写っていた)。
+    await page.setViewportSize(SP_VIEWPORT);
+    await page.goto('/broken/scroll-reveal-cta.html');
+    await page.waitForLoadState('load');
+
+    // 読み込み直後は演出前なので見えていない (再現条件の確認)
+    const before = await page
+      .locator('[data-testid="reveal-block"]')
+      .evaluate((element) => Number(window.getComputedStyle(element).opacity));
+    expect(before, '演出前は opacity 0 であること (誤検知の再現条件)').toBe(0);
+
+    // 観測側はスクロールしてから判定するので、表示ありと分かる
+    const links = await observeApplicationLinks(page, config, 'A001');
+    expect(links.length, '申込サイトへのリンクを見つけること').toBeGreaterThan(0);
+    expect(
+      links.some((link) => link.visible),
+      `表示されていると判定すること: ${JSON.stringify(links)}`,
+    ).toBe(true);
+  });
+
   test('チェックリスト表を組み立てられる (ダッシュボードの本体)', async () => {
     // 表 = PC / SP それぞれ 1 枚、行 = 代理店、セル = あり / なし。
     //

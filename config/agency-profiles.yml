@@ -85,6 +85,11 @@ assign:
   - match: { code: A0010 }
     exclude: true
     reason: Amazon 用のため検査対象外 (通常 LP のまま)
+  # littlefamily99 は「Amazonみらやく用（未使用）」。
+  # 未使用のコードなので代理店として動作しない (実測で代理店名も出ない)。
+  - match: { code: littlefamily99 }
+    exclude: true
+    reason: Amazon みらやく用の未使用コードのため検査対象外
   # 支店コード (末尾 brNN) は親コードと同じ挙動になるのが仕様。
   #   マスタの各行が親と同じ みらやく可否を持っているため、
   #   専用の割り当てルールは不要 (下の みらやく / カカクコムのルールで決まる)。

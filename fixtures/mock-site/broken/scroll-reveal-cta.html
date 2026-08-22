@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>スクロールで出てくる申込ボタン (誤検知の再現)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    実サイトの再現。
+    スクロールに合わせて要素をふわっと出す演出のため、読み込み直後の
+    申込ボタンは opacity: 0 になっている。SP は縦に長いのでボタンは
+    画面の下にあり、スクロールしないまま見ると「表示されていない」と
+    判定してしまう。実際にそれで誤検知した。
+
+    検出側はページを一度下までスクロールしてから表示を判定する必要がある。
+  -->
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; }
+    .filler { height: 1200px; background: linear-gradient(#eef4fb, #dce8f5); padding: 24px; }
+    .reveal {
+      opacity: 0;
+      transition: opacity .2s;
+      padding: 32px;
+      text-align: center;
+    }
+    .reveal.shown { opacity: 1; }
+    .cta {
+      display: inline-block;
+      background: #e8811f;
+      color: #fff;
+      font-weight: 700;
+      padding: 18px 28px;
+      border-radius: 999px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="filler">
+    <h1>スクロールで出てくる申込ボタン</h1>
+    <p>このページは検出ロジックの自己検査用です。下までスクロールすると申込ボタンが現れます。</p>
+  </div>
+  <div class="filler"></div>
+  <div class="reveal" data-testid="reveal-block">
+    <a class="cta" data-testid="cta-primary" href="http://localhost:4174/entry/">
+      ネットで簡単お手続き 今すぐ申込む
+    </a>
+  </div>
+  <div class="filler"></div>
+
+  <script>
+    // 画面に入ったときだけ表示する (スクロール連動の演出)
+    var target = document.querySelector('.reveal');
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i += 1) {
+          if (entries[i].isIntersecting) entries[i].target.classList.add('shown');
+        }
+      }).observe(target);
+    } else {
+      window.addEventListener('scroll', function () {
+        if (target.getBoundingClientRect().top < window.innerHeight) target.classList.add('shown');
+      });
+    }
+  </script>
+</body>
+</html>

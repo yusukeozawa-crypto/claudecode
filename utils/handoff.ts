@@ -22,6 +22,7 @@
  */
 import type { BrowserContext, Page, Request } from '@playwright/test';
 import { expectedApplicationHost, resolveSelector } from './config';
+import { scrollThroughPage } from './layout';
 import { maskUrl } from './secrets';
 import { matchesAnyGlob } from './patterns';
 import type {
@@ -905,6 +906,16 @@ export async function observeApplicationLinks(
 ): Promise<ApplicationLinkInfo[]> {
   const expectedHost = expectedApplicationHost(config, null);
   const paramName = config.agency.paramName;
+
+  // 表示を判定する前にページを一度下までスクロールする。
+  //
+  //   このサイトはスクロールに合わせて要素をふわっと出す演出を使っており、
+  //   読み込み直後は opacity: 0 になっている。
+  //   SP は縦に長い (35,000px 超) ため申込ボタンは画面の下にあり、
+  //   スクロールしないまま見ると「表示されていない」と判定してしまう。
+  //   実際にそれで「SP で申込ボタンが表示されていません」を誤検知した
+  //   (スクリーンショットにはボタンが写っていた)。
+  await scrollThroughPage(page).catch(() => undefined);
 
   const raw = await page
     .evaluate(() => {
