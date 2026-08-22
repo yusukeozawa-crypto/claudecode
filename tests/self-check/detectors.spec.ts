@@ -1644,10 +1644,16 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     await page.waitForLoadState('load');
     const wrong = await observeCodeInApplication(page, config, 'A001', ['A002']);
     const wrongFindings = verifyCodeCarried(wrong, 'A001', 'A001');
+    const misattributed = wrongFindings.find((finding) => finding.title.includes('別の代理店コード'));
     expect(
-      wrongFindings.some((finding) => finding.title.includes('別の代理店コード')),
+      misattributed,
       `別の代理店コードに置き換わっていれば検出すること: ${JSON.stringify(wrong)}`,
-    ).toBe(true);
+    ).toBeDefined();
+    // 表でも赤にする。「あり」の白セルのままだと、
+    // コードが残っていても他社に帰属することが人に伝わらない。
+    expect(misattributed?.checkId, 'チェックリストの列に出すこと').toBe('code-carry');
+    expect(misattributed?.checkOk, '表で赤にすること').toBe(false);
+    expect(misattributed?.observedDetail, '化けている先のコードを表に出すこと').toContain('A002');
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {
