@@ -24,8 +24,22 @@ export type FindingCategory =
   | 'text-rule'           // 誤字脱字・表記揺れ
   | 'config';             // 設定不備
 
+/**
+ * 検査項目の識別子。
+ * ダッシュボードのチェックリスト (代理店 × 項目) を作るために使う。
+ */
+export type CheckId =
+  | 'redirect'      // 専用 LP へのリダイレクト
+  | 'header-name'   // ヘッダーの代理店名
+  | 'footer-name'   // フッターの「募集代理店：<会社名>」
+  | 'anshin-pack'   // 「あんしんパック」の表示 / 非表示
+  | 'code-applied'  // LP 側で代理店コードが付与されている
+  | 'code-carry';   // 申込フォームでのコード保持
+
 /** 1 件の不具合検知結果 */
 export interface Finding {
+  /** どの検査項目の結果か (チェックリスト表示用)。合否どちらでも入る */
+  checkId?: CheckId;
   severity: Severity;
   category: FindingCategory;
   /** 何を検査したか */
@@ -151,6 +165,18 @@ export interface RuntimeFile {
 export interface AgencyFile {
   paramName: string;
   /**
+   * 代理店名の表示を検査する文言。{company} は会社名に置き換わる。
+   * サイトの文言が変わったらここだけ直せばよい。
+   */
+  agencyNameTexts?: {
+    header: string;
+    footer: string;
+    /** 代理店名が出ないはずの場合に、出ていないことを確認する文字列 */
+    forbiddenWhenHidden: string;
+    /** 「あんしんパック」の表記 (複数の書き方があれば列挙) */
+    anshinPack: string[];
+  };
+  /**
    * 代理店コードの保存先。
    * none = 保存しない実装 (URL のみで引き回す) / 保存方式が未確認。
    * この場合、保存値の検査は行わず「未検査」として記録する。
@@ -255,16 +281,26 @@ export interface AgencySpec {
   hiddenSections: string[];
   expectedTexts: Record<string, string>;
   /**
-   * ページ内に必ずある文字列。
-   *   セレクタを知らなくても検査できる形にしている
-   *   (例: 「募集代理店：株式会社◯◯」がヘッダー・フッターに出ること)。
+   * 代理店名の表示。
+   *   shown  … ヘッダーとフッターに代理店名が出る
+   *   hidden … 代理店名が出ない (自社コード・無効コード・コードなし)
    */
-  requiredTexts?: string[];
+  agencyName?: 'shown' | 'hidden';
   /**
-   * ページ内にあってはならない文字列。
-   *   例: みらやく掲載不可の代理店で「あんしんパック」が出ないこと。
+   * 「あんしんパック」の表示。
+   *   present … 表示がある (みらやく掲載可)
+   *   absent  … 表示が一切ない (みらやく掲載不可)
+   *   ignore  … 検査しない (仕様が未確定)
    */
-  forbiddenTexts?: string[];
+  anshinPack?: 'present' | 'absent' | 'ignore';
+  /**
+   * 「代理店コードの付与」を検査するか。
+   *   専用 LP へのリダイレクト後はコードが URL から消えるため、
+   *   代理店名の表示で判断できない代理店 (カカクコム) では
+   *   コードが実際に付与されているかを別に確認する必要がある。
+   *   方式 (URL / Cookie / localStorage / dataLayer など) は問わない。
+   */
+  codeApplied?: boolean;
   expectedAssets: Record<string, string>;
   /**
    * 申込へ進む CTA。
@@ -294,8 +330,8 @@ export interface FallbackExpectation {
   entryPath: string;
   expectedFinalPath: string;
   redirected: boolean;
-  /** ページ内にあってはならない文字列 (無効コードで代理店名が出ないこと等) */
-  forbiddenTexts?: string[];
+  /** 代理店名の表示 (無効コード・コードなしでは hidden) */
+  agencyName?: 'shown' | 'hidden';
   redirectMechanism: RedirectMechanism;
   visibleSections: string[];
   hiddenSections: string[];

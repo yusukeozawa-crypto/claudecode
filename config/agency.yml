@@ -12,6 +12,19 @@
 # URL パラメータ名 (確認済み)
 paramName: insAgentNo
 
+# 代理店名・あんしんパックの検査に使う文言 (確認済み)。
+#   {company} は代理店マスタの会社名に置き換わる。
+#   サイトの文言が変わったらここだけ直せばよい。
+agencyNameTexts:
+  header: "{company}"
+  footer: "募集代理店：{company}"
+  # 代理店名が出ないはずの場合 (自社コード・無効コード・コードなし)
+  forbiddenWhenHidden: 募集代理店
+  # 「あんしんパック」の表記ゆれ (どれか 1 つでもあれば「表示あり」)
+  anshinPack:
+    - あんしんパック
+    - 安心パック
+
 storage:
   # cookie | localStorage | both | none
   #   [未実測] 代理店コードの保存先が未確認のため none にしている。

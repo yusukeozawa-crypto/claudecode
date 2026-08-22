@@ -118,10 +118,8 @@ profiles:
     expectedTexts: {}
     # 自社コードは代理店コードを無効化してオリジナルを表示する。
     # 募集代理店の表記は出ない (実測でも出ていない)。
-    requiredTexts:
-      - あんしんパック
-    forbiddenTexts:
-      - 募集代理店
+    agencyName: hidden
+    anshinPack: present
     expectedAssets: {}
     cta: null
     application: null
@@ -147,6 +145,13 @@ profiles:
     expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
+    # 専用 LP でも代理店名は出る (実測済み)。
+    # あんしんパックの扱いは専用 LP では未確定のため検査しない
+    agencyName: shown
+    anshinPack: ignore
+    # リダイレクト後は URL からコードが消えるため、
+    # コードが実際に付与されている (サイト側で保持されている) ことを別に確認する
+    codeApplied: true
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -168,13 +173,9 @@ profiles:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    # ヘッダーとフッターに代理店名、フッターは「募集代理店：<会社名>」。
-    # みらやく掲載可なので「あんしんパック」の記載がある。
-    requiredTexts:
-      - "{company}"
-      - "募集代理店：{company}"
-      - あんしんパック
-    forbiddenTexts: []
+    # ヘッダーとフッターに代理店名。みらやく掲載可なので あんしんパック がある
+    agencyName: shown
+    anshinPack: present
     expectedAssets: {}
     cta: null
     application: null
@@ -194,11 +195,8 @@ profiles:
     expectedTexts: {}
     # ヘッダーとフッターの代理店名は みらやく可と同じ。
     # 違いは「あんしんパック」の記載が LP 内に一切ないこと。
-    requiredTexts:
-      - "{company}"
-      - "募集代理店：{company}"
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
     expectedAssets: {}
     cta: null
     application: null
@@ -216,8 +214,7 @@ invalidExpectation:
   expectedFinalPath: /lp/service/
   redirected: false
   # 無効なコードで代理店名が出てはいけない
-  forbiddenTexts:
-    - 募集代理店
+  agencyName: hidden
   # [未実測] 無効コード時に通常表示へフォールバックすることを
   # 何で確認するか (代理店セクションが出ないこと等)
   visibleSections: []
@@ -228,8 +225,7 @@ noCodeExpectation:
   expectedFinalPath: /lp/service/
   redirected: false
   # コードなしで代理店名が出てはいけない
-  forbiddenTexts:
-    - 募集代理店
+  agencyName: hidden
   visibleSections: []
   hiddenSections: []
   application: null

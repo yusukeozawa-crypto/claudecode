@@ -43,10 +43,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - あんしんパック
-    forbiddenTexts:
-      - 募集代理店
+    agencyName: hidden
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -66,11 +65,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - PECOAD（ダイレクト扱い各種用）
-      - 募集代理店：PECOAD（ダイレクト扱い各種用）
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -91,8 +88,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -112,11 +110,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - アドバンスクリエイト株式会社
-      - 募集代理店：アドバンスクリエイト株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -136,11 +132,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - エレメント
-      - 募集代理店：エレメント
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -160,11 +154,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - アイビーシステム
-      - 募集代理店：アイビーシステム
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -184,11 +176,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 楽天インシュアランスプランニング
-      - 募集代理店：楽天インシュアランスプランニング
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -208,11 +198,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - wizleap
-      - 募集代理店：wizleap
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -232,11 +220,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社CINCA
-      - 募集代理店：株式会社CINCA
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -256,11 +242,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社NTTドコモ
-      - 募集代理店：株式会社NTTドコモ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -280,11 +264,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ドコモ・インシュアランス
-      - 募集代理店：株式会社ドコモ・インシュアランス
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -304,11 +286,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 三菱UFJ
-      - 募集代理店：三菱UFJ
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -328,11 +308,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - パワープランニング株式会社
-      - 募集代理店：パワープランニング株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -352,11 +330,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社アイ・エフ・クリエイト
-      - 募集代理店：株式会社アイ・エフ・クリエイト
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -376,11 +352,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - セゾン保険サービス
-      - 募集代理店：セゾン保険サービス
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -400,11 +374,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 紹介キャンペーン
-      - 募集代理店：紹介キャンペーン
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -424,11 +396,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -448,11 +418,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - SBIインシュアランスラボ株式会社
-      - 募集代理店：SBIインシュアランスラボ株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -472,11 +440,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - アントプロダクション株式会社
-      - 募集代理店：アントプロダクション株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -496,11 +462,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - オリコン
-      - 募集代理店：オリコン
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -520,11 +484,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社PETOKOTO
-      - 募集代理店：株式会社PETOKOTO
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -544,11 +506,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（旧ライフィ）
-      - 募集代理店：Sasuke Financial Lab株式会社（旧ライフィ）
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -568,11 +528,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 楽天広告
-      - 募集代理店：楽天広告
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -592,11 +550,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - アイエフクリエイト少短サイト
-      - 募集代理店：アイエフクリエイト少短サイト
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -616,11 +572,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - ダイレクトCINCA
-      - 募集代理店：ダイレクトCINCA
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -640,11 +594,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - ジモティ
-      - 募集代理店：ジモティ
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -664,11 +616,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - hotto
-      - 募集代理店：hotto
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -688,11 +638,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - ピーネストジャパン（わんちゃんホンポ・ねこちゃんホンポ）
-      - 募集代理店：ピーネストジャパン（わんちゃんホンポ・ねこちゃんホンポ）
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -712,11 +660,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ＫＡＢＵ＆ほけんパートナーズ
-      - 募集代理店：株式会社ＫＡＢＵ＆ほけんパートナーズ
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -736,11 +682,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 一般社団法人ファミリーアニマル支援協会
-      - 募集代理店：一般社団法人ファミリーアニマル支援協会
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -760,11 +704,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - DOGS-LIFE
-      - 募集代理店：DOGS-LIFE
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -784,11 +726,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人1）
-      - 募集代理店：Sasuke（募集人1）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -808,11 +748,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人2）
-      - 募集代理店：Sasuke（募集人2）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -832,11 +770,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - ペットライフサポート ハルオフィス
-      - 募集代理店：ペットライフサポート ハルオフィス
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -856,11 +792,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 東京キャットガーディアン
-      - 募集代理店：東京キャットガーディアン
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -880,11 +814,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人3）
-      - 募集代理店：Sasuke（募集人3）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -904,11 +836,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人4）
-      - 募集代理店：Sasuke（募集人4）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -928,11 +858,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人5）
-      - 募集代理店：Sasuke（募集人5）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -952,11 +880,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人6）
-      - 募集代理店：Sasuke（募集人6）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -976,11 +902,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人7）
-      - 募集代理店：Sasuke（募集人7）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1000,11 +924,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人8）
-      - 募集代理店：Sasuke（募集人8）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1024,11 +946,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人9）
-      - 募集代理店：Sasuke（募集人9）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1048,11 +968,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 一般社団法人はーとinはーと ZR
-      - 募集代理店：一般社団法人はーとinはーと ZR
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1072,11 +990,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社イオレ
-      - 募集代理店：株式会社イオレ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1096,11 +1012,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - auフィナンシャルパートナー株式会社
-      - 募集代理店：auフィナンシャルパートナー株式会社
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1120,11 +1034,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - NPO法人ニャン友ねっとわーく北海道
-      - 募集代理店：NPO法人ニャン友ねっとわーく北海道
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1144,11 +1056,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - ダイレクト（併売LP）
-      - 募集代理店：ダイレクト（併売LP）
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1168,11 +1078,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - セゾン保険サービス（セゾンカード会員用）
-      - 募集代理店：セゾン保険サービス（セゾンカード会員用）
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1192,11 +1100,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社stepdays
-      - 募集代理店：株式会社stepdays
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1216,11 +1122,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 動物病院設置用パンフレット導線
-      - 募集代理店：動物病院設置用パンフレット導線
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1240,11 +1144,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke（募集人10）
-      - 募集代理店：Sasuke（募集人10）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1264,11 +1166,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 病院貼り付け窓口バナー用
-      - 募集代理店：病院貼り付け窓口バナー用
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1288,11 +1188,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - クロス動物病院用
-      - 募集代理店：クロス動物病院用
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1312,11 +1210,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - KING犬舎
-      - 募集代理店：KING犬舎
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1336,11 +1232,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1360,11 +1254,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社 長谷工リンクス
-      - 募集代理店：株式会社 長谷工リンクス
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1384,11 +1276,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ドコモ・フィナンシャルグループ
-      - 募集代理店：株式会社ドコモ・フィナンシャルグループ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1408,11 +1298,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社タヒチプロモーション
-      - 募集代理店：株式会社タヒチプロモーション
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1432,11 +1320,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社エディオン
-      - 募集代理店：株式会社エディオン
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1456,11 +1342,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Amazonみらやく用（未使用）
-      - 募集代理店：Amazonみらやく用（未使用）
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1480,11 +1364,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 動物病院パスポートダイレクト用
-      - 募集代理店：動物病院パスポートダイレクト用
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -1505,8 +1387,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1527,8 +1410,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1549,8 +1433,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1571,8 +1456,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1593,8 +1479,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1615,8 +1502,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1637,8 +1525,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1659,8 +1548,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1681,8 +1571,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1703,8 +1594,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1725,8 +1617,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1747,8 +1640,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1769,8 +1663,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1791,8 +1686,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1813,8 +1709,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1835,8 +1732,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1857,8 +1755,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1879,8 +1778,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1901,8 +1801,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1923,8 +1824,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1945,8 +1847,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1967,8 +1870,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -1989,8 +1893,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2011,8 +1916,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2033,8 +1939,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2055,8 +1962,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2077,8 +1985,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2099,8 +2008,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2121,8 +2031,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2143,8 +2054,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2165,8 +2077,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2187,8 +2100,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2209,8 +2123,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2231,8 +2146,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2253,8 +2169,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2275,8 +2192,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2297,8 +2215,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2319,8 +2238,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2341,8 +2261,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2363,8 +2284,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2385,8 +2307,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2407,8 +2330,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2429,8 +2353,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2451,8 +2376,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2473,8 +2399,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2495,8 +2422,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2517,8 +2445,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2539,8 +2468,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2561,8 +2491,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2583,8 +2514,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts: []
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
+    codeApplied: true
     expectedAssets: {}
     cta: null
     application: null
@@ -2604,11 +2536,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2628,11 +2558,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2652,11 +2580,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2676,11 +2602,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2700,11 +2624,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2724,11 +2646,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2748,11 +2668,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2772,11 +2690,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2796,11 +2712,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2820,11 +2734,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2844,11 +2756,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2868,11 +2778,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2892,11 +2800,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2916,11 +2822,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2940,11 +2844,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2964,11 +2866,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -2988,11 +2888,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3012,11 +2910,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3036,11 +2932,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3060,11 +2954,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3084,11 +2976,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3108,11 +2998,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3132,11 +3020,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3156,11 +3042,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3180,11 +3064,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3204,11 +3086,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3228,11 +3108,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3252,11 +3130,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3276,11 +3152,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3300,11 +3174,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社
-      - 募集代理店：Sasuke Financial Lab株式会社
-      - あんしんパック
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: present
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3324,11 +3196,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3348,11 +3218,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3372,11 +3240,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3396,11 +3262,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3420,11 +3284,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3444,11 +3306,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3468,11 +3328,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3492,11 +3350,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3516,11 +3372,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3540,11 +3394,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3564,11 +3416,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3588,11 +3438,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3612,11 +3460,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3636,11 +3482,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3660,11 +3504,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3684,11 +3526,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3708,11 +3548,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3732,11 +3570,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3756,11 +3592,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3780,11 +3614,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3804,11 +3636,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3828,11 +3658,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3852,11 +3680,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3876,11 +3702,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3900,11 +3724,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3924,11 +3746,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3948,11 +3768,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3972,11 +3790,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -3996,11 +3812,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4020,11 +3834,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4044,11 +3856,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4068,11 +3878,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4092,11 +3900,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4116,11 +3922,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4140,11 +3944,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4164,11 +3966,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4188,11 +3988,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4212,11 +4010,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4236,11 +4032,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4260,11 +4054,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4284,11 +4076,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4308,11 +4098,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4332,11 +4120,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4356,11 +4142,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4380,11 +4164,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4404,11 +4186,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4428,11 +4208,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4452,11 +4230,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4476,11 +4252,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4500,11 +4274,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - Sasuke Financial Lab株式会社（届出募集人対面用）
-      - 募集代理店：Sasuke Financial Lab株式会社（届出募集人対面用）
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4524,11 +4296,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4548,11 +4318,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4572,11 +4340,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4596,11 +4362,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4620,11 +4384,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4644,11 +4406,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4668,11 +4428,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4692,11 +4450,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4716,11 +4472,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4740,11 +4494,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4764,11 +4516,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4788,11 +4538,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4812,11 +4560,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4836,11 +4582,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4860,11 +4604,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4884,11 +4626,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4908,11 +4648,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4932,11 +4670,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4956,11 +4692,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -4980,11 +4714,9 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    requiredTexts:
-      - 株式会社ジャパンペットコミュニケーションズ
-      - 募集代理店：株式会社ジャパンペットコミュニケーションズ
-    forbiddenTexts:
-      - あんしんパック
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
@@ -5003,8 +4735,7 @@ invalidExpectation:
   visibleSections: []
   hiddenSections: []
   expectedTexts: {}
-  forbiddenTexts:
-    - 募集代理店
+  agencyName: hidden
   expectStored: false
   application:
     expectedDomain: null
@@ -5020,8 +4751,7 @@ noCodeExpectation:
   visibleSections: []
   hiddenSections: []
   expectedTexts: {}
-  forbiddenTexts:
-    - 募集代理店
+  agencyName: hidden
   expectStored: false
   application:
     expectedDomain: null

@@ -171,67 +171,21 @@ function historyList() {
 }
 
 /**
- * 代理店コードごとの結果 (画面の一覧表用)。
- * レポート側と同じ考え方でまとめる (観点ごとの最悪の重大度)。
+ * チェックリスト表 (行 = 代理店 / 列 = 検査項目)。
+ *
+ * 計算はレポート側 (utils/checklist.ts) が行い、
+ * その結果を qa-report.json の summary.checklist に書き出している。
+ * 画面はそれをそのまま表示する。同じ計算を 2 か所に持つと、
+ * レポートと画面で違う結果が出て「どちらが正しいのか」が分からなくなる。
  */
-const COLUMNS = [
-  { key: 'display', label: '表示', categories: ['agency-display', 'text-rule', 'layout', 'horizontal-scroll', 'visual-diff'] },
-  { key: 'redirect', label: 'リダイレクト', categories: ['agency-redirect', 'redirect-mechanism', 'redirect-loop'] },
-  { key: 'persistence', label: 'コード保持', categories: ['agency-persistence'] },
-  { key: 'handoff', label: '申込引き継ぎ', categories: ['agency-handoff'] },
-  { key: 'error', label: 'エラー', categories: ['js-error', 'network-error', 'image-error', 'broken-link', 'timeout'] },
-  { key: 'security', label: 'セキュリティ', categories: ['security'] },
-];
-const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
-
-export function agencySummary(records) {
-  const rows = new Map();
-  const ensure = (code) => {
-    let row = rows.get(code);
-    if (!row) {
-      row = { code, cells: {}, counts: {} };
-      for (const column of COLUMNS) {
-        row.cells[column.key] = null;
-        row.counts[column.key] = 0;
-      }
-      rows.set(code, row);
-    }
-    return row;
-  };
-  const worse = (a, b) => {
-    if (!a) return b;
-    if (!b) return a;
-    return SEVERITY_ORDER.indexOf(a) <= SEVERITY_ORDER.indexOf(b) ? a : b;
-  };
-
-  // 検知が無くても行を作る (「確認済み」を示すため)
-  for (const record of records) {
-    if (record.agencyCode && record.agencyCode !== 'none') ensure(record.agencyCode);
+export function checklistOf(report) {
+  const checklist = report?.summary?.checklist;
+  if (!checklist || !Array.isArray(checklist.columns) || !Array.isArray(checklist.rows)) {
+    return { columns: [], rows: [] };
   }
-  for (const record of records) {
-    for (const finding of record.findings ?? []) {
-      const code = finding.agencyCode ?? record.agencyCode;
-      if (!code || code === 'none') continue;
-      const row = ensure(code);
-      const column = COLUMNS.find((entry) => entry.categories.includes(finding.category));
-      const key = column?.key ?? 'display';
-      row.cells[key] = worse(row.cells[key], finding.severity);
-      row.counts[key] += 1;
-    }
-  }
-
-  const sorted = [...rows.values()].sort((a, b) => {
-    const worstOf = (row) =>
-      Object.values(row.cells).reduce((acc, value) => worse(acc, value), null);
-    const left = worstOf(a);
-    const right = worstOf(b);
-    if (left && right && left !== right) return SEVERITY_ORDER.indexOf(left) - SEVERITY_ORDER.indexOf(right);
-    if (left && !right) return -1;
-    if (!left && right) return 1;
-    return a.code.localeCompare(b.code);
-  });
-  return { columns: COLUMNS.map(({ key, label }) => ({ key, label })), rows: sorted };
+  return checklist;
 }
+const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
 
 /**
  * 検知結果を「同じ内容」でまとめる (画面に出す用)。
@@ -286,7 +240,7 @@ function state() {
     runningLabel: current?.label ?? null,
     progress: readJson(PROGRESS_PATH),
     summary: report?.summary ?? null,
-    agencies: report ? agencySummary(report.records ?? []) : { columns: [], rows: [] },
+    checklist: checklistOf(report),
     // 代理店コード → 会社名 / みらやく掲載可否 (コードだけでは判断できない)
     agencyMeta: report?.summary?.agencyMeta ?? {},
     findings: report ? findingGroups(report.records ?? []) : [],

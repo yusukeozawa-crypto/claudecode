@@ -16,6 +16,8 @@ import { SEVERITY_LABEL, SEVERITY_ORDER, sortBySeverity } from '../utils/finding
 import { loadConfig, PROJECT_ROOT } from '../utils/config';
 import { agencySeed, agencySpecs } from '../utils/agency';
 import { activeKnownIssues } from '../utils/known-issues';
+import { buildChecklist } from '../utils/checklist';
+import type { Checklist } from '../utils/checklist';
 import { maskText } from '../utils/secrets';
 import type { Finding, QaConfig, QaRecord, Severity } from '../utils/types';
 
@@ -229,6 +231,9 @@ export default class QaHtmlReporter implements Reporter {
       agencySampling: describeAgencySampling(),
       // コードだけでは人が判断できないため、会社名と みらやく掲載可否を持たせる
       agencyMeta: describeAgencyMeta(),
+      // 代理店 × 検査項目のチェックリスト。
+      // ブラウザ画面もこの値をそのまま表示する (同じ計算を 2 か所に持たない)
+      checklist: buildChecklist(this.records, describeAgencyMeta()),
       // 判定基準は config/runtime.yml の failOnSeverities に従う。
       // ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
       failOnSeverities: this.failOnSeverities,
@@ -384,7 +389,9 @@ interface ReportSummary {
   tests: { total: number; passed: number; failed: number; skipped: number };
   /** 代理店の抽選シードと対象件数 (同じ組み合わせを再現するために記録する) */
   agencySampling: { seed: string; scope: string; selected: number; total: number } | null;
-  agencyMeta: Record<string, { company: string; mirayaku: string }>;
+  agencyMeta: Record<string, { company: string; mirayaku: string; agency?: boolean }>;
+  /** 代理店 × 検査項目のチェックリスト */
+  checklist?: Checklist;
   findings: Record<Severity, number>;
   gateFailed: boolean;
 }
@@ -415,18 +422,20 @@ function describeKnownIssues(): string[] {
  * 代理店コード → 会社名 / みらいの約束 (みらやく) 掲載可否。
  * レポートと画面の一覧表に出すため。無効コードは「検査用」と示す。
  */
-function describeAgencyMeta(): Record<string, { company: string; mirayaku: string }> {
-  const meta: Record<string, { company: string; mirayaku: string }> = {};
+function describeAgencyMeta(): Record<string, { company: string; mirayaku: string; agency?: boolean }> {
+  const meta: Record<string, { company: string; mirayaku: string; agency?: boolean }> = {};
   try {
     const config = loadConfig();
     for (const agency of config.agencies.agencies) {
       meta[agency.code] = {
         company: agency.company ?? agency.label ?? '',
         mirayaku: agency.mirayaku ?? '',
+        agency: true,
       };
     }
     for (const invalid of config.agencies.invalidCodes ?? []) {
-      meta[invalid.code] = { company: `無効コードの検査用 (${invalid.label})`, mirayaku: '-' };
+      // agency: false = 実在しない検査用のコード。チェックリストの行にはしない
+      meta[invalid.code] = { company: `無効コードの検査用 (${invalid.label})`, mirayaku: '-', agency: false };
     }
   } catch {
     // 設定が読めない場合は空のまま (表にはコードだけ出る)
@@ -538,6 +547,53 @@ export function buildAgencyRows(records: QaRecord[]): AgencyRow[] {
     if (!a.worst && b.worst) return 1;
     return a.code.localeCompare(b.code);
   });
+}
+
+/**
+ * チェックリスト表 (行 = 代理店 / 列 = 検査項目)。
+ *
+ * 検知結果を何百件も並べても「全部そろっているか」は分からない。
+ * ✅ / ❌ / — の 1 枚の表にして 1 画面で見られるようにする。
+ */
+function renderChecklist(checklist: Checklist): string {
+  if (checklist.rows.length === 0) {
+    return '<p class="empty">代理店コードを使った検査はありませんでした。</p>';
+  }
+
+  const body = checklist.rows
+    .map((row) => {
+      const cells = checklist.columns
+        .map((column) => {
+          const cell = row.cells[column.key];
+          if (!cell || cell.state === 'none') {
+            return '<td class="check-none" title="この代理店では対象外の項目です">—</td>';
+          }
+          if (cell.state === 'ok') {
+            return `<td class="check-ok" title="${escapeHtml(cell.note)}">✅</td>`;
+          }
+          return (
+            `<td class="check-ng sev-${cell.severity ?? 'critical'}" title="${escapeHtml(cell.note)}">` +
+            `❌ <span class="muted">${cell.count} 件</span></td>`
+          );
+        })
+        .join('');
+      return (
+        `<tr class="${row.failed ? 'agency-ng' : 'agency-ok'}">` +
+        `<th scope="row">${escapeHtml(row.code)}</th>` +
+        `<td class="company">${escapeHtml(row.company || '-')}</td>` +
+        `<td class="mirayaku">${escapeHtml(row.mirayaku || '-')}</td>` +
+        `${cells}</tr>`
+      );
+    })
+    .join('');
+
+  return `<table id="checklist">
+      <thead><tr>
+        <th>代理店コード</th><th>会社名</th><th>みらやく</th>
+        ${checklist.columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('')}
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table>`;
 }
 
 function renderAgencyTable(records: QaRecord[], meta: ReportSummary['agencyMeta']): string {
@@ -692,6 +748,16 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   #agencies td.mirayaku { font-weight: 700; }
   #agencies td.ok { color: #14683a; font-weight: 700; }
   #agencies tr.agency-ng th[scope="row"] { background: #fdecea; }
+  #checklist th[scope="row"] { background: #fafbfc; font-family: ui-monospace, monospace; white-space: nowrap; }
+  #checklist td { text-align: center; white-space: nowrap; font-size: 18px; }
+  #checklist th { font-size: 12px; }
+  #checklist td.company { text-align: left; white-space: normal; min-width: 160px; font-size: 13px; }
+  #checklist th, #checklist td { padding: 8px 6px; }
+  #checklist td.mirayaku { font-weight: 700; font-size: 16px; }
+  #checklist td.check-none { color: #c3c9d0; }
+  #checklist td.check-ng { background: #fdecea; }
+  #checklist td.check-ng .muted { display: block; font-size: 11px; }
+  #checklist tr.agency-ng th[scope="row"] { background: #fdecea; }
   .title { font-weight: 600; }
   .expected { color: #14683a; } .actual { color: var(--critical); }
   .url { word-break: break-all; max-width: 260px; font-size: 12px; }
@@ -742,7 +808,13 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
     }</span>
   </div>
 
-  <h2>代理店コードごとの結果 (${buildAgencyRows(records).length} コード)</h2>
+  <h2>チェックリスト (代理店 × 検査項目)</h2>
+  <div class="panel">
+    ${renderChecklist(summary.checklist ?? buildChecklist(records, summary.agencyMeta ?? {}))}
+  </div>
+  <p class="muted">✅ = 検査して仕様どおり / ❌ = 仕様どおりでない / — = この代理店では対象外。検査した代理店コードは実行ごとに抽選されます。</p>
+
+  <h2>種別ごとの内訳 (${buildAgencyRows(records).length} コード)</h2>
   <div class="panel">
     ${renderAgencyTable(records, summary.agencyMeta ?? {})}
   </div>

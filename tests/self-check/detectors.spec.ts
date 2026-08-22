@@ -18,10 +18,10 @@ import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
-import { agencyPairs, agencySpecs, resolvePerProfile, verifyNoOtherAgencyInfo, verifyPageTexts, verifySections, verifyTexts } from '../../utils/agency';
+import { agencyPairs, agencySpecs, resolvePerProfile, verifyNoOtherAgencyInfo, verifyDisplayRules, verifySections, verifyTexts } from '../../utils/agency';
 import {
   describeApplicationLinks, installRequestGuards, observeApplicationLinks,
-  observeCodeInApplication, verifyCodeCarried,
+  observeCodeInApplication, verifyCodeApplied, verifyCodeCarried,
 } from '../../utils/handoff';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
@@ -30,7 +30,8 @@ import { detectCrossPageInconsistency } from '../../utils/text-rules';
 import { collectLinks } from '../../utils/links';
 import { applyKnownIssue } from '../../utils/known-issues';
 import { buildAgencyRows } from '../../reporters/qa-html-reporter';
-import type { FindingCategory, KnownIssuesFile, RedirectTrace, Severity } from '../../utils/types';
+import { CHECK_COLUMNS, buildChecklist } from '../../utils/checklist';
+import type { CheckId, FindingCategory, KnownIssuesFile, RedirectTrace, Severity } from '../../utils/types';
 
 const config = loadConfig();
 const SP_VIEWPORT = { width: 390, height: 844 };
@@ -1033,6 +1034,124 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).toBe(true);
   });
 
+  test('代理店コードの付与を判定できる (リダイレクト後に URL から消えても)', async ({ page }) => {
+    // カカクコムは専用 LP へリダイレクトされ、そのとき URL からコードが消える。
+    // 「URL にコードがある」で判定すると、正常な状態を不具合として報告してしまう。
+    const param = config.agency.paramName;
+
+    // A002 でいったん流入して保存させ、そのうえで URL にコードを付けずに開く。
+    // これが「リダイレクト後にコードが URL から消えた状態」と同じ条件になる。
+    await page.goto(`/lp/?${param}=A002`);
+    await page.waitForURL(/\/partner\/a002\//, { timeout: 10000 });
+    await page.waitForLoadState('load');
+    await page.goto('/partner/a002/');
+    await page.waitForLoadState('load');
+    expect(page.url(), 'URL にコードが載っていない状態にすること').not.toContain('A002');
+
+    const applied = await observeCodeInApplication(page, config, 'A002');
+    expect(
+      applied.foundIn.length,
+      `URL 以外の置き場所から付与を検出できること: ${JSON.stringify(applied)}`,
+    ).toBeGreaterThan(0);
+    const ok = verifyCodeApplied(applied, 'A002', 'A002');
+    expect(ok[0]?.severity, '付与されていれば Low (記録) であること').toBe('low');
+    expect(ok[0]?.checkId, 'チェックリストの列に載ること').toBe('code-applied');
+
+    // 付与されていない場合は検出する (見逃しの確認)
+    const missing = verifyCodeApplied(
+      { foundIn: [], hints: ['insAgentNo という項目がある'], otherCodes: [], url: page.url() },
+      'A002',
+      'A002',
+    );
+    expect(missing[0]?.severity, '付与されていなければ Critical').toBe('critical');
+    expect(missing[0]?.detail, '入れ物だけの状態は参考情報として示すこと').toContain('insAgentNo');
+  });
+
+  test('チェックリスト表を組み立てられる (ダッシュボードの本体)', async () => {
+    // 行 = 代理店 / 列 = 検査項目 / セル = ✅ ❌ — の表。
+    //
+    // ここで最も重要なのは「検知が無いこと」を ✅ にしないこと。
+    // 検査が動いていないだけの状態を「問題なし」と見せると、
+    // 不具合を見逃したまま OK と表示してしまう。
+    const record = (
+      agencyCode: string,
+      deviceId: string,
+      findings: Array<{ checkId: CheckId; severity: Severity; title: string }>,
+    ) => ({
+      testId: `t-${agencyCode}-${deviceId}`,
+      testTitle: 'self check',
+      suite: 'self check',
+      environment: 'local',
+      environmentLabel: 'ローカル',
+      baseUrl: 'http://127.0.0.1:4173',
+      browserId: 'chromium',
+      deviceId,
+      deviceLabel: deviceId.toUpperCase(),
+      agencyCode,
+      status: 'passed' as const,
+      durationMs: 1,
+      startedAt: new Date().toISOString(),
+      findings: findings.map((entry) => ({
+        ...entry,
+        category: 'agency-display' as FindingCategory,
+        url: 'http://127.0.0.1:4173/lp/',
+        agencyCode,
+      })),
+    });
+
+    const meta = {
+      A001: { company: '株式会社エーワン保険サービス', mirayaku: '○' },
+      A003: { company: 'シースリー少額短期保険株式会社', mirayaku: '×' },
+    };
+
+    const checklist = buildChecklist(
+      [
+        record('A001', 'pc', [
+          { checkId: 'header-name', severity: 'low', title: '[確認OK] ヘッダー' },
+          { checkId: 'footer-name', severity: 'low', title: '[確認OK] フッター' },
+          { checkId: 'anshin-pack', severity: 'low', title: '[確認OK] あんしんパック' },
+        ]),
+        record('A003', 'pc', [
+          { checkId: 'header-name', severity: 'low', title: '[確認OK] ヘッダー' },
+          { checkId: 'anshin-pack', severity: 'critical', title: 'あんしんパックが表示されています' },
+        ]),
+        // PC は通って SP で落ちる場合、その代理店は ❌ として扱う
+        record('A003', 'sp', [{ checkId: 'header-name', severity: 'critical', title: 'ヘッダー欠落' }]),
+      ],
+      meta,
+    );
+
+    expect(
+      checklist.columns.map((column) => column.key),
+      '列が検査項目であること',
+    ).toEqual(CHECK_COLUMNS.map((column) => column.key));
+
+    expect(
+      checklist.rows.map((row) => row.code),
+      '問題のある代理店を先に出すこと',
+    ).toEqual(['A003', 'A001']);
+
+    const a001 = checklist.rows.find((row) => row.code === 'A001');
+    expect(a001?.company, '会社名を出せること').toBe('株式会社エーワン保険サービス');
+    expect(a001?.mirayaku, 'みらやく掲載可否を出せること').toBe('○');
+    expect(a001?.cells['header-name'].state, '確認できた項目は ok').toBe('ok');
+    expect(a001?.cells['anshin-pack'].state, 'あんしんパックも ok').toBe('ok');
+    expect(a001?.failed, '問題が無ければ failed でないこと').toBe(false);
+    // 検査していない項目を ok にしてはならない
+    expect(a001?.cells.redirect.state, '検査していない項目は none (—) にすること').toBe('none');
+    expect(a001?.cells['code-carry'].state, '検査していない項目は none (—) にすること').toBe('none');
+    expect(a001?.checkedCount, '検査した項目数を数えること').toBe(3);
+
+    const a003 = checklist.rows.find((row) => row.code === 'A003');
+    expect(a003?.cells['anshin-pack'].state, '仕様どおりでない項目は ng').toBe('ng');
+    expect(a003?.cells['anshin-pack'].severity, '重大度を残すこと').toBe('critical');
+    expect(
+      a003?.cells['header-name'].state,
+      'PC で通っても SP で落ちれば ng にすること',
+    ).toBe('ng');
+    expect(a003?.failed, '1 つでも ng なら failed').toBe(true);
+  });
+
   test('安全装置による遮断を不具合として報告しない (自作自演の防止)', async ({ page }) => {
     // 読み取り専用の環境では、このツールが GET 以外のリクエストを止める。
     // ブラウザはそれを「読み込み失敗」としてコンソールに出すが、
@@ -1221,49 +1340,62 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     // みらやく可の代理店 (A001): 代理店名と あんしんパック の両方がある
     await page.goto(`/lp/?${param}=A001`);
     await page.waitForLoadState('load');
-    const ok = await verifyPageTexts(
+    const company = '株式会社エーワン保険サービス';
+    const ok = await verifyDisplayRules(
       page,
-      {
-        requiredTexts: ['株式会社エーワン保険サービス', '募集代理店：株式会社エーワン保険サービス', 'あんしんパック'],
-        forbiddenTexts: [],
-      },
+      config,
+      { company, agencyName: 'shown', anshinPack: 'present' },
       'A001',
     );
-    expect(ok, `正しい状態では検知しないこと: ${JSON.stringify(ok)}`).toEqual([]);
+    expect(
+      ok.filter((finding) => finding.severity === 'critical'),
+      `正しい状態では検知しないこと: ${JSON.stringify(ok)}`,
+    ).toEqual([]);
+    expect(
+      ok.map((finding) => finding.checkId).sort(),
+      '3 項目すべての結果が返ること',
+    ).toEqual(['anshin-pack', 'footer-name', 'header-name']);
 
     // 代理店名が出ていない場合は検出する (見逃しの確認)
-    const missing = await verifyPageTexts(
+    const missing = await verifyDisplayRules(
       page,
-      { requiredTexts: ['募集代理店：出るはずのない会社'], forbiddenTexts: [] },
+      config,
+      { company: '出るはずのない会社', agencyName: 'shown', anshinPack: 'ignore' },
       'A001',
     );
-    expect(missing.length, '出るべき文言が無ければ検出すること').toBe(1);
-    expect(missing[0].severity, '売上に直結するため Critical であること').toBe('critical');
+    const missingCritical = missing.filter((finding) => finding.severity === 'critical');
+    expect(missingCritical.length, 'ヘッダーとフッターの両方で検出すること').toBe(2);
+    expect(
+      missingCritical.map((finding) => finding.checkId).sort(),
+      'どの項目が欠けているか分かること',
+    ).toEqual(['footer-name', 'header-name']);
 
     // みらやく不可の扱い: 「あんしんパック」があれば検出する
-    const forbidden = await verifyPageTexts(
+    const forbidden = await verifyDisplayRules(
       page,
-      { requiredTexts: [], forbiddenTexts: ['あんしんパック'] },
+      config,
+      { company, agencyName: 'shown', anshinPack: 'absent' },
       'A001 をみらやく不可として扱った場合',
     );
-    expect(forbidden.length, '出てはいけない文言があれば検出すること').toBe(1);
-    expect(forbidden[0].severity, 'コンプライアンスに直結するため Critical であること').toBe('critical');
-    expect(forbidden[0].detail, 'どこに出ているか分かること').toContain('あんしんパック');
+    const anshin = forbidden.find((finding) => finding.checkId === 'anshin-pack');
+    expect(anshin?.severity, 'コンプライアンスに直結するため Critical であること').toBe('critical');
+    expect(anshin?.actual, 'どの文言が出ているか分かること').toContain('あんしんパック');
 
     // みらやく不可の代理店 (A003): あんしんパック が無く、代理店名は出る。
     // A003 は meta refresh で専用 LP へ移るため、遷移の完了を待つ
     await page.goto(`/lp/?${param}=A003`);
     await page.waitForURL(/\/partner\/a003\//, { timeout: 10000 });
     await page.waitForLoadState('load');
-    const hidden = await verifyPageTexts(
+    const hidden = await verifyDisplayRules(
       page,
-      {
-        requiredTexts: ['シースリー少額短期保険株式会社', '募集代理店：シースリー少額短期保険株式会社'],
-        forbiddenTexts: ['あんしんパック'],
-      },
+      config,
+      { company: 'シースリー少額短期保険株式会社', agencyName: 'shown', anshinPack: 'absent' },
       'A003',
     );
-    expect(hidden, `みらやく不可の代理店で検知しないこと: ${JSON.stringify(hidden)}`).toEqual([]);
+    expect(
+      hidden.filter((finding) => finding.severity === 'critical'),
+      `みらやく不可の代理店で検知しないこと: ${JSON.stringify(hidden)}`,
+    ).toEqual([]);
 
     // コードなしでは代理店名が出ない。
     // 直前の検査でコードが保存されているため、消してから確認する
@@ -1275,8 +1407,11 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     });
     await page.goto('/lp/');
     await page.waitForLoadState('load');
-    const noCode = await verifyPageTexts(page, { requiredTexts: [], forbiddenTexts: ['募集代理店'] }, 'コードなし');
-    expect(noCode, 'コードなしで代理店名が出ないこと').toEqual([]);
+    const noCode = await verifyDisplayRules(page, config, { agencyName: 'hidden' }, 'コードなし');
+    expect(
+      noCode.filter((finding) => finding.severity === 'critical'),
+      'コードなしで代理店名が出ないこと',
+    ).toEqual([]);
   });
 
   test('申込フォームでコードが維持されているかを判定できる (方式を問わない)', async ({ page }) => {

@@ -1138,6 +1138,54 @@ export async function observeCodeInApplication(
 }
 
 /**
+ * LP 側で代理店コードが付与されているかを検証する。
+ *
+ * 専用 LP へのリダイレクト後はコードが URL から消えるため、
+ * 「URL にコードが載っている」ことでは判定できない。
+ * URL / 入力値 / 保存領域 / Cookie / dataLayer のいずれかに
+ * 残っていれば付与されているとみなす (方式を問わない)。
+ */
+export function verifyCodeApplied(
+  observation: CodeCarryObservation,
+  code: string,
+  label: string,
+): FindingInput[] {
+  if (observation.foundIn.length === 0) {
+    return [
+      {
+        checkId: 'code-applied',
+        category: 'agency-persistence',
+        severity: 'critical',
+        title: `${label}: 代理店コードが付与されていません`,
+        expected: `ページ側に ${code} が保持されていること`,
+        actual: 'URL・入力値・表示テキスト・保存領域・Cookie のいずれにも見つかりません',
+        url: observation.url,
+        agencyCode: code,
+        detail: [
+          'この状態では以降の遷移でこの代理店として扱われません。',
+          observation.hints.length > 0 ? `参考: ${observation.hints.join(', ')}` : '',
+        ]
+          .filter((part) => part !== '')
+          .join(' '),
+      },
+    ];
+  }
+
+  return [
+    {
+      checkId: 'code-applied',
+      category: 'agency-persistence',
+      severity: 'low',
+      title: `[確認OK] ${label}: 代理店コードが付与されています`,
+      expected: `ページ側に ${code} が保持されていること`,
+      actual: `見つかった場所: ${observation.foundIn.join(', ')}`,
+      url: observation.url,
+      agencyCode: code,
+    },
+  ];
+}
+
+/**
  * 申込フォームに遷移しても代理店コードが維持されているかを検証する。
  *
  * 維持されていない = その申込が代理店に帰属しない (売上に直結) ため Critical。
@@ -1152,6 +1200,7 @@ export function verifyCodeCarried(
 
   if (observation.foundIn.length === 0) {
     findings.push({
+      checkId: 'code-carry',
       category: 'agency-handoff',
       severity: 'critical',
       title: `${label}: 申込フォームに代理店コードが引き継がれていません`,
@@ -1169,6 +1218,7 @@ export function verifyCodeCarried(
     });
   } else {
     findings.push({
+      checkId: 'code-carry',
       category: 'agency-handoff',
       severity: 'low',
       title: `[確認OK] ${label}: 申込フォームに代理店コードが引き継がれています`,
@@ -1181,6 +1231,7 @@ export function verifyCodeCarried(
 
   for (const other of observation.otherCodes) {
     findings.push({
+      checkId: 'code-carry',
       category: 'agency-handoff',
       severity: 'critical',
       title: `${label}: 別の代理店コードが申込フォームに現れています`,

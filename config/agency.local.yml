@@ -9,6 +9,15 @@
 # URL パラメータ名
 paramName: agency_code
 
+# 代理店名・あんしんパックの検査に使う文言 (実サイトと同じ形)
+agencyNameTexts:
+  header: "{company}"
+  footer: "募集代理店：{company}"
+  forbiddenWhenHidden: 募集代理店
+  anshinPack:
+    - あんしんパック
+    - 安心パック
+
 storage:
   # cookie | localStorage | both — サイトの実装に合わせる
   type: both

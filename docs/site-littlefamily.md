@@ -77,34 +77,54 @@
 ### 文言で検査する (セレクタを知らなくてよい)
 
 セレクタ (`data-testid`) が分からないため、**表示されているテキスト**で判定する。
-`agency-profiles.yml` にパターンごとに書く。`{company}` は会社名に置き換わる。
+文言そのものは `config/agency.yml` の `agencyNameTexts` が 1 か所で持ち、
+`agency-profiles.yml` はパターンごとに「どうあるべきか」だけを書く。
 
 ```yaml
-mirayaku-visible:
-  requiredTexts:            # ページ内に必ずある
-    - "{company}"                 # ヘッダーの代理店名
-    - "募集代理店：{company}"      # フッターの表記
+# config/agency.yml — 文言 ({company} は会社名に置き換わる)
+agencyNameTexts:
+  header: "{company}"
+  footer: "募集代理店：{company}"
+  forbiddenWhenHidden: 募集代理店
+  anshinPack:
     - あんしんパック
-  forbiddenTexts: []
+    - 安心パック
+```
+
+```yaml
+# config/agency-profiles.yml — パターンごとの期待
+mirayaku-visible:
+  agencyName: shown      # ヘッダーとフッターに代理店名が出る
+  anshinPack: present    # 「あんしんパック」の記載がある
 
 mirayaku-hidden:
-  requiredTexts:
-    - "{company}"
-    - "募集代理店：{company}"
-  forbiddenTexts:           # ページ内にあってはならない
-    - あんしんパック
+  agencyName: shown
+  anshinPack: absent     # 「あんしんパック」の記載が一切ない
+
+kakakucom:
+  agencyName: shown
+  anshinPack: ignore     # 専用 LP では扱いが未確定のため検査しない
+  codeApplied: true      # リダイレクト後もコードが付与されていること
 ```
 
 | 検知 | 重大度 | 理由 |
 |---|---|---|
 | 出るべき代理店名が無い | Critical | 代理店に帰属しない = 売上に直結 |
 | 出てはいけない「あんしんパック」がある | Critical | みらやく掲載不可の代理店で案内している = コンプライアンス |
+| 出るべき「あんしんパック」が無い | Critical | みらやく掲載可の代理店で案内が欠けている |
 
 自社コード (`littlefamily01`) は代理店コードを無効化してオリジナルを表示するため、
-「募集代理店」が**出ないこと**を検査する (逆方向)。
-無効なコード・コードなしでも同様に「募集代理店」が出ないことを検査する。
+`agencyName: hidden` として「募集代理店」が**出ないこと**を検査する (逆方向)。
+無効なコード・コードなしでも同様。
 
 判定は**表示されているテキスト**で行う (`display:none` で残っていても「無い」とみなす)。
+
+**合否どちらの場合も結果を残す。**
+「検知が無い」を合格の根拠にすると、検査が動いていないだけの状態を
+「問題なし」と表示してしまう。各検査は `checkId` 付きの記録
+(`header-name` / `footer-name` / `anshin-pack` / `redirect` / `code-applied` / `code-carry`)
+を残し、ダッシュボードのチェックリストがこれを ✅ / ❌ / — に変換する
+(docs/ui.md)。
 
 ## 2. 214 件をどう扱うか
 

@@ -112,10 +112,13 @@ function buildAgency(row, profile) {
     visibleSections: profile.visibleSections ?? [],
     hiddenSections: profile.hiddenSections ?? [],
     expectedTexts: profile.expectedTexts ?? {},
-    // ページ内の文言で検査する項目。{company} は会社名に置き換える
-    // (セレクタが未確認でも「代理店名が出ること」「あんしんパックが無いこと」を検査できる)
-    requiredTexts: (profile.requiredTexts ?? []).map((text) => text.replaceAll('{company}', row.company)),
-    forbiddenTexts: (profile.forbiddenTexts ?? []).map((text) => text.replaceAll('{company}', row.company)),
+    // 表示ルール (代理店名の表示 / あんしんパックの有無)。
+    // 文言そのものは agency.yml の agencyNameTexts が持つ
+    agencyName: profile.agencyName ?? 'shown',
+    anshinPack: profile.anshinPack ?? 'ignore',
+    // 代理店コードが付与されているかを別に確認するパターン
+    // (リダイレクト後はコードが URL から消えるため)
+    codeApplied: profile.codeApplied === true,
     expectedAssets: profile.expectedAssets ?? {},
     cta: profile.cta ?? null,
     application: profile.application ?? null,
@@ -136,8 +139,8 @@ function buildFallback(expectation) {
     visibleSections: expectation.visibleSections ?? [],
     hiddenSections: expectation.hiddenSections ?? [],
     expectedTexts: expectation.expectedTexts ?? {},
-    // ページ内にあってはならない文字列 (無効コードで代理店名が出ないこと等)
-    forbiddenTexts: expectation.forbiddenTexts ?? [],
+    // 代理店名の表示 (無効コード・コードなしでは hidden)
+    agencyName: expectation.agencyName ?? 'hidden',
     expectStored: Boolean(expectation.expectStored ?? false),
     application: expectation.application ?? {
       expectedDomain: null,

@@ -19,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 process.env.QA_UI_IMPORT = '1';
-const { server, agencySummary, findingGroups } = await import('./ui-server.mjs');
+const { server, checklistOf, findingGroups } = await import('./ui-server.mjs');
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const failures = [];
@@ -162,25 +162,35 @@ await check('URL はドメインまでで保存する', async () => {
   }
 });
 
-await check('代理店ごとの一覧をまとめられる', () => {
-  const summary = agencySummary([
-    { agencyCode: 'A001', findings: [] },
-    {
-      agencyCode: 'A002',
-      findings: [
-        { category: 'agency-display', severity: 'medium', agencyCode: 'A002' },
-        { category: 'agency-redirect', severity: 'critical', agencyCode: 'A002' },
-      ],
-    },
-    { agencyCode: 'none', findings: [{ category: 'js-error', severity: 'high' }] },
-  ]);
-  const codes = summary.rows.map((row) => row.code);
-  assert.deepEqual(codes, ['A002', 'A001'], '重い方を先に並べること (none は含めない)');
-  const a002 = summary.rows[0];
-  assert.equal(a002.cells.redirect, 'critical');
-  assert.equal(a002.counts.display, 1);
-  const a001 = summary.rows[1];
-  assert.equal(a001.cells.display, null, '検知が無ければ OK (null) にすること');
+await check('チェックリストをレポートから受け取れる', () => {
+  // 計算はレポート側 (utils/checklist.ts) が行う。
+  // 画面は結果を渡すだけなので、壊れた・古いレポートで落ちないことを確認する。
+  const checklist = {
+    columns: [{ key: 'redirect', label: 'リダイレクト' }],
+    rows: [
+      {
+        code: 'littlefamily03',
+        company: '株式会社カカクコム・インシュアランス',
+        mirayaku: '○',
+        cells: { redirect: { state: 'ok', severity: null, count: 0, note: '確認' } },
+        failed: false,
+        okCount: 1,
+        checkedCount: 1,
+      },
+    ],
+  };
+  assert.deepEqual(checklistOf({ summary: { checklist } }), checklist, 'そのまま渡すこと');
+  assert.deepEqual(
+    checklistOf({ summary: {} }),
+    { columns: [], rows: [] },
+    'チェックリストが無いレポートでも壊れないこと',
+  );
+  assert.deepEqual(
+    checklistOf({ summary: { checklist: { columns: 'こわれた' } } }),
+    { columns: [], rows: [] },
+    '形が違う場合は空にすること',
+  );
+  assert.deepEqual(checklistOf(null), { columns: [], rows: [] }, 'レポートが無くても壊れないこと');
 });
 
 await check('検知結果を同じ内容でまとめられる', () => {
@@ -212,13 +222,18 @@ await check('検知結果を同じ内容でまとめられる', () => {
   assert.deepEqual(groups[0].agencies, ['A001'], 'どの代理店で出たか分かること');
 });
 
-await check('会社名と みらやく掲載可否が画面に渡る', async () => {
+await check('チェックリストの表が画面にある', async () => {
   const { body } = await json('/api/state');
-  assert.equal(typeof body.agencyMeta, 'object', '代理店の情報が返ること');
+  assert.equal(typeof body.checklist, 'object', 'チェックリストが返ること');
+  assert.ok(Array.isArray(body.checklist.rows), '行の一覧が返ること');
   const response = await fetch(base);
   const html = await response.text();
   assert.ok(html.includes('会社名'), '会社名の列を持つこと');
   assert.ok(html.includes('みらやく'), 'みらやくの列を持つこと');
+  // 「検知が無い」を ✅ にすると、検査が動いていないだけの状態を
+  // 「問題なし」と見せてしまう。対象外は — で区別できる必要がある
+  assert.ok(html.includes("cell.state === 'none'"), '対象外を区別すること');
+  assert.ok(html.includes('✅') && html.includes('❌') && html.includes('—'), '3 つの表示を持つこと');
 });
 
 await check('検知結果が画面の状態に含まれる', async () => {

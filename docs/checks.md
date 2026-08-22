@@ -356,6 +356,32 @@ knownIssues:
 種別を限定しているため、同じ代理店で**別の**不具合が出た場合は
 既知扱いにならず通常の重大度で報告される。
 
+## 7.2 チェックリスト (`utils/checklist.ts`)
+
+代理店コードで変わる仕様を「行 = 代理店 / 列 = 検査項目」の 1 枚の表にする。
+ダッシュボードと HTML レポートの両方がこの結果を表示する
+(計算はここだけ。2 か所で計算すると結果が食い違う)。
+
+| 列 (`checkId`) | 記録する処理 |
+|---|---|
+| `redirect` | `verifyRedirectTrace` (`utils/redirect.ts`) |
+| `code-applied` | `verifyCodeApplied` (`utils/handoff.ts`) |
+| `header-name` / `footer-name` / `anshin-pack` | `verifyDisplayRules` (`utils/agency.ts`) |
+| `code-carry` | `verifyCodeCarried` (`utils/handoff.ts`) |
+
+| セル | 条件 |
+|---|---|
+| ✅ (`ok`) | その `checkId` の**合格の記録**がある (Low + `[確認OK]`) |
+| ❌ (`ng`) | その `checkId` の不具合検知がある (最も重い重大度と件数を持つ) |
+| — (`none`) | その `checkId` の記録が 1 件も無い = この代理店では検査対象外 |
+
+| 判断 | 理由 |
+|---|---|
+| 検知が無いことを ✅ にしない | 検査が動いていないだけの状態を「問題なし」と表示してしまう |
+| PC で ✅ / SP で ❌ なら ❌ | 片方でも仕様どおりでなければ対応が必要 |
+| 無効コードは行にしない | 実在する代理店ではないため。検知結果の側で扱う |
+| ❌ のある代理店を先に並べる | 対応すべき行が上に来る |
+
 ## 8. 設定検証 (`utils/config.ts` の `validateConfig`)
 
 運用者は `config/agencies.yml` を頻繁に編集するため、

@@ -56,7 +56,10 @@ test.describe('申込導線の観測 @agency @cta', () => {
   // ------------------------------------------------------------------
   const ctaSelectorSource = config.agency.selectors.ctaPrimary;
 
-  for (const spec of observeSpecs) {
+  // 引き継ぎ方式が確定している代理店 (application 設定済み) も対象にする。
+  // 「申込フォームに遷移してもコードが維持される」は全代理店で必須のため、
+  // 方式の設定有無で検査の有無が変わってはならない。
+  for (const spec of specs) {
     test(`${spec.code}: 申込フォームに遷移してもコードが維持される`, async ({ qa, page, context }) => {
       test.slow();
       test.skip(!ctaSelectorSource, '申込ボタンのセレクタ (selectors.ctaPrimary) が未設定です');
@@ -72,13 +75,17 @@ test.describe('申込導線の観測 @agency @cta', () => {
 
       if (!(await enterAsAgency(qa, spec))) return;
 
-      const cta = page.locator(resolveSelector(ctaSelectorSource!)).first();
+      // 代理店ごとに申込への入口が違う場合 (POST 送信のボタンなど) は
+      // その代理店の CTA を使う。共通のセレクタで固定すると、
+      // 正常なサイトを「申込フォームへ遷移できない」と誤って報告してしまう。
+      const ctaSource = spec.cta?.testId ?? ctaSelectorSource!;
+      const cta = page.locator(resolveSelector(ctaSource)).first();
       if ((await cta.count()) === 0) {
         qa.add({
           category: 'agency-handoff',
           severity: 'high',
           title: `${spec.code}: 申込ボタンが見つかりません`,
-          expected: `${ctaSelectorSource} に一致するボタンがあること`,
+          expected: `${ctaSource} に一致するボタンがあること`,
           actual: '一致する要素がありません',
           url: page.url(),
         });

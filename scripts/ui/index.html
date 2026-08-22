@@ -92,8 +92,16 @@
     border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; line-height: 1.7;
   }
   .notice code { background: #fdf1d5; padding: 1px 5px; border-radius: 4px; }
-  #agencies td.company { white-space: normal; min-width: 190px; }
-  #agencies td.mirayaku { font-weight: 700; }
+  /* 列が多いので、1 画面に収まるよう余白を詰める (横スクロールを避ける) */
+  #checklist th { font-size: 12px; vertical-align: bottom; padding: 8px 6px; }
+  #checklist td.check { padding: 8px 6px; }
+  #checklist td.company { white-space: normal; min-width: 150px; }
+  #checklist td.mirayaku { font-weight: 700; font-size: 16px; }
+  #checklist td.check { text-align: center; font-size: 19px; white-space: nowrap; }
+  #checklist td.check-none { color: #c7ccd2; }
+  #checklist td.check-ng { background: #fdecea; }
+  #checklist td.check-ng .count { display: block; font-size: 11px; color: #9c2f24; }
+  #checklist tr.row-ng td.code { background: #fdecea; }
 </style>
 </head>
 <body>
@@ -147,9 +155,9 @@
   </section>
 
   <section id="agency-section" hidden>
-    <h2>代理店コードごとの結果 <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
-    <div class="panel"><table id="agencies"></table></div>
-    <p class="muted">OK = その観点で検知なし。検査する代理店コードは実行ごとに抽選されます。</p>
+    <h2>チェックリスト <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
+    <div class="panel"><table id="checklist"></table></div>
+    <p class="muted">✅ = 検査して仕様どおり / ❌ = 仕様どおりでない / — = この代理店では対象外。検査する代理店コードは実行ごとに抽選されます。</p>
   </section>
 
   <section id="history-section" hidden>
@@ -321,8 +329,8 @@
 
   function renderAgencies(state) {
     var section = document.getElementById('agency-section');
-    var table = document.getElementById('agencies');
-    var data = state.agencies || { columns: [], rows: [] };
+    var table = document.getElementById('checklist');
+    var data = state.checklist || { columns: [], rows: [] };
     if (!data.rows || data.rows.length === 0) {
       section.hidden = true;
       return;
@@ -330,21 +338,27 @@
     section.hidden = false;
     // 実行中は前回の結果を出しているので、そう分かるようにする
     document.getElementById('agency-stale').hidden = !state.running;
-    var meta = state.agencyMeta || {};
     var head = '<thead><tr><th>代理店コード</th><th>会社名</th><th>みらやく</th>' +
       data.columns.map(function (column) { return '<th>' + text(column.label) + '</th>'; }).join('') +
       '</tr></thead>';
     var body = '<tbody>' + data.rows.map(function (row) {
       var cells = data.columns.map(function (column) {
-        var severity = row.cells[column.key];
-        if (!severity) return '<td class="center ok">OK</td>';
-        return '<td class="center"><span class="badge ' + text(severity) + '">' +
-          text(LABELS[severity] || severity) + '</span> ' + row.counts[column.key] + '</td>';
+        var cell = row.cells[column.key];
+        // 「検知が無い」を ✅ にはしない。検査が動いていないだけの状態を
+        // 「問題なし」と見せてしまうため、対象外は — で区別する
+        if (!cell || cell.state === 'none') {
+          return '<td class="check check-none" title="この代理店では対象外の項目です">—</td>';
+        }
+        if (cell.state === 'ok') {
+          return '<td class="check" title="' + text(cell.note || '') + '">✅</td>';
+        }
+        return '<td class="check check-ng" title="' + text(cell.note || '') + '">❌' +
+          '<span class="count">' + cell.count + ' 件</span></td>';
       }).join('');
-      var info = meta[row.code] || {};
-      return '<tr><td class="code">' + text(row.code) + '</td>' +
-        '<td class="company">' + text(info.company || '-') + '</td>' +
-        '<td class="center mirayaku">' + text(info.mirayaku || '-') + '</td>' +
+      return '<tr class="' + (row.failed ? 'row-ng' : '') + '">' +
+        '<td class="code">' + text(row.code) + '</td>' +
+        '<td class="company">' + text(row.company || '-') + '</td>' +
+        '<td class="center mirayaku">' + text(row.mirayaku || '-') + '</td>' +
         cells + '</tr>';
     }).join('') + '</tbody>';
     table.innerHTML = head + body;

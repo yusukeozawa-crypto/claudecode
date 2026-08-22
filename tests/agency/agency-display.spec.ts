@@ -19,9 +19,10 @@ import { pageById, pagesFromConfig } from '../../utils/page-source';
 import {
   agencyPairs, agencySpecs, clearStoredCode, invalidCodes, readStoredCode, storageLabel,
   verifyAssets, verifyCtaText, verifyFallback, verifyNoOtherAgencyInfo,
-  verifySections, verifyStoredCode, verifyTexts, verifyPageTexts, storageChecksEnabled, expectedStoredCode,
+  verifySections, verifyStoredCode, verifyTexts, verifyDisplayRules, storageChecksEnabled, expectedStoredCode,
 } from '../../utils/agency';
 import { enterAsAgency, enterPath, enterWithFallback } from '../../utils/agency-entry';
+import { observeCodeInApplication, verifyCodeApplied } from '../../utils/handoff';
 
 const config = loadConfig();
 const specs = agencySpecs(config);
@@ -41,10 +42,18 @@ test.describe('代理店ごとの表示 @agency', () => {
       qa.addAll(await verifySections(page, spec, label));
       qa.addAll(await verifyTexts(page, spec.expectedTexts, label));
       // このサイトの中心的な仕様 (代理店名の表示 / あんしんパックの有無)
-      qa.addAll(await verifyPageTexts(page, spec, label));
+      qa.addAll(await verifyDisplayRules(page, config, spec, label));
       qa.addAll(await verifyAssets(page, spec.expectedAssets, label));
       qa.addAll(await verifyCtaText(page, spec, label));
       qa.addAll(await verifyNoOtherAgencyInfo(page, config, spec.code, label));
+
+      // 代理店コードの付与。
+      //   専用 LP へのリダイレクト後はコードが URL から消えるため、
+      //   代理店名の表示では判断できない代理店 (カカクコム) で必要になる。
+      if (spec.codeApplied) {
+        const applied = await observeCodeInApplication(page, config, spec.code);
+        qa.addAll(verifyCodeApplied(applied, spec.code, label));
+      }
 
       const stored = await readStoredCode(page, config);
       qa.addAll(

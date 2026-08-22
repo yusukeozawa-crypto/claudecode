@@ -350,6 +350,7 @@ export function verifyRedirectTrace(
   // (5) 最終 URL
   if (!samePath(trace.finalUrl, expectation.expectedFinalPath)) {
     findings.push({
+      checkId: 'redirect',
       category: 'agency-redirect',
       severity: 'critical',
       title: `${label}: 最終的な表示 URL が仕様と異なります`,
@@ -364,6 +365,7 @@ export function verifyRedirectTrace(
   const actuallyRedirected = !samePath(trace.entryUrl, trace.finalUrl);
   if (expectation.redirected !== actuallyRedirected) {
     findings.push({
+      checkId: 'redirect',
       category: 'agency-redirect',
       severity: 'critical',
       title: expectation.redirected
@@ -451,6 +453,23 @@ export function verifyRedirectTrace(
       url,
       detail:
         'HTTP 3xx / JavaScript による遷移 / meta refresh / SPA のクライアントルーティングのいずれが使われているかを確認してください',
+    });
+  }
+
+  // 合否どちらでも記録を残す。
+  // ダッシュボードの「代理店 × 検査項目」の表で
+  // 「検査したうえで問題なし」と「そもそも検査していない」を区別するために必要。
+  if (!findings.some((finding) => finding.checkId === 'redirect')) {
+    findings.push({
+      checkId: 'redirect',
+      category: 'agency-redirect',
+      severity: 'low',
+      title: `[確認OK] ${label}: ${expectation.redirected ? 'リダイレクト先が仕様どおり' : 'リダイレクトされない (仕様どおり)'}`,
+      expected: expectation.redirected
+        ? `${expectation.expectedFinalPath} へリダイレクト`
+        : 'リダイレクトなし',
+      actual: `最終パス ${safePath(trace.finalUrl)}`,
+      url,
     });
   }
 

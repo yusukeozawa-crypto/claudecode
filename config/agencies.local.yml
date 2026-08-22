@@ -74,11 +74,10 @@ agencies:
 
     # バナー・ロゴ (src の部分一致で検証する)
     # ページ内の文言で検査する項目 (実サイトの中心的な仕様と同じ形)
-    requiredTexts:
-      - "株式会社エーワン保険サービス"
-      - "募集代理店：株式会社エーワン保険サービス"
-      - "あんしんパック"
-    forbiddenTexts: []
+    # 中心的な仕様 (実サイトと同じ形):
+    #   代理店名がヘッダーとフッターに出るか / 「あんしんパック」の記載可否
+    agencyName: shown
+    anshinPack: present
     expectedAssets:
       agency-banner: /assets/banner-a001.svg
       agency-logo: /assets/logo-a001.svg
@@ -157,10 +156,13 @@ agencies:
       agency-phone: 06-0000-0002
 
     # ページ内の文言で検査する項目 (実サイトの中心的な仕様と同じ形)
-    requiredTexts:
-      - "株式会社ビーツー保険"
-      - "募集代理店：株式会社ビーツー保険"
-    forbiddenTexts: []
+    agencyName: shown
+    # 専用 LP には あんしんパック の枠が無いため対象外
+    anshinPack: ignore
+    # リダイレクト後は URL からコードが消えるため、
+    # コードが付与されている (サイト側で保持されている) ことを別に確認する
+    # (実サイトのカカクコムと同じ性質)
+    codeApplied: true
     expectedAssets:
       agency-banner: /assets/banner-a002.svg
 
@@ -227,11 +229,9 @@ agencies:
       agency-phone: 052-000-0003
 
     # ページ内の文言で検査する項目 (実サイトの中心的な仕様と同じ形)
-    requiredTexts:
-      - "シースリー少額短期保険株式会社"
-      - "募集代理店：シースリー少額短期保険株式会社"
-    forbiddenTexts:
-      - "あんしんパック"
+    agencyName: shown
+    # みらやく不可 (×) のため「あんしんパック」の記載が一切あってはならない
+    anshinPack: absent
     expectedAssets:
       agency-banner: /assets/banner-a003.svg
 
@@ -296,10 +296,8 @@ agencies:
       agency-name: エーフォー限定プラン保険株式会社
       agency-phone: 011-000-0004
     # ページ内の文言で検査する項目 (実サイトの中心的な仕様と同じ形)
-    requiredTexts:
-      - "エーフォー限定プラン保険株式会社"
-      - "募集代理店：エーフォー限定プラン保険株式会社"
-    forbiddenTexts: []
+    agencyName: shown
+    anshinPack: ignore
     expectedAssets: {}
     cta: null
     application: null
@@ -316,6 +314,9 @@ agencies:
     company: 株式会社エーワン保険サービス (支店)
     mirayaku: "○"
     profile: branch
+    # 代理店コードとして扱われないため、通常 LP (コードなし) と同じ表示になる
+    agencyName: hidden
+    anshinPack: present
     # サイト側で代理店コードとして扱われない。
     # 保存・引き継ぎ・代理店表示のいずれも期待しない。
     recognized: false
@@ -349,8 +350,7 @@ invalidCodes:
 
 invalidExpectation:
   # 無効なコード / コードなしで代理店名が出てはいけない
-  forbiddenTexts:
-    - "募集代理店"
+  agencyName: hidden
   entryPath: /lp/
   expectedFinalPath: /lp/
   redirected: false
@@ -381,8 +381,7 @@ invalidExpectation:
 # ============================================================
 noCodeExpectation:
   # 無効なコード / コードなしで代理店名が出てはいけない
-  forbiddenTexts:
-    - "募集代理店"
+  agencyName: hidden
   entryPath: /lp/
   expectedFinalPath: /lp/
   redirected: false

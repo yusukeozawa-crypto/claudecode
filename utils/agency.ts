@@ -7,7 +7,7 @@
 import type { BrowserContext, Page } from '@playwright/test';
 import { pageUrl, resolveSelector } from './config';
 import type {
-  AgencySpec, FallbackExpectation, FindingInput, QaConfig,
+  AgencySpec, CheckId, FallbackExpectation, FindingInput, QaConfig,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -562,29 +562,32 @@ export async function verifyFallback(
   const findings: FindingInput[] = [];
   findings.push(...(await verifySections(page, expectation, label)));
   findings.push(...(await verifyTexts(page, expectation.expectedTexts ?? {}, label)));
+  // 無効コード・コードなしで代理店名が出ていないこと
+  findings.push(...(await verifyDisplayRules(page, config, { agencyName: expectation.agencyName }, label)));
   findings.push(...(await verifyNoOtherAgencyInfo(page, config, null, label)));
   return findings;
 }
 
 /**
- * ページ内の文言を検査する。
+ * 代理店コードによる表示ルールを検査する。
  *
- * セレクタ (data-testid) が分からなくても検査できる形にしている。
- * このサイトの中心的な仕様は次の 3 点で、いずれも文言で判定できる。
- *   - 代理店名がヘッダーとフッターに出る (フッターは「募集代理店：<会社名>」)
- *   - みらやく掲載可の代理店は「あんしんパック」の記載がある
+ * このサイトで代理店コードによって変わるのは次の 3 点だけ。
+ * いずれもセレクタ (data-testid) を知らなくても文言で判定できる。
+ *   - ヘッダーに代理店名が出る
+ *   - フッターに「募集代理店：<会社名>」が出る
  *   - みらやく掲載不可の代理店は「あんしんパック」の記載が一切ない
  *
- * どちらも売上・コンプライアンスに直結するため Critical とする。
+ * 合否どちらの場合も checkId 付きの結果を返す。
+ * ダッシュボードの「代理店 × 検査項目」の表を作るために必要。
  */
-export async function verifyPageTexts(
+export async function verifyDisplayRules(
   page: Page,
-  spec: { requiredTexts?: string[]; forbiddenTexts?: string[] },
+  config: QaConfig,
+  spec: { company?: string; agencyName?: 'shown' | 'hidden'; anshinPack?: 'present' | 'absent' | 'ignore' },
   label: string,
 ): Promise<FindingInput[]> {
-  const required = spec.requiredTexts ?? [];
-  const forbidden = spec.forbiddenTexts ?? [];
-  if (required.length === 0 && forbidden.length === 0) return [];
+  const texts = config.agency.agencyNameTexts;
+  if (!texts) return [];
 
   // 表示されているテキストで判定する (DOM に残っていても非表示なら「無い」)
   const body = await page
@@ -592,36 +595,91 @@ export async function verifyPageTexts(
     .catch(() => '');
 
   const findings: FindingInput[] = [];
-  for (const text of required) {
-    if (body.includes(text)) continue;
-    findings.push({
-      category: 'agency-display',
-      severity: 'critical',
-      title: `${label}: 「${text}」が表示されていません`,
-      expected: `ページ内に「${text}」が表示されること`,
-      actual: '表示されているテキストに含まれていません',
-      url: page.url(),
-    });
-  }
-  for (const text of forbidden) {
-    if (!body.includes(text)) continue;
-    findings.push({
-      category: 'agency-display',
-      severity: 'critical',
-      title: `${label}: 「${text}」が表示されています`,
-      expected: `ページ内に「${text}」が表示されないこと`,
-      actual: `「${text}」が表示されています`,
-      url: page.url(),
-      detail: extractContext(body, text),
-    });
-  }
-  return findings;
-}
+  const company = spec.company ?? '';
+  const fill = (template: string): string => template.replaceAll('{company}', company);
 
-/** 見つかった文言の前後を抜き出す (どこに出ているか分かるように) */
-function extractContext(body: string, text: string): string {
-  const index = body.indexOf(text);
-  if (index < 0) return '';
-  const start = Math.max(0, index - 40);
-  return `…${body.slice(start, index + text.length + 40)}…`;
+  const pass = (checkId: CheckId, title: string, actual: string): FindingInput => ({
+    checkId,
+    category: 'agency-display',
+    severity: 'low',
+    title: `[確認OK] ${label}: ${title}`,
+    expected: title,
+    actual,
+    url: page.url(),
+  });
+  const fail = (checkId: CheckId, title: string, expected: string, actual: string): FindingInput => ({
+    checkId,
+    category: 'agency-display',
+    severity: 'critical',
+    title: `${label}: ${title}`,
+    expected,
+    actual,
+    url: page.url(),
+  });
+
+  // ---- 代理店名 (ヘッダー / フッター) ----
+  if (spec.agencyName === 'shown' && company !== '') {
+    const header = fill(texts.header);
+    const footer = fill(texts.footer);
+    findings.push(
+      body.includes(header)
+        ? pass('header-name', 'ヘッダーに代理店名が表示されている', `「${header}」を確認`)
+        : fail('header-name', 'ヘッダーに代理店名が表示されていません', `「${header}」が表示されること`, '表示されていません'),
+    );
+    findings.push(
+      body.includes(footer)
+        ? pass('footer-name', 'フッターに代理店名が表示されている', `「${footer}」を確認`)
+        : fail('footer-name', 'フッターに代理店名が表示されていません', `「${footer}」が表示されること`, '表示されていません'),
+    );
+  } else if (spec.agencyName === 'hidden') {
+    // 判定はページ全体の表示テキストで行うため、ヘッダーとフッターの
+    // 両方について「出ていない」ことを確認できている。
+    // 片方だけ結果を残すと、表で「もう片方は未検査」に見えてしまう。
+    const forbidden = texts.forbiddenWhenHidden;
+    const shown = body.includes(forbidden);
+    for (const checkId of ['header-name', 'footer-name'] as CheckId[]) {
+      findings.push(
+        shown
+          ? fail(
+              checkId,
+              '代理店名が表示されています',
+              `「${forbidden}」が表示されないこと`,
+              `「${forbidden}」が表示されています`,
+            )
+          : pass(checkId, '代理店名が表示されない', `「${forbidden}」が無いことを確認`),
+      );
+    }
+  }
+
+  // ---- あんしんパック ----
+  const mode = spec.anshinPack ?? 'ignore';
+  if (mode !== 'ignore') {
+    const variants = texts.anshinPack ?? [];
+    const found = variants.filter((variant) => body.includes(variant));
+    if (mode === 'present') {
+      findings.push(
+        found.length > 0
+          ? pass('anshin-pack', '「あんしんパック」の表示がある', `「${found.join('」「')}」を確認`)
+          : fail(
+              'anshin-pack',
+              '「あんしんパック」の表示がありません',
+              `${variants.join(' / ')} のいずれかが表示されること`,
+              '表示されていません',
+            ),
+      );
+    } else {
+      findings.push(
+        found.length === 0
+          ? pass('anshin-pack', '「あんしんパック」の表示が一切ない', `${variants.join(' / ')} が無いことを確認`)
+          : fail(
+              'anshin-pack',
+              '「あんしんパック」が表示されています (みらやく掲載不可)',
+              `${variants.join(' / ')} が表示されないこと`,
+              `「${found.join('」「')}」が表示されています`,
+            ),
+      );
+    }
+  }
+
+  return findings;
 }
