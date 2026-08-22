@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 process.env.QA_UI_IMPORT = '1';
 const { server, checklistOf, findingGroups } = await import('./ui-server.mjs');
 const { buildNotes } = await import('./lib/notes.mjs');
+const { parseOrigin, readEnvValues } = await import('./lib/env-file.mjs');
+const os = await import('node:os');
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const failures = [];
@@ -167,6 +169,36 @@ await check('URL はドメインまでで保存する', async () => {
     if (backup === null) fs.rmSync(envPath, { force: true });
     else fs.writeFileSync(envPath, backup, 'utf8');
   }
+});
+
+await check('.env の読み方が検査本体と同じ (同じキーが複数行なら後の行)', () => {
+  // 画面が先頭行、検査が末尾行を見ていたため、検査は動いているのに
+  // 画面が「未設定」と表示していた。規則がずれていないことを固定する。
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-env-'));
+  try {
+    fs.writeFileSync(
+      path.join(dir, '.env'),
+      ['PRODUCTION_APPLICATION_BASE_URL=', '# コメント', 'PRODUCTION_APPLICATION_BASE_URL=https://days.example.jp'].join('\n'),
+      'utf8',
+    );
+    const { values, duplicates } = readEnvValues(dir);
+    assert.equal(
+      values.PRODUCTION_APPLICATION_BASE_URL,
+      'https://days.example.jp',
+      '後に書いた行を採用すること',
+    );
+    assert.deepEqual(duplicates, ['PRODUCTION_APPLICATION_BASE_URL'], '重複したキーを知らせること');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await check('画面に出す URL はドメインまで (設定のパスと二重にしない)', () => {
+  // .env にパスまで入っている環境があり、設定側のパスとつながって
+  // https://host/lp/service/lp/service/ と表示されていた。
+  const parsed = parseOrigin('https://lp.example.jp/lp/service');
+  assert.equal(parsed.origin, 'https://lp.example.jp', 'ドメインだけを取り出すこと');
+  assert.equal(parsed.droppedPath, '/lp/service', '落としたパスを知らせること');
 });
 
 await check('チェックリストをレポートから受け取れる', () => {

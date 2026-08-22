@@ -20,7 +20,7 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { withBinPath } from './lib/env-path.mjs';
-import { parseOrigin, writeEnvValues } from './lib/env-file.mjs';
+import { parseOrigin, readEnvValues, writeEnvValues } from './lib/env-file.mjs';
 import { buildNotes } from './lib/notes.mjs';
 import { parse as parseYaml } from 'yaml';
 
@@ -118,21 +118,31 @@ function readJson(filePath) {
  *   ベーシック認証のユーザー名・パスワードは **返さない** (設定済みかどうかだけ)。
  */
 function envStatus() {
-  const envPath = path.join(root, '.env');
-  const text = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+  // 読み方は検査本体と同じ規則にする (同じキーが複数行あれば後の行が効く)
+  const { values, duplicates } = readEnvValues(root);
   const read = (key) => {
-    const match = new RegExp(`^${key}=(.*)$`, 'm').exec(text);
-    const value = match ? match[1].trim() : '';
+    const value = (values[key] ?? '').trim();
     return value === '' ? null : value;
+  };
+  // 画面に出すのはドメインまで。
+  //   .env にパスまで入っている環境があり、設定側のパスと二重に
+  //   つながって https://host/lp/service/lp/service/ と表示されていた。
+  const origin = (value) => {
+    if (!value) return null;
+    const parsed = parseOrigin(value);
+    return parsed ? parsed.origin : value;
   };
   const status = {};
   for (const [target, keys] of Object.entries(ENV_KEYS)) {
     const base = read(keys.base);
     status[target] = {
       configured: Boolean(base),
-      baseUrl: base,
-      applicationBaseUrl: read(keys.application),
+      baseUrl: origin(base),
+      applicationBaseUrl: origin(read(keys.application)),
       hasCredentials: Boolean(read(keys.user)),
+      // 同じキーが 2 行以上ある場合は画面で知らせる
+      // (どちらが効いているのか分からない状態を放置しない)
+      duplicateKeys: Object.values(keys).filter((key) => duplicates.includes(key)),
     };
   }
   return status;

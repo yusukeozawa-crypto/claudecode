@@ -397,6 +397,13 @@
         '<span class="name">' + text(target.label) + '</span>' +
         urls +
         '<span class="last muted">前回: ' + text(lastText) + '</span>' +
+        // .env に同じキーが 2 行以上あると、どちらが効くのか分からない。
+        // 検査は後の行を使うので、画面と食い違わないよう知らせる。
+        ((info.duplicateKeys || []).length > 0
+          ? '<span class="url one"><em class="unset">.env に ' +
+            text(info.duplicateKeys.join(', ')) +
+            ' が複数行あります (後の行が使われます。1 行に直してください)</em></span>'
+          : '') +
         '</button>';
     }).join('');
     Array.prototype.forEach.call(container.querySelectorAll('[data-target]'), function (button) {
