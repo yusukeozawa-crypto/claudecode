@@ -233,7 +233,7 @@ export default class QaHtmlReporter implements Reporter {
       agencyMeta: describeAgencyMeta(),
       // 代理店 × 検査項目のチェックリスト。
       // ブラウザ画面もこの値をそのまま表示する (同じ計算を 2 か所に持たない)
-      checklist: buildChecklist(this.records, describeAgencyMeta(), allPatternLabels()),
+      checklist: buildChecklist(this.records, describeAgencyMeta(), allPatternLabels(), patternOrder()),
       // 判定基準は config/runtime.yml の failOnSeverities に従う。
       // ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
       failOnSeverities: this.failOnSeverities,
@@ -460,6 +460,15 @@ function allPatternLabels(): string[] {
       if (agency.patternLabel) labels.add(agency.patternLabel);
     }
     return [...labels];
+  } catch {
+    return [];
+  }
+}
+
+/** チェックリストの並び順 (config/agency-profiles.yml の patternOrder) */
+function patternOrder(): string[] {
+  try {
+    return loadConfig().agencies.patternOrder ?? [];
   } catch {
     return [];
   }

@@ -1237,6 +1237,21 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       'PC と SP を別の表にすること (端末で挙動が違ったとき切り分けられるように)',
     ).toEqual(['pc', 'sp']);
 
+    // 並び順は設定で固定する。毎回同じ順でないと前回と見比べられない
+    const ordered = buildChecklist(
+      [
+        record('A003', 'pc', [{ checkId: 'header-name', observedValue: 'なし', expectedValue: 'あり', severity: 'critical' }]),
+        record('A001', 'pc', [{ checkId: 'header-name', observedValue: 'あり', expectedValue: 'あり', severity: 'low' }]),
+      ],
+      meta,
+      [],
+      ['みらやく○', 'みらやく× (br)'],
+    );
+    expect(
+      ordered.tables[0].rows.map((row) => row.pattern),
+      '問題のある行を先に出すのではなく、設定した順に並べること',
+    ).toEqual(['みらやく○', 'みらやく× (br)']);
+
     const pc = checklist.tables[0];
     const a001pc = pc.rows.find((row) => row.code === 'A001');
     expect(a001pc?.pattern, 'パターン名を出せること').toBe('みらやく○');

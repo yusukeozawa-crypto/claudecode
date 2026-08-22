@@ -404,6 +404,11 @@ export interface AgencyScope {
 }
 
 export interface AgenciesFile {
+  /**
+   * チェックリストの並び順 (パターン名)。
+   * 毎回同じ順で並んでいないと、前回の結果と見比べられない。
+   */
+  patternOrder?: string[];
   /** 実行時の抽選設定 (省略時は全件) */
   scope?: AgencyScope;
   /**

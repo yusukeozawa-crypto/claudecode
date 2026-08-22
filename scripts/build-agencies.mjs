@@ -211,6 +211,8 @@ function main() {
       perProfile: Number(scope.perProfile ?? 2),
       always: scope.always ?? [],
     },
+    // 表の並び順 (毎回同じ順で並べる。前回と見比べられるように)
+    patternOrder: profilesFile.patternOrder ?? [],
     displayMustDiffer: profilesFile.displayMustDiffer ?? [],
     displayIgnoreKeys: profilesFile.displayIgnoreKeys ?? [],
     sameAsNoCodeProfiles: profilesFile.sameAsNoCodeProfiles ?? [],

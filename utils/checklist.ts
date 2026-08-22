@@ -130,6 +130,7 @@ export function buildChecklist(
   records: QaRecord[],
   meta: Record<string, AgencyMeta> = {},
   allPatterns: string[] = [],
+  patternOrder: string[] = [],
 ): Checklist {
   // device → code → row
   const tables = new Map<string, Map<string, ChecklistRow>>();
@@ -226,9 +227,16 @@ export function buildChecklist(
       row.failed = CHECK_COLUMNS.some((column) => row.cells[column.key].state === 'ng');
       if (row.pattern) seenPatterns.add(row.pattern);
     }
-    // 期待と違う代理店を先に出す (対応すべき行が上に来る)
+    // 並び順は設定 (patternOrder) で固定する。
+    //   毎回同じ順で並んでいないと、前回の結果と見比べられない。
+    //   問題のある行を先に出す並べ方は、行が入れ替わって読みにくい。
+    const rank = (pattern: string): number => {
+      const index = patternOrder.indexOf(pattern);
+      return index < 0 ? patternOrder.length : index;
+    };
     rows.sort((a, b) => {
-      if (a.failed !== b.failed) return a.failed ? -1 : 1;
+      const order = rank(a.pattern) - rank(b.pattern);
+      if (order !== 0) return order;
       if (a.pattern !== b.pattern) return a.pattern.localeCompare(b.pattern);
       return a.code.localeCompare(b.code);
     });

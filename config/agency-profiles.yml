@@ -48,6 +48,19 @@ scope:
     - 要確認
     - ""
 
+# ---------- 表の並び順 ----------
+#   チェックリストはこの順で並べる。
+#   毎回同じ順で並んでいないと、前回と見比べられない。
+patternOrder:
+  - ダイレクト
+  - ダイレクト (みらやく×)
+  - カカクコム
+  - みらやく○
+  - みらやく×
+  - カカクコム (br)
+  - みらやく○ (br)
+  - みらやく× (br)
+
 # ---------- 表示の一貫性検査 ----------
 #   みらやくの表示・非表示は 1 つのセクションだけでなく、
 #   フッターの表記や各所の注釈にも及ぶ。どこが変わるかを
@@ -90,11 +103,6 @@ assign:
   - match: { code: littlefamily99 }
     exclude: true
     reason: Amazon みらやく用の未使用コードのため検査対象外
-  # littlefamily28 (hotto) は稼働していない (運用側の確認)。
-  # 代理店名の表示そのものが無いため、稼働中と扱うと毎回 Critical になる。
-  - match: { code: littlefamily28 }
-    exclude: true
-    reason: 稼働していないため検査対象外 (運用側の確認)
   # 支店コード (末尾 brNN) は親コードと同じ挙動になるのが仕様。
   #   マスタの各行が親と同じ みらやく可否を持っているため、
   #   専用の割り当てルールは不要 (下の みらやく / カカクコムのルールで決まる)。
@@ -104,10 +112,12 @@ assign:
   #   (期待結果は仕様どおりのままにし、修正日を過ぎたら通常の不具合として報告する)。
   - match: { code: littlefamily01 }
     profile: direct
-  # スプレッドシートの「扱い」列が「ダイレクト扱い」の代理店は
-  # 自社コードと同じ挙動 (代理店名を出さない)。
-  #   マスタ (config/agency-master.tsv) に handling 列を足すと効く。
-  #   列が無い / 空の行はこのルールに当たらない。
+  # スプレッドシートの「委託契約書」列 (E列) による振り分け。
+  #   ダイレクト扱い       … 自社コードと同じ挙動 (代理店名を出さない)
+  #   ダイレクトNOみらやく … ダイレクト扱い + みらやく掲載不可
+  #                          (代理店名を出さず、あんしんパックも出さない)
+  - match: { handling: ダイレクトNOみらやく }
+    profile: direct-no-mirayaku
   - match: { handling: ダイレクト扱い }
     profile: direct
   # 支店コード (末尾 brNN) は親コードと同じ挙動になるのが仕様。
@@ -146,6 +156,27 @@ profiles:
     # 募集代理店の表記は出ない (実測でも出ていない)。
     agencyName: hidden
     anshinPack: present
+    expectedAssets: {}
+    cta: null
+    application: null
+
+  # ダイレクト扱いだが みらやく掲載不可。
+  #   代理店名を出さないのは自社コードと同じ。
+  #   違いは「あんしんパック」の記載が一切ないこと。
+  direct-no-mirayaku:
+    label: ダイレクト扱い (みらやく掲載不可)
+    patternLabel: ダイレクト (みらやく×)
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: hidden
+    anshinPack: absent
     expectedAssets: {}
     cta: null
     application: null

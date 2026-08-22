@@ -7,7 +7,7 @@
 #
 #   再生成: npm run agencies:build
 #
-#   全 209 件 / マスタ 214 件
+#   全 209 件 / マスタ 213 件
 #
 #   実際に検査する代理店は実行ごとに抽選される (scope を参照)。
 #   毎回同じ代理店だけを検査すると、残りに潜む問題を見逃し続けるため。
@@ -20,6 +20,15 @@ scope:
   always:
     - littlefamily01
     - littlefamily03
+patternOrder:
+  - ダイレクト
+  - ダイレクト (みらやく×)
+  - カカクコム
+  - みらやく○
+  - みらやく×
+  - カカクコム (br)
+  - みらやく○ (br)
+  - みらやく× (br)
 displayMustDiffer:
   - - mirayaku-visible
     - mirayaku-hidden
@@ -54,13 +63,13 @@ agencies:
     cta: null
     application: null
   - code: littlefamily02
-    label: PECOAD（ダイレクト扱い各種用） — みらやく掲載可
-    company: PECOAD（ダイレクト扱い各種用）
+    label: PECOAD — 自社コード (オリジナル表示)
+    company: PECOAD
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -73,7 +82,7 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
@@ -316,13 +325,13 @@ agencies:
     cta: null
     application: null
   - code: littlefamily13
-    label: 三菱UFJ — みらやく掲載可
+    label: 三菱UFJ — 自社コード (オリジナル表示)
     company: 三菱UFJ
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -335,7 +344,7 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
@@ -420,13 +429,13 @@ agencies:
     cta: null
     application: null
   - code: littlefamily17
-    label: 紹介キャンペーン — みらやく掲載可
+    label: 紹介キャンペーン — 自社コード (オリジナル表示)
     company: 紹介キャンペーン
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -439,7 +448,7 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
@@ -524,13 +533,13 @@ agencies:
     cta: null
     application: null
   - code: littlefamily21
-    label: オリコン — みらやく掲載可
+    label: オリコン — 自社コード (オリジナル表示)
     company: オリコン
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -543,7 +552,7 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
@@ -602,13 +611,13 @@ agencies:
     cta: null
     application: null
   - code: littlefamily24
-    label: 楽天広告 — みらやく掲載可
+    label: 楽天広告 — 自社コード (オリジナル表示)
     company: 楽天広告
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -621,20 +630,20 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
   - code: littlefamily25
-    label: アイエフクリエイト少短サイト — みらやく掲載可
+    label: アイエフクリエイト少短サイト — 自社コード (オリジナル表示)
     company: アイエフクリエイト少短サイト
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -647,20 +656,20 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
   - code: littlefamily26
-    label: ダイレクトCINCA — みらやく掲載可
+    label: ダイレクトCINCA — 自社コード (オリジナル表示)
     company: ダイレクトCINCA
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -673,20 +682,20 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
   - code: littlefamily27
-    label: ジモティ — みらやく掲載可
+    label: ジモティ — 自社コード (オリジナル表示)
     company: ジモティ
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -699,20 +708,46 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
+    anshinPack: present
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily28
+    label: hotto — 自社コード (オリジナル表示)
+    company: hotto
+    mirayaku: ○
+    profile: direct
+    recognized: true
+    revisitRedirect: null
+    patternLabel: ダイレクト
+    effectiveFrom: null
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
   - code: littlefamily29
-    label: ピーネストジャパン（わんちゃんホンポ・ねこちゃんホンポ） — みらやく掲載可
+    label: ピーネストジャパン（わんちゃんホンポ・ねこちゃんホンポ） — 自社コード (オリジナル表示)
     company: ピーネストジャパン（わんちゃんホンポ・ねこちゃんホンポ）
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -725,7 +760,7 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
@@ -862,8 +897,8 @@ agencies:
     cta: null
     application: null
   - code: littlefamily35
-    label: ペットライフサポート ハルオフィス — みらやく掲載可
-    company: ペットライフサポート ハルオフィス
+    label: ペットライフサポート　ハルオフィス — みらやく掲載可
+    company: ペットライフサポート　ハルオフィス
     mirayaku: ○
     profile: mirayaku-visible
     recognized: true
@@ -1200,13 +1235,13 @@ agencies:
     cta: null
     application: null
   - code: littlefamily49
-    label: ダイレクト（併売LP） — みらやく掲載可
+    label: ダイレクト（併売LP） — 自社コード (オリジナル表示)
     company: ダイレクト（併売LP）
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1219,7 +1254,7 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
@@ -1278,13 +1313,13 @@ agencies:
     cta: null
     application: null
   - code: littlefamily52
-    label: 動物病院設置用パンフレット導線 — みらやく掲載可
+    label: 動物病院設置用パンフレット導線 — 自社コード (オリジナル表示)
     company: 動物病院設置用パンフレット導線
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1297,7 +1332,7 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
@@ -1330,13 +1365,13 @@ agencies:
     cta: null
     application: null
   - code: littlefamily54
-    label: 病院貼り付け窓口バナー用 — みらやく掲載可
+    label: 病院貼り付け窓口バナー用 — 自社コード (オリジナル表示)
     company: 病院貼り付け窓口バナー用
     mirayaku: ○
-    profile: mirayaku-visible
+    profile: direct
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく○
+    patternLabel: ダイレクト
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1349,20 +1384,20 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: present
     codeApplied: false
     expectedAssets: {}
     cta: null
     application: null
   - code: littlefamily55
-    label: クロス動物病院用 — みらやく掲載不可
+    label: クロス動物病院用 — ダイレクト扱い (みらやく掲載不可)
     company: クロス動物病院用
     mirayaku: ×
-    profile: mirayaku-hidden
+    profile: direct-no-mirayaku
     recognized: true
     revisitRedirect: null
-    patternLabel: みらやく×
+    patternLabel: ダイレクト (みらやく×)
     effectiveFrom: null
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
@@ -1375,7 +1410,7 @@ agencies:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
-    agencyName: shown
+    agencyName: hidden
     anshinPack: absent
     codeApplied: false
     expectedAssets: {}
@@ -1533,32 +1568,6 @@ agencies:
     expectedTexts: {}
     agencyName: shown
     anshinPack: present
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily02br01
-    label: 動物病院パスポートダイレクト用 — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: 動物病院パスポートダイレクト用
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
     codeApplied: false
     expectedAssets: {}
     cta: null
@@ -3743,1306 +3752,6 @@ agencies:
     expectedAssets: {}
     cta: null
     application: null
-  - code: littlefamily33br01
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br02
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br03
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br04
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br05
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br06
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br07
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br08
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br09
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br10
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br11
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br12
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br13
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br14
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br15
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br16
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br17
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br18
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br19
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br20
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br21
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br22
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br23
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br24
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br25
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br26
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br27
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br28
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br29
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br30
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br31
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br32
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br33
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br34
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br35
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br36
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br37
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br38
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br39
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br40
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br41
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br42
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br43
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br44
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br45
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br46
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br47
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br48
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br49
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily33br50
-    label: Sasuke Financial Lab株式会社（届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
-    company: Sasuke Financial Lab株式会社（届出募集人対面用）
-    mirayaku: ×
-    profile: mirayaku-hidden-branch
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく× (br)
-    effectiveFrom: 2026-09-03
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
   - code: littlefamily57br01
     label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
     company: 株式会社ジャパンペットコミュニケーションズ
@@ -5563,6 +4272,1306 @@ agencies:
     expectedAssets: {}
     cta: null
     application: null
+  - code: littlefamily33br01
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br02
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br03
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br04
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br05
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br06
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br07
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br08
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br09
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br10
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br11
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br12
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br13
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br14
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br15
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br16
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br17
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br18
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br19
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br20
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br21
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br22
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br23
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br24
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br25
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br26
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br27
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br28
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br29
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br30
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br31
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br32
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br33
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br34
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br35
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br36
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br37
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br38
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br39
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br40
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br41
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br42
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br43
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br44
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br45
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br46
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br47
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br48
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br49
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
+  - code: littlefamily33br50
+    label: Sasuke Financial Lab株式会社（注：届出募集人対面用） — みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    company: Sasuke Financial Lab株式会社（注：届出募集人対面用）
+    mirayaku: ×
+    profile: mirayaku-hidden-branch
+    recognized: true
+    revisitRedirect: null
+    patternLabel: みらやく× (br)
+    effectiveFrom: 2026-09-03
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    agencyName: shown
+    anshinPack: absent
+    codeApplied: false
+    expectedAssets: {}
+    cta: null
+    application: null
 excludedAgencies:
   - code: A0010
     company: Amazon
@@ -5570,9 +5579,6 @@ excludedAgencies:
   - code: littlefamily06
     company: 保険市場
     reason: みらやく掲載可否が「エラー」のため期待結果を決められない
-  - code: littlefamily28
-    company: hotto
-    reason: 稼働していないため検査対象外 (運用側の確認)
   - code: littlefamily47
     company: 株式会社ドリームコーポレーション
     reason: みらやく掲載可否が「エラー」のため期待結果を決められない
