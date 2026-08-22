@@ -389,7 +389,9 @@
           }
           // 何を見て判断したのかを小さく併記する。
           // 「あり」だけでは本当に見に行ったのか分からない
-          var seen = cell.detail ? '<span class="seen">' + text(cell.detail) + '</span>' : '';
+          var seen = (cell.details || []).map(function (line) {
+            return '<span class="seen">' + text(line) + '</span>';
+          }).join('');
           if (cell.state === 'info') {
             // 正解が未確定の項目 (保存先など)。実態だけ出す
             return '<td class="check-info" title="' + text(cell.note || '') + '">' + text(cell.observed) + '</td>';

@@ -5630,7 +5630,7 @@ invalidExpectation:
   expectStored: false
   application:
     expectedDomain: null
-    expectedPath: /
+    expectedPath: /solicitation/step1
     expectDefaultRoute: false
     defaultRouteTestId: ""
     forbiddenTestIds: []
@@ -5646,7 +5646,7 @@ noCodeExpectation:
   expectStored: false
   application:
     expectedDomain: null
-    expectedPath: /
+    expectedPath: /solicitation/step1
     expectDefaultRoute: false
     defaultRouteTestId: ""
     forbiddenTestIds: []

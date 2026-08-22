@@ -1225,6 +1225,12 @@ export function verifyCodeCarried(
       checkOk: false,
       observedValue: 'なし',
       expectedValue: 'あり',
+      // 表には「どこを見た結果なのか」を併記する。
+      // 「なし」だけでは、検査が動いていないのと区別できない。
+      observedDetail: [
+        `${code} が無い`,
+        'URL・入力値・表示・保存領域・Cookie を確認',
+      ],
       category: 'agency-handoff',
       severity: 'critical',
       title: `${label}: 申込フォームに代理店コードが引き継がれていません`,
@@ -1246,6 +1252,9 @@ export function verifyCodeCarried(
       checkOk: true,
       observedValue: 'あり',
       expectedValue: 'あり',
+      // 実際に引き継がれていた値と、その置き場所を表に併記する。
+      // コードが別の代理店のものに化けていれば、これで気づける。
+      observedDetail: [code, observation.foundIn.join(', ')],
       category: 'agency-handoff',
       severity: 'low',
       title: `[確認OK] ${label}: 申込フォームに代理店コードが引き継がれています`,

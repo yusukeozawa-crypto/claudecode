@@ -50,6 +50,14 @@ export interface Finding {
   observedValue?: string;
   expectedValue?: string | null;
   /**
+   * 表のセルで値の下に小さく併記する行。
+   *   例) 「あり」の下に "littlefamily03" と "URL, Cookie" を出す。
+   * 「あり」だけでは本当に見に行ったのか分からないため、
+   * 何を見て判断したのかを人にも見えるようにする。
+   * 未指定の場合は actual から自動で 1 行だけ取り出す。
+   */
+  observedDetail?: string[];
+  /**
    * 仕様どおりだったか。
    * 表の色 (白 / 赤) はこれで決める。
    * 見えた値をそのまま出す項目 (代理店名など) では

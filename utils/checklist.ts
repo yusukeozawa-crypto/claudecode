@@ -55,7 +55,7 @@ export interface ChecklistCell {
    * 確認できた会社名などをそのまま出すことで、
    * 検査が動いていることが人にも分かる。
    */
-  detail: string;
+  details: string[];
 }
 
 export interface ChecklistRow {
@@ -104,6 +104,11 @@ export interface AgencyMeta {
  * 「あり」だけでは本当に見に行ったのか分からないため、
  * 何を見て判断したのかを人にも見えるようにする。
  */
+function clip(text: string): string {
+  const value = text.trim();
+  return value.length > 34 ? `${value.slice(0, 34)}…` : value;
+}
+
 function shortDetail(actual: string): string {
   const quoted = /「([^」]{1,60})」/.exec(actual);
   const text = (quoted ? quoted[1] : actual).trim();
@@ -139,7 +144,7 @@ export function buildChecklist(
     Object.fromEntries(
       CHECK_COLUMNS.map((column) => [
         column.key,
-        { state: 'none' as const, observed: '', expected: null, severity: null, note: '', detail: '' },
+        { state: 'none' as const, observed: '', expected: null, severity: null, note: '', details: [] },
       ]),
     );
 
@@ -182,7 +187,11 @@ export function buildChecklist(
       const observed = finding.observedValue ?? '';
       const expected = finding.expectedValue ?? null;
 
-      const detail = shortDetail(finding.actual ?? '');
+      // 併記する行は検査側が持っていればそれを使う。
+      //   無ければ actual から 1 行だけ取り出す (従来の結果でも表示できる)。
+      const details = finding.observedDetail
+        ? finding.observedDetail.filter((line) => line.trim() !== '').map(clip)
+        : [shortDetail(finding.actual ?? '')].filter((line) => line !== '');
 
       if (expected === null) {
         // 正解が未確定の項目 (保存先など)。実態だけ出す
@@ -190,7 +199,7 @@ export function buildChecklist(
           cell.state = 'info';
           cell.observed = observed;
           cell.note = finding.actual ?? '';
-          cell.detail = detail;
+          cell.details = details;
         }
         continue;
       }
@@ -208,7 +217,7 @@ export function buildChecklist(
       cell.observed = observed;
       cell.expected = expected;
       cell.note = finding.actual ?? '';
-      cell.detail = detail;
+      cell.details = details;
       if (!ok) cell.severity = worseOf(cell.severity, finding.severity);
     }
   }

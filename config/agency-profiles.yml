@@ -344,6 +344,14 @@ profiles:
     application: null
 
 # ---------- 無効コード / コードなしの期待結果 ----------
+# ---------- 申込サイト ----------
+#   LP とは別ドメインの申込サイト (URL は .env の *_APPLICATION_BASE_URL)。
+application:
+  # 申込サイトの入口パス。
+  #   無効コード検査などで申込サイトを直接開くときに使う。
+  #   ルート (/) が 404 のサイトもあるため、実際の入口を設定する。
+  entryPath: /solicitation/step1
+
 invalidCodes:
   - code: NOSUCHCODE
     label: 未登録コード

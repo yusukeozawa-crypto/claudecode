@@ -144,7 +144,7 @@ function buildAgency(row, profile) {
  * application は申込ドメインを設定してから使われる項目なので、
  * 未確定でも形だけ揃えておく (申込ドメイン未設定の間は検査自体が行われない)。
  */
-function buildFallback(expectation) {
+function buildFallback(expectation, applicationEntryPath) {
   return {
     entryPath: expectation.entryPath ?? '/lp/service/',
     expectedFinalPath: expectation.expectedFinalPath,
@@ -158,7 +158,8 @@ function buildFallback(expectation) {
     expectStored: Boolean(expectation.expectStored ?? false),
     application: expectation.application ?? {
       expectedDomain: null,
-      expectedPath: '/',
+      // 申込サイトの入口。ルート (/) が存在しないサイトもあるため設定で持つ
+      expectedPath: applicationEntryPath,
       expectDefaultRoute: false,
       defaultRouteTestId: '',
       forbiddenTestIds: [],
@@ -172,6 +173,8 @@ function main() {
   const scope = profilesFile.scope ?? {};
   const assign = profilesFile.assign ?? [];
   const profiles = profilesFile.profiles ?? {};
+  // 申込サイトの入口パス。未設定だとルート (/) を開いて 404 になるサイトがある
+  const applicationEntryPath = profilesFile.application?.entryPath ?? '/';
 
   const excluded = new Set((scope.excludeMirayaku ?? []).map((value) => String(value)));
   const skipped = [];
@@ -221,8 +224,8 @@ function main() {
     // (手で書き写すと必ず古くなるため)
     excludedAgencies: skipped,
     invalidCodes: profilesFile.invalidCodes ?? [],
-    invalidExpectation: buildFallback(profilesFile.invalidExpectation ?? {}),
-    noCodeExpectation: buildFallback(profilesFile.noCodeExpectation ?? {}),
+    invalidExpectation: buildFallback(profilesFile.invalidExpectation ?? {}, applicationEntryPath),
+    noCodeExpectation: buildFallback(profilesFile.noCodeExpectation ?? {}, applicationEntryPath),
     redirect: profilesFile.redirect,
     security: profilesFile.security,
   };

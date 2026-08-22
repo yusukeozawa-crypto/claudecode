@@ -607,7 +607,9 @@ function renderChecklist(checklist: Checklist): string {
               return `<td class="check-info" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}</td>`;
             }
             // 何を見て判断したのかを小さく併記する
-            const seen = cell.detail ? `<span class="seen">${escapeHtml(cell.detail)}</span>` : '';
+            const seen = cell.details
+              .map((line) => `<span class="seen">${escapeHtml(line)}</span>`)
+              .join('');
             if (cell.state === 'ok') {
               return `<td class="check-ok" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}${seen}</td>`;
             }
