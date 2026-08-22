@@ -4720,6 +4720,16 @@ agencies:
     expectedAssets: {}
     cta: null
     application: null
+excludedAgencies:
+  - code: A0010
+    company: Amazon
+    reason: Amazon 用のため検査対象外 (通常 LP のまま)
+  - code: littlefamily06
+    company: 保険市場
+    reason: みらやく掲載可否が「エラー」のため期待結果を決められない
+  - code: littlefamily47
+    company: 株式会社ドリームコーポレーション
+    reason: みらやく掲載可否が「エラー」のため期待結果を決められない
 invalidCodes:
   - code: NOSUCHCODE
     label: 未登録コード

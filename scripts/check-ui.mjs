@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 process.env.QA_UI_IMPORT = '1';
 const { server, checklistOf, findingGroups } = await import('./ui-server.mjs');
+const { buildNotes } = await import('./lib/notes.mjs');
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const failures = [];
@@ -234,6 +235,46 @@ await check('チェックリストの表が画面にある', async () => {
   // 「問題なし」と見せてしまう。対象外は — で区別できる必要がある
   assert.ok(html.includes("cell.state === 'none'"), '対象外を区別すること');
   assert.ok(html.includes('✅') && html.includes('❌') && html.includes('—'), '3 つの表示を持つこと');
+});
+
+await check('備考が検査の実行前でも出る', async () => {
+  // 保留事項・後日確認は「忘れないため」のものなので、
+  // 検査を 1 回も実行していない状態でも見えなければ意味がない。
+  // そのためレポートではなく設定ファイルから作っている。
+  const notes = buildNotes(root);
+  assert.ok(notes.length > 0, '備考が 1 件以上あること');
+  for (const note of notes) {
+    assert.ok(note.id, 'id があること');
+    assert.ok(note.title, 'title があること');
+    assert.ok(['保留', '確認待ち', '仕様変更'].includes(note.kind), `kind が想定内であること: ${note.kind}`);
+  }
+  const { body } = await json('/api/state');
+  assert.ok(Array.isArray(body.notes) && body.notes.length > 0, '画面の状態に備考が入ること');
+  const response = await fetch(base);
+  const html = await response.text();
+  assert.ok(html.includes('notes-section'), '備考の節を持つこと');
+});
+
+await check('設定から分かる備考は自動で出る (書き写さない)', async () => {
+  // 手で書き写すと必ず古くなる。設定を変えたら備考も変わる必要がある。
+  const notes = buildNotes(root);
+  const ids = notes.map((note) => note.id);
+  assert.ok(
+    ids.some((id) => id.startsWith('known-issue:')),
+    '既知の不具合 (known-issues.yml) が備考に出ること',
+  );
+  assert.ok(ids.includes('excluded-agencies'), '検査対象外の代理店が備考に出ること');
+  assert.ok(ids.includes('storage-type-unknown'), '未実測の保存先が備考に出ること');
+
+  // 修正予定日を過ぎたら「過ぎました」に変わること (放置に気づけるように)
+  const future = buildNotes(root, { today: new Date('2026-01-01T00:00:00Z') });
+  const past = buildNotes(root, { today: new Date('2030-01-01T00:00:00Z') });
+  const before = future.find((note) => note.id === 'known-issue:branch-code-not-applied');
+  const after = past.find((note) => note.id === 'known-issue:branch-code-not-applied');
+  assert.equal(before.dueReached, false, '修正予定日の前は期日扱いにしないこと');
+  assert.equal(after.dueReached, true, '修正予定日を過ぎたら期日扱いにすること');
+  assert.ok(after.title.includes('過ぎました'), '過ぎたことが分かる表記であること');
+  assert.equal(past[0].dueReached, true, '期日が来たものを先に出すこと');
 });
 
 await check('検知結果が画面の状態に含まれる', async () => {

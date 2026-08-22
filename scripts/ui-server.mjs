@@ -21,6 +21,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { withBinPath } from './lib/env-path.mjs';
 import { parseOrigin, writeEnvValues } from './lib/env-file.mjs';
+import { buildNotes } from './lib/notes.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const REPORT_DIR = path.join(root, 'reports');
@@ -178,6 +179,15 @@ function historyList() {
  * 画面はそれをそのまま表示する。同じ計算を 2 か所に持つと、
  * レポートと画面で違う結果が出て「どちらが正しいのか」が分からなくなる。
  */
+/** 備考。設定が壊れていても画面を落とさない */
+function notesOrEmpty() {
+  try {
+    return buildNotes(root);
+  } catch {
+    return [];
+  }
+}
+
 export function checklistOf(report) {
   const checklist = report?.summary?.checklist;
   if (!checklist || !Array.isArray(checklist.columns) || !Array.isArray(checklist.rows)) {
@@ -241,6 +251,9 @@ function state() {
     progress: readJson(PROGRESS_PATH),
     summary: report?.summary ?? null,
     checklist: checklistOf(report),
+    // 保留事項 / 後日確認 / 後日仕様変更。
+    // 設定ファイルから直接作るので、検査を 1 回も実行していなくても出る
+    notes: notesOrEmpty(),
     // 代理店コード → 会社名 / みらやく掲載可否 (コードだけでは判断できない)
     agencyMeta: report?.summary?.agencyMeta ?? {},
     findings: report ? findingGroups(report.records ?? []) : [],

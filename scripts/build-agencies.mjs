@@ -165,16 +165,20 @@ function main() {
 
   for (const row of master) {
     if (excluded.has(row.mirayaku)) {
-      skipped.push({ code: row.code, reason: `mirayaku=${row.mirayaku || '(空欄)'}` });
+      skipped.push({
+        code: row.code,
+        company: row.company,
+        reason: `みらやく掲載可否が「${row.mirayaku || '(空欄)'}」のため期待結果を決められない`,
+      });
       continue;
     }
     const assignment = resolveAssignment(row, assign);
     if (!assignment) {
-      skipped.push({ code: row.code, reason: '一致する割り当てルールがありません' });
+      skipped.push({ code: row.code, company: row.company, reason: '一致する割り当てルールがありません' });
       continue;
     }
     if (assignment.exclude) {
-      skipped.push({ code: row.code, reason: assignment.reason });
+      skipped.push({ code: row.code, company: row.company, reason: assignment.reason });
       continue;
     }
     const profileName = assignment.profile;
@@ -197,6 +201,9 @@ function main() {
     displayIgnoreKeys: profilesFile.displayIgnoreKeys ?? [],
     sameAsNoCodeProfiles: profilesFile.sameAsNoCodeProfiles ?? [],
     agencies,
+    // 検査対象外にした代理店。画面の備考欄がここから自動で一覧を作る
+    // (手で書き写すと必ず古くなるため)
+    excludedAgencies: skipped,
     invalidCodes: profilesFile.invalidCodes ?? [],
     invalidExpectation: buildFallback(profilesFile.invalidExpectation ?? {}),
     noCodeExpectation: buildFallback(profilesFile.noCodeExpectation ?? {}),

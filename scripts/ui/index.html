@@ -102,6 +102,21 @@
   #checklist td.check-ng { background: #fdecea; }
   #checklist td.check-ng .count { display: block; font-size: 11px; color: #9c2f24; }
   #checklist tr.row-ng td.code { background: #fdecea; }
+  #notes { list-style: none; margin: 0; padding: 0; }
+  #notes li { border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 13px; line-height: 1.7; }
+  #notes li:last-child { border-bottom: 0; }
+  #notes .kind {
+    display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
+    border-radius: 4px; padding: 2px 8px; margin-right: 8px; vertical-align: 1px;
+  }
+  #notes .kind-仕様変更 { background: #1a56a8; }
+  #notes .kind-確認待ち { background: #8a5a00; }
+  #notes .kind-保留 { background: #6b7280; }
+  #notes .note-title { font-weight: 700; }
+  #notes .note-detail { color: #44505c; margin-top: 4px; }
+  #notes .note-due { color: #6b7280; font-size: 12px; margin-top: 2px; }
+  #notes li.due-reached { background: #fff8e6; }
+  #notes li.due-reached .note-due { color: #8a5a00; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -158,6 +173,12 @@
     <h2>チェックリスト <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
     <div class="panel"><table id="checklist"></table></div>
     <p class="muted">✅ = 検査して仕様どおり / ❌ = 仕様どおりでない / — = この代理店では対象外。検査する代理店コードは実行ごとに抽選されます。</p>
+  </section>
+
+  <section id="notes-section" hidden>
+    <h2>備考 <span class="muted" id="notes-note"></span></h2>
+    <div class="panel"><ul id="notes"></ul></div>
+    <p class="muted">保留事項・後日確認・後日仕様変更の覚え書き。<code>config/notes.yml</code> に書けます (設定から分かるものは自動で出ます)。</p>
   </section>
 
   <section id="history-section" hidden>
@@ -364,6 +385,30 @@
     table.innerHTML = head + body;
   }
 
+  function renderNotes(state) {
+    var section = document.getElementById('notes-section');
+    var list = document.getElementById('notes');
+    var notes = state.notes || [];
+    if (notes.length === 0) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    var due = notes.filter(function (note) { return note.dueReached; }).length;
+    document.getElementById('notes-note').textContent =
+      due > 0 ? '— ' + due + ' 件は期日が来ています' : '— ' + notes.length + ' 件';
+    list.innerHTML = notes.map(function (note) {
+      return '<li class="' + (note.dueReached ? 'due-reached' : '') + '">' +
+        '<span class="kind kind-' + text(note.kind) + '">' + text(note.kind) + '</span>' +
+        '<span class="note-title">' + text(note.title) + '</span>' +
+        (note.detail ? '<div class="note-detail">' + text(note.detail) + '</div>' : '') +
+        (note.due
+          ? '<div class="note-due">' + (note.dueReached ? '期日が来ています: ' : '確認する日: ') + text(note.due) + '</div>'
+          : '') +
+        '</li>';
+    }).join('');
+  }
+
   function renderHistory(state) {
     var section = document.getElementById('history-section');
     var table = document.getElementById('history');
@@ -505,6 +550,7 @@
         if (document.activeElement === document.body) renderEnvForm();
         renderFindings(state);
         renderAgencies(state);
+        renderNotes(state);
         renderHistory(state);
         renderReport(state);
         document.getElementById('log').textContent = (state.log || []).join('\n');
