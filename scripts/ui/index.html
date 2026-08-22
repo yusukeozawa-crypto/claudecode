@@ -14,7 +14,10 @@
   header { background: var(--accent); color: #fff; padding: 16px 24px; display: flex; align-items: baseline; gap: 16px; }
   header h1 { margin: 0; font-size: 18px; }
   header .env { font-size: 13px; color: #9fb3c8; }
-  main { padding: 20px 24px 60px; max-width: 1100px; }
+  main { padding: 20px 24px 60px; }
+  /* 読み物 (文章が長いもの) は広すぎると読みにくいので幅を抑える。
+     チェックリストは列が多いので画面幅を使い切る。 */
+  #findings-section, #notes-section, #settings-section, #report-section, #history-section { max-width: 1100px; }
   section { margin-bottom: 28px; }
   h2 { font-size: 15px; margin: 0 0 10px; color: #44505c; }
   .targets { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -105,7 +108,10 @@
   table.checklist td.check-ng { background: #fdecea; color: #9c2f24; font-weight: 700; }
   table.checklist td.check-ng .want { display: block; font-size: 11px; font-weight: 400; }
   /* 何を見て判断したのかを小さく併記する (検査が動いていることが分かるように) */
-  table.checklist td .seen { display: block; font-size: 10px; color: #6b7280; font-weight: 400; max-width: 160px; white-space: normal; margin: 2px auto 0; }
+  table.checklist td .seen { display: block; font-size: 10px; color: #6b7280; font-weight: 400; max-width: 150px; white-space: normal; margin: 2px auto 0; }
+  /* 会社名とパターン名は折り返してよい。検査項目の列に幅を回す */
+  table.checklist td.pattern { white-space: normal; max-width: 120px; }
+  table.checklist td.company { max-width: 170px; min-width: 0; }
   table.checklist td.check-ng .seen { color: #9c2f24; }
   table.checklist tr.row-ng td.code { background: #fdecea; }
   .device-title { font-size: 14px; font-weight: 700; margin: 14px 0 6px; color: #44505c; }
