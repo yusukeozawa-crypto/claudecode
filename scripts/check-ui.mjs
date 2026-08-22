@@ -274,7 +274,10 @@ await check('備考が検査の実行前でも出る', async () => {
   for (const note of notes) {
     assert.ok(note.id, 'id があること');
     assert.ok(note.title, 'title があること');
-    assert.ok(['保留', '確認待ち', '仕様変更'].includes(note.kind), `kind が想定内であること: ${note.kind}`);
+    assert.ok(
+      ['不具合', '保留', '確認待ち', '仕様変更'].includes(note.kind),
+      `kind が想定内であること: ${note.kind}`,
+    );
   }
   const { body } = await json('/api/state');
   assert.ok(Array.isArray(body.notes) && body.notes.length > 0, '画面の状態に備考が入ること');

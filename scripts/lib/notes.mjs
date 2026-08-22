@@ -174,7 +174,8 @@ export function buildNotes(root, options = {}) {
   }
 
   // 期日が来たものを先に出す (対応すべきものが上に来る)
-  const kindOrder = ['仕様変更', '確認待ち', '保留'];
+  // 不具合を先頭に置く (サイト側の実害があるものから読ませる)
+  const kindOrder = ['不具合', '仕様変更', '確認待ち', '保留'];
   return notes.sort((a, b) => {
     if (a.dueReached !== b.dueReached) return a.dueReached ? -1 : 1;
     const order = kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind);

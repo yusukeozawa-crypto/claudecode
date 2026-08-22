@@ -19,6 +19,16 @@ import { enterAsAgency } from '../../utils/agency-entry';
 
 const config = loadConfig();
 const specs = agencySpecs(config);
+
+/**
+ * マスキングの自己検査に使う申込ドメイン。
+ *
+ *   マスキングはツール自身の機能なので、対象サイトの設定に
+ *   左右されてはならない。applicationBaseUrl が未設定の環境で
+ *   相対 URL になり、自己検査が失敗していた
+ *   (サイトの不具合ではないのに失敗として数えられていた)。
+ */
+const maskingBaseUrl = config.environment.applicationBaseUrl || 'https://application.example.test';
 const entryPaths = Array.from(new Set(specs.map((spec) => spec.entryPath)));
 
 test.describe('代理店コードのセキュリティ @security', () => {
@@ -51,7 +61,7 @@ test.describe('代理店コードのセキュリティ @security', () => {
     // 検証に使う値は設定から取得する (サイト固有の値をテストコードに書かない)
     const sampleCode = specs[specs.length - 1].code;
     const token = 'QTAwMi5hYmNkZWYxMjM0NTY3ODkw';
-    const url = `${config.environment.applicationBaseUrl}/entry/?handoff_token=${token}&${config.agency.paramName}=${sampleCode}`;
+    const url = `${maskingBaseUrl}/entry/?handoff_token=${token}&${config.agency.paramName}=${sampleCode}`;
 
     const maskedUrl = maskUrl(url, config);
     expect(maskedUrl, 'トークンの値が URL に残っていないこと').not.toContain(token);
@@ -75,7 +85,7 @@ test.describe('代理店コードのセキュリティ @security', () => {
       title: '[自己検査] マスキングの動作確認 (サイトの不具合ではありません)',
       expected: '秘密情報を出力しないこと',
       actual: `handoff_token=${token}`,
-      url: `${config.environment.applicationBaseUrl}/entry/?handoff_token=${token}`,
+      url: `${maskingBaseUrl}/entry/?handoff_token=${token}`,
     });
 
     expect(finding.actual, '検知結果の本文がマスクされること').not.toContain(token);

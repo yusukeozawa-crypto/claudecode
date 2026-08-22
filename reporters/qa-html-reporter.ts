@@ -233,7 +233,13 @@ export default class QaHtmlReporter implements Reporter {
       agencyMeta: describeAgencyMeta(),
       // 代理店 × 検査項目のチェックリスト。
       // ブラウザ画面もこの値をそのまま表示する (同じ計算を 2 か所に持たない)
-      checklist: buildChecklist(this.records, describeAgencyMeta(), allPatternLabels(), patternOrder()),
+      checklist: buildChecklist(
+        this.records,
+        describeAgencyMeta(),
+        allPatternLabels(),
+        patternOrder(),
+        unconfiguredChecks(),
+      ),
       // 判定基準は config/runtime.yml の failOnSeverities に従う。
       // ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
       failOnSeverities: this.failOnSeverities,
@@ -460,6 +466,31 @@ function allPatternLabels(): string[] {
       if (agency.patternLabel) labels.add(agency.patternLabel);
     }
     return [...labels];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 設定が足りないために検査できない項目。
+ *
+ *   設定漏れで検査できていない状態を、検査していない「ー」と
+ *   同じ見た目にしてはいけない。実際に、申込ドメインが未設定のまま
+ *   「ー」が並び、設定漏れだと気づくまで時間がかかった。
+ */
+function unconfiguredChecks(): Array<{ checkId: string; reason: string }> {
+  try {
+    const config = loadConfig();
+    const items: Array<{ checkId: string; reason: string }> = [];
+    if (!config.environment.applicationBaseUrl) {
+      items.push({
+        checkId: 'code-carry',
+        reason:
+          '申込サイトの URL が未設定のため検査できません'
+          + ` (.env の ${config.environmentName.toUpperCase()}_APPLICATION_BASE_URL を設定してください)`,
+      });
+    }
+    return items;
   } catch {
     return [];
   }

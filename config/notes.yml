@@ -47,6 +47,17 @@ notes:
       決まったら config/agency-profiles.yml の kakakucom.anshinPack を
       present / absent に変える。
 
+  - id: littlefamily55-anshin-pack
+    kind: 不具合
+    title: littlefamily55 (クロス動物病院用) でみらやく掲載不可なのに「安心パック」が出る
+    detail: >-
+      2026-08-23 の本番検査で検知。運用側の確認でサイト側の不具合と判断。
+      注釈の「安心パックなし」は判定から除外した上で、それとは別に
+      「安心パック」の記載が残っている。
+      抽選に当たらない回に見落とさないよう、
+      config/agency-profiles.yml の scope.always に入れて毎回検査している。
+      再現: /lp/service/?insAgentNo=littlefamily55
+
   - id: littlefamily42-agency-name-missing
     kind: 確認待ち
     title: littlefamily42 (Sasuke（募集人8）) でヘッダー・フッターに代理店名が出ない

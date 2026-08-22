@@ -136,15 +136,31 @@ export function buildChecklist(
   meta: Record<string, AgencyMeta> = {},
   allPatterns: string[] = [],
   patternOrder: string[] = [],
+  /**
+   * 設定が足りないために検査できなかった項目。
+   *   検査していない「ー」と、設定漏れで検査できていない状態は別物。
+   *   同じ「ー」に見えると、設定漏れに何日も気づけない。
+   */
+  unconfigured: Array<{ checkId: string; reason: string }> = [],
 ): Checklist {
   // device → code → row
   const tables = new Map<string, Map<string, ChecklistRow>>();
+  const unconfiguredBy = new Map(unconfigured.map((item) => [item.checkId, item.reason]));
 
   const emptyCells = (): Record<string, ChecklistCell> =>
     Object.fromEntries(
       CHECK_COLUMNS.map((column) => [
         column.key,
-        { state: 'none' as const, observed: '', expected: null, severity: null, note: '', details: [] },
+        unconfiguredBy.has(column.key)
+          ? {
+            state: 'info' as const,
+            observed: '未設定',
+            expected: null,
+            severity: null,
+            note: unconfiguredBy.get(column.key) ?? '',
+            details: ['設定が必要'],
+          }
+          : { state: 'none' as const, observed: '', expected: null, severity: null, note: '', details: [] },
       ]),
     );
 

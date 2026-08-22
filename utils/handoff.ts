@@ -1268,6 +1268,13 @@ export function verifyCodeCarried(
   for (const other of observation.otherCodes) {
     findings.push({
       checkId: 'code-carry',
+      // 誤帰属は「引き継がれている」より重い。
+      //   コードが残っていても別代理店のものに化けていれば、
+      //   その申込は他社に帰属してしまう。表でも赤にする。
+      checkOk: false,
+      observedValue: '別コード',
+      expectedValue: 'あり',
+      observedDetail: [other, `本来は ${code}`],
       category: 'agency-handoff',
       severity: 'critical',
       title: `${label}: 別の代理店コードが申込フォームに現れています`,

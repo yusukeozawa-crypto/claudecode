@@ -21,6 +21,13 @@ const limitArg = args.find((arg) => arg.startsWith('--limit='));
 const limit = limitArg ? Number(limitArg.split('=')[1]) : 40;
 const onlyArg = args.find((arg) => arg.startsWith('--severity='));
 const only = onlyArg ? onlyArg.split('=')[1].split(',') : null;
+// 代理店コードで絞る (--code=littlefamily03)。
+//   1 社の挙動を追うとき、全件から目で探すのは現実的ではない。
+const codeArg = args.find((arg) => arg.startsWith('--code='));
+const codes = codeArg ? codeArg.split('=')[1].split(',').filter((value) => value !== '') : null;
+// 文字で絞る (--find=リダイレクト)。題名・期待・実際のいずれかに含まれるもの
+const findArg = args.find((arg) => arg.startsWith('--find='));
+const keyword = findArg ? findArg.split('=').slice(1).join('=') : null;
 
 if (!fs.existsSync(JSON_PATH)) {
   console.error('レポートがありません。先に検査を実行してください (run-qa.cmd または npm run test:local)。');
@@ -47,12 +54,27 @@ console.log(
 );
 
 const findings = records.flatMap((record) => record.findings ?? []);
-const target = only ? findings.filter((finding) => only.includes(finding.severity)) : findings;
+const matchesFilters = (finding) => {
+  if (only && !only.includes(finding.severity)) return false;
+  if (codes && !codes.includes(finding.agencyCode ?? '')) return false;
+  if (keyword) {
+    const haystack = [finding.title, finding.expected, finding.actual, finding.detail].join(' ');
+    if (!haystack.includes(keyword)) return false;
+  }
+  return true;
+};
+const target = findings.filter(matchesFilters);
+if (codes) console.log(`絞り込み : 代理店 ${codes.join(', ')}`);
+if (keyword) console.log(`絞り込み : 「${keyword}」を含むもの`);
 target.sort((a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity));
 
 if (target.length === 0) {
   console.log('');
-  console.log('検知した不具合はありません。');
+  console.log(
+    codes || keyword || only
+      ? '絞り込みに一致する検知はありません。'
+      : '検知した不具合はありません。',
+  );
 } else {
   // 同じ内容が代理店・端末ごとに並ぶため、内容単位でまとめる
   const groups = new Map();

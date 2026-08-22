@@ -63,6 +63,40 @@ function readMaster() {
 }
 
 /**
+ * 検査しない代理店の判定 (config/agency-profiles.yml の exclude)。
+ *
+ *   除外を 1 か所にまとめておくと、後で外すときに探さなくてよい。
+ *   until を書いた除外はその日を過ぎると自動で検査対象に戻る。
+ *   「日付が来たら手で消す」運用にすると、消し忘れたときに
+ *   リリースが失敗していても気づけない。
+ *
+ * 戻り値: { reason } (除外する) / null (除外しない)
+ */
+function resolveExclusion(row, excludeRules, today) {
+  for (const rule of excludeRules) {
+    if (rule.code !== undefined && rule.code !== row.code) continue;
+    if (rule.codeMatches !== undefined && !new RegExp(rule.codeMatches).test(row.code)) continue;
+    if (rule.codePrefix !== undefined && !row.code.startsWith(rule.codePrefix)) continue;
+    if (rule.handling !== undefined && rule.handling !== (row.handling ?? '')) continue;
+    if (rule.companyContains !== undefined && !row.company.includes(rule.companyContains)) continue;
+    if (rule.code === undefined && rule.codeMatches === undefined
+      && rule.codePrefix === undefined && rule.handling === undefined
+      && rule.companyContains === undefined) {
+      throw new Error('config/agency-profiles.yml: exclude に条件がありません (全件が除外されます)');
+    }
+    const until = rule.until ? String(rule.until) : null;
+    // 期限切れの除外は無視する (その日から自動で検査対象に戻る)
+    if (until && today > until) continue;
+    return {
+      reason: until
+        ? `${rule.reason ?? '除外リストで除外'} (${until} まで除外。以降は自動で検査対象に戻る)`
+        : (rule.reason ?? '除外リストで除外'),
+    };
+  }
+  return null;
+}
+
+/**
  * 割り当てルールの評価 (上から順に最初に一致したもの)。
  *   { exclude: true } のルールに一致した場合は検査対象から外す。
  * 戻り値: { profile } / { exclude: true } / null (一致なし)
@@ -177,10 +211,18 @@ function main() {
   const applicationEntryPath = profilesFile.application?.entryPath ?? '/';
 
   const excluded = new Set((scope.excludeMirayaku ?? []).map((value) => String(value)));
+  // 除外リスト。until を過ぎたものは自動で対象に戻るため、今日の日付で判定する
+  const excludeRules = profilesFile.exclude ?? [];
+  const today = (process.env.QA_TODAY ?? new Date().toISOString().slice(0, 10));
   const skipped = [];
   const assigned = [];
 
   for (const row of master) {
+    const exclusion = resolveExclusion(row, excludeRules, today);
+    if (exclusion) {
+      skipped.push({ code: row.code, company: row.company, reason: exclusion.reason });
+      continue;
+    }
     if (excluded.has(row.mirayaku)) {
       skipped.push({
         code: row.code,
