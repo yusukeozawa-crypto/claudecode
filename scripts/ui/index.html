@@ -104,6 +104,9 @@
   table.checklist td.check-info { color: #44505c; }
   table.checklist td.check-ng { background: #fdecea; color: #9c2f24; font-weight: 700; }
   table.checklist td.check-ng .want { display: block; font-size: 11px; font-weight: 400; }
+  /* 何を見て判断したのかを小さく併記する (検査が動いていることが分かるように) */
+  table.checklist td .seen { display: block; font-size: 10px; color: #6b7280; font-weight: 400; max-width: 160px; white-space: normal; margin: 2px auto 0; }
+  table.checklist td.check-ng .seen { color: #9c2f24; }
   table.checklist tr.row-ng td.code { background: #fdecea; }
   .device-title { font-size: 14px; font-weight: 700; margin: 14px 0 6px; color: #44505c; }
   .device-title:first-child { margin-top: 0; }
@@ -378,15 +381,18 @@
           if (!cell || cell.state === 'none') {
             return '<td class="check-none" title="この代理店では検査していません">—</td>';
           }
+          // 何を見て判断したのかを小さく併記する。
+          // 「あり」だけでは本当に見に行ったのか分からない
+          var seen = cell.detail ? '<span class="seen">' + text(cell.detail) + '</span>' : '';
           if (cell.state === 'info') {
             // 正解が未確定の項目 (保存先など)。実態だけ出す
             return '<td class="check-info" title="' + text(cell.note || '') + '">' + text(cell.observed) + '</td>';
           }
           if (cell.state === 'ok') {
-            return '<td title="' + text(cell.note || '') + '">' + text(cell.observed) + '</td>';
+            return '<td title="' + text(cell.note || '') + '">' + text(cell.observed) + seen + '</td>';
           }
           return '<td class="check-ng" title="' + text(cell.note || '') + '">' + text(cell.observed) +
-            '<span class="want">期待: ' + text(cell.expected || '') + '</span></td>';
+            '<span class="want">期待: ' + text(cell.expected || '') + '</span>' + seen + '</td>';
         }).join('');
         var since = row.effectiveFrom ? '<span class="since">' + text(row.effectiveFrom) + ' 以降の想定</span>' : '';
         return '<tr class="' + (row.failed ? 'row-ng' : '') + '">' +

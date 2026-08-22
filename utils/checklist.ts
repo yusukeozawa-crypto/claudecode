@@ -48,6 +48,14 @@ export interface ChecklistCell {
   severity: Severity | null;
   /** 補足 (画面のツールチップ用) */
   note: string;
+  /**
+   * 実際に確認できた値 (セルに小さく併記する)。
+   *
+   * 「あり」だけでは、本当に見に行ったのか判断できない。
+   * 確認できた会社名などをそのまま出すことで、
+   * 検査が動いていることが人にも分かる。
+   */
+  detail: string;
 }
 
 export interface ChecklistRow {
@@ -88,6 +96,20 @@ export interface AgencyMeta {
   effectiveFrom?: string | null;
 }
 
+/**
+ * セルに併記する短い説明。
+ *
+ * 「「募集代理店：株式会社カカクコム・インシュアランス」を確認」のような
+ * 文から、確認できた値だけを取り出す。
+ * 「あり」だけでは本当に見に行ったのか分からないため、
+ * 何を見て判断したのかを人にも見えるようにする。
+ */
+function shortDetail(actual: string): string {
+  const quoted = /「([^」]{1,60})」/.exec(actual);
+  const text = (quoted ? quoted[1] : actual).trim();
+  return text.length > 26 ? `${text.slice(0, 26)}…` : text;
+}
+
 function worseOf(a: Severity | null, b: Severity | null): Severity | null {
   if (!a) return b;
   if (!b) return a;
@@ -116,7 +138,7 @@ export function buildChecklist(
     Object.fromEntries(
       CHECK_COLUMNS.map((column) => [
         column.key,
-        { state: 'none' as const, observed: '', expected: null, severity: null, note: '' },
+        { state: 'none' as const, observed: '', expected: null, severity: null, note: '', detail: '' },
       ]),
     );
 
@@ -159,12 +181,15 @@ export function buildChecklist(
       const observed = finding.observedValue ?? '';
       const expected = finding.expectedValue ?? null;
 
+      const detail = shortDetail(finding.actual ?? '');
+
       if (expected === null) {
         // 正解が未確定の項目 (保存先など)。実態だけ出す
         if (cell.state === 'none') {
           cell.state = 'info';
           cell.observed = observed;
           cell.note = finding.actual ?? '';
+          cell.detail = detail;
         }
         continue;
       }
@@ -178,6 +203,7 @@ export function buildChecklist(
       cell.observed = observed;
       cell.expected = expected;
       cell.note = finding.actual ?? '';
+      cell.detail = detail;
       if (!ok) cell.severity = worseOf(cell.severity, finding.severity);
     }
   }

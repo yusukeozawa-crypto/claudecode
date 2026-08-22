@@ -58,16 +58,6 @@ notes:
       同じことが起きていないか、件数を増やして確認する。
       再現: /lp/service/?insAgentNo=littlefamily42
 
-  - id: littlefamily28-agency-name-missing
-    kind: 確認待ち
-    title: littlefamily28 (hotto) で代理店名の表示そのものが無い
-    detail: >-
-      2026-08-22 のステージング検査で検知。br なしのコード。
-      littlefamily42 のような「管理名との不一致」ではなく、
-      「募集代理店：」の行自体が出ていない (実際に出ている名前を
-      拾おうとしても見つからない)。代理店として認識されていない疑い。
-      再現: /lp/service/?insAgentNo=littlefamily28
-
   - id: agency-master-company-names
     kind: 保留
     title: マスタの会社名が社内の管理名になっている行がある

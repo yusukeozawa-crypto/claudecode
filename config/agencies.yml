@@ -7,7 +7,7 @@
 #
 #   再生成: npm run agencies:build
 #
-#   全 210 件 / マスタ 214 件
+#   全 209 件 / マスタ 214 件
 #
 #   実際に検査する代理店は実行ごとに抽選される (scope を参照)。
 #   毎回同じ代理店だけを検査すると、残りに潜む問題を見逃し続けるため。
@@ -682,32 +682,6 @@ agencies:
   - code: littlefamily27
     label: ジモティ — みらやく掲載可
     company: ジモティ
-    mirayaku: ○
-    profile: mirayaku-visible
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく○
-    effectiveFrom: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: present
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily28
-    label: hotto — みらやく掲載可
-    company: hotto
     mirayaku: ○
     profile: mirayaku-visible
     recognized: true
@@ -5596,6 +5570,9 @@ excludedAgencies:
   - code: littlefamily06
     company: 保険市場
     reason: みらやく掲載可否が「エラー」のため期待結果を決められない
+  - code: littlefamily28
+    company: hotto
+    reason: 稼働していないため検査対象外 (運用側の確認)
   - code: littlefamily47
     company: 株式会社ドリームコーポレーション
     reason: みらやく掲載可否が「エラー」のため期待結果を決められない

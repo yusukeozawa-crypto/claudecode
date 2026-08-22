@@ -597,12 +597,14 @@ function renderChecklist(checklist: Checklist): string {
               // 正解が未確定の項目 (保存先など)。実態だけ出す
               return `<td class="check-info" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}</td>`;
             }
+            // 何を見て判断したのかを小さく併記する
+            const seen = cell.detail ? `<span class="seen">${escapeHtml(cell.detail)}</span>` : '';
             if (cell.state === 'ok') {
-              return `<td class="check-ok" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}</td>`;
+              return `<td class="check-ok" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}${seen}</td>`;
             }
             return (
               `<td class="check-ng" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}` +
-              `<span class="muted">期待: ${escapeHtml(cell.expected ?? '')}</span></td>`
+              `<span class="muted">期待: ${escapeHtml(cell.expected ?? '')}</span>${seen}</td>`
             );
           })
           .join('');
@@ -806,6 +808,7 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   table.checklist td.check-info { color: #44505c; }
   table.checklist td.check-ng { background: #fdecea; color: #9c2f24; font-weight: 700; }
   table.checklist td.check-ng .muted { display: block; font-size: 11px; font-weight: 400; }
+  table.checklist td .seen { display: block; font-size: 10px; color: #6b7280; font-weight: 400; max-width: 170px; white-space: normal; margin: 2px auto 0; }
   table.checklist tr.agency-ng th[scope="row"] { background: #fdecea; }
   .title { font-weight: 600; }
   .expected { color: #14683a; } .actual { color: var(--critical); }

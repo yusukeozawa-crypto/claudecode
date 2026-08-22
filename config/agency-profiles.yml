@@ -90,6 +90,11 @@ assign:
   - match: { code: littlefamily99 }
     exclude: true
     reason: Amazon みらやく用の未使用コードのため検査対象外
+  # littlefamily28 (hotto) は稼働していない (運用側の確認)。
+  # 代理店名の表示そのものが無いため、稼働中と扱うと毎回 Critical になる。
+  - match: { code: littlefamily28 }
+    exclude: true
+    reason: 稼働していないため検査対象外 (運用側の確認)
   # 支店コード (末尾 brNN) は親コードと同じ挙動になるのが仕様。
   #   マスタの各行が親と同じ みらやく可否を持っているため、
   #   専用の割り当てルールは不要 (下の みらやく / カカクコムのルールで決まる)。
