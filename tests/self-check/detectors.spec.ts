@@ -1472,6 +1472,15 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       `みらやく不可の代理店で検知しないこと: ${JSON.stringify(hidden)}`,
     ).toEqual([]);
 
+    // 「安心パックなし」は保険料の前提条件の注釈なので、
+    // 「あんしんパックの表示あり」と数えてはいけない。
+    // 数えると みらやく掲載不可の代理店が毎回 Critical になる (実サイトで発生)。
+    const pageText = await page.evaluate(() => document.body.innerText);
+    expect(pageText, '注釈があること (誤検知の再現条件)').toContain('安心パックなし');
+    const anshinResult = hidden.find((finding) => finding.checkId === 'anshin-pack');
+    expect(anshinResult?.observedValue, '注釈だけなら「なし」と判定すること').toBe('なし');
+    expect(anshinResult?.actual, '除外したことを併記すること (黙って無視しない)').toContain('除外');
+
     // コードなしでは代理店名が出ない。
     // 直前の検査でコードが保存されているため、消してから確認する
     // (保存値からの復元は仕様どおりの動作)

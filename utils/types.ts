@@ -184,6 +184,12 @@ export interface AgencyFile {
     forbiddenWhenHidden: string;
     /** 「あんしんパック」の表記 (複数の書き方があれば列挙) */
     anshinPack: string[];
+    /**
+     * あんしんパックの判定から除外する表記。
+     * 「安心パックなし」のように保険料の前提条件として注釈に出るものは
+     * 商品の案内ではないため、判定前に文章から取り除く。
+     */
+    anshinPackIgnore?: string[];
   };
   /**
    * 代理店コードの保存先。

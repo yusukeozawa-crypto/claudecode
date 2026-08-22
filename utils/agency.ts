@@ -766,28 +766,46 @@ export async function verifyDisplayRules(
   const mode = spec.anshinPack ?? 'ignore';
   if (mode !== 'ignore') {
     const variants = texts.anshinPack ?? [];
-    const found = variants.filter((variant) => body.includes(variant));
+
+    // 判定の前に「安心パックなし」のような表記を取り除く。
+    //   これは保険料の前提条件として注釈に出るもので、商品の案内ではない。
+    //   「安心パックなし」の「安心パック」を数えると、
+    //   みらやく掲載不可の代理店が毎回 Critical になる (実サイトで発生)。
+    //   取り除いた件数は結果に併記し、黙って無視はしない。
+    const ignored: string[] = [];
+    let judged = body;
+    for (const phrase of texts.anshinPackIgnore ?? []) {
+      if (phrase === '') continue;
+      const count = judged.split(phrase).length - 1;
+      if (count > 0) {
+        ignored.push(`${phrase} × ${count}`);
+        judged = judged.split(phrase).join('');
+      }
+    }
+    const excluded = ignored.length > 0 ? ` (注釈として除外: ${ignored.join(', ')})` : '';
+
+    const found = variants.filter((variant) => judged.includes(variant));
     if (mode === 'present') {
       findings.push(
         found.length > 0
-          ? pass('anshin-pack', '「あんしんパック」の表示がある', `「${found.join('」「')}」を確認`, 'あり')
+          ? pass('anshin-pack', '「あんしんパック」の表示がある', `「${found.join('」「')}」を確認${excluded}`, 'あり')
           : fail(
               'anshin-pack',
               '「あんしんパック」の表示がありません',
               `${variants.join(' / ')} のいずれかが表示されること`,
-              '表示されていません',
+              `表示されていません${excluded}`,
               'なし',
             ),
       );
     } else {
       findings.push(
         found.length === 0
-          ? pass('anshin-pack', '「あんしんパック」の表示が一切ない', `${variants.join(' / ')} が無いことを確認`, 'なし')
+          ? pass('anshin-pack', '「あんしんパック」の表示が一切ない', `${variants.join(' / ')} が無いことを確認${excluded}`, 'なし')
           : fail(
               'anshin-pack',
               '「あんしんパック」が表示されています (みらやく掲載不可)',
               `${variants.join(' / ')} が表示されないこと`,
-              `「${found.join('」「')}」が表示されています`,
+              `「${found.join('」「')}」が表示されています${excluded}`,
               'あり',
             ),
       );
