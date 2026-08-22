@@ -327,6 +327,39 @@ await check('npm script に OS で意味が変わる記号を入れない (Windo
   );
 });
 
+await check('画面の JavaScript に呼べない関数が無い', async () => {
+  // 画面を組み立てる関数を消してしまうと、通信は生きているのに
+  // 画面が出ない。しかも「画面とつながっていません」と表示されるため、
+  // 原因を見誤る (実際に renderNotes を消して数回の実行を無駄にした)。
+  //
+  // 呼んでいる関数がすべて定義されているかをここで見張る。
+  const response = await fetch(base);
+  const html = await response.text();
+  const script = html.slice(html.indexOf('<script>') + 8, html.lastIndexOf('</script>'));
+
+  // 構文が壊れていないこと
+  assert.doesNotThrow(() => new Function(script), '画面の JavaScript が構文エラーでないこと');
+
+  // render〜 / show〜 を呼んでいるなら、その関数が定義されていること
+  const defined = new Set([...script.matchAll(/function\s+([A-Za-z0-9_]+)\s*\(/g)].map((m) => m[1]));
+  const called = new Set([...script.matchAll(/\b((?:render|show)[A-Za-z0-9_]*)\s*\(/g)].map((m) => m[1]));
+  const missing = [...called].filter((name) => !defined.has(name));
+  assert.deepEqual(missing, [], `呼んでいるのに定義が無い関数: ${missing.join(', ')}`);
+});
+
+await check('通信の失敗と画面の組み立ての失敗を区別する', async () => {
+  // 同じ文言を出すと、サーバーが動いているのに
+  // 「黒い画面が閉じている」と読んで原因を見誤る (実際に起きた)。
+  const response = await fetch(base);
+  const html = await response.text();
+  assert.ok(html.includes('画面とつながっていません'), '通信できない場合の文言があること');
+  assert.ok(html.includes('画面の表示に失敗しました'), '組み立てで失敗した場合の文言があること');
+  assert.ok(
+    html.includes('render(state)') && html.includes('catch (error)'),
+    '画面の組み立てを別に囲んで、失敗しても通信のせいにしないこと',
+  );
+});
+
 await check('検知結果が画面の状態に含まれる', async () => {
   const { body } = await json('/api/state');
   assert.ok(Array.isArray(body.findings), '検知結果の一覧が返ること');

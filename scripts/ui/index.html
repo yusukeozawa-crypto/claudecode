@@ -415,6 +415,30 @@
     box.innerHTML = html;
   }
 
+  function renderNotes(state) {
+    var section = document.getElementById('notes-section');
+    var list = document.getElementById('notes');
+    var notes = state.notes || [];
+    if (notes.length === 0) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    var due = notes.filter(function (note) { return note.dueReached; }).length;
+    document.getElementById('notes-note').textContent =
+      due > 0 ? '— ' + due + ' 件は期日が来ています' : '— ' + notes.length + ' 件';
+    list.innerHTML = notes.map(function (note) {
+      return '<li class="' + (note.dueReached ? 'due-reached' : '') + '">' +
+        '<span class="kind kind-' + text(note.kind) + '">' + text(note.kind) + '</span>' +
+        '<span class="note-title">' + text(note.title) + '</span>' +
+        (note.detail ? '<div class="note-detail">' + text(note.detail) + '</div>' : '') +
+        (note.due
+          ? '<div class="note-due">' + (note.dueReached ? '期日が来ています: ' : '確認する日: ') + text(note.due) + '</div>'
+          : '') +
+        '</li>';
+    }).join('');
+  }
+
   function renderHistory(state) {
     var section = document.getElementById('history-section');
     var table = document.getElementById('history');
@@ -522,10 +546,19 @@
     }
   }
 
-  function refresh() {
-    return fetch('/api/state')
-      .then(function (res) { return res.json(); })
-      .then(function (state) {
+  /**
+   * うまくいかないときの表示。
+   *
+   * 「通信できない」と「画面の組み立てで失敗した」は原因が全く違う。
+   * 同じ文言を出すと、サーバーが動いているのに
+   * 「黒い画面が閉じている」と読んで原因を見誤る (実際に起きた)。
+   */
+  function showTrouble(title, detail) {
+    document.getElementById('verdict-big').textContent = title;
+    document.getElementById('verdict-sub').textContent = detail;
+  }
+
+  function render(state) {
         document.getElementById('env-label').textContent =
           state.summary ? (state.summary.environmentLabel || '') + ' / ' + (state.summary.baseUrl || '') : '';
         latestEnv = state.env || {};
@@ -565,11 +598,34 @@
         });
         // 実行中はログを自動で開き、経過が見えるようにする
         if (state.running) document.getElementById('log-details').open = true;
+  }
+
+  function refresh() {
+    return fetch('/api/state')
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
       })
       .catch(function () {
-        document.getElementById('verdict-big').textContent = '画面とつながっていません';
-        document.getElementById('verdict-sub').textContent =
-          '黒い画面 (run-qa) が閉じている可能性があります。もう一度起動してください。';
+        // ここに来るのは通信できなかった場合だけ
+        showTrouble(
+          '画面とつながっていません',
+          '黒い画面 (run-qa) が閉じている可能性があります。もう一度起動してください。'
+        );
+        return null;
+      })
+      .then(function (state) {
+        if (state === null) return;
+        try {
+          render(state);
+        } catch (error) {
+          // 通信は生きている。画面の組み立てで失敗しただけなので、
+          // 「つながっていません」ではなく中身を出す (直せるように)
+          showTrouble(
+            '画面の表示に失敗しました',
+            '検査そのものは動いています。内容: ' + (error && error.message ? error.message : String(error))
+          );
+        }
       });
   }
 
