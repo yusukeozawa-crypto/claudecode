@@ -26,16 +26,17 @@ knownIssues:
   - id: branch-code-not-applied
     title: 支店コードが親コードとして扱われない
     note: >-
-      LIST_ID 301〜350 (littlefamily03br*) / 3301〜3350 (littlefamily33br*) /
-      5701〜5720 (littlefamily57br*)。
+      LIST_ID 301〜350 / 3301〜3350 / 5701〜5720 で確認。
+      支店コード全体が同じ状態のため br 付き全件を対象にしている。
       2026-09-03 のリリースで修正予定。
     # 修正リリース日。この日以降は既知扱いをやめる (通常の重大度で報告する)
     fixedOn: 2026-09-03
     # 対象の代理店コード (`*` が使える)
+    # 支店コード (末尾 brNN) 全体を対象にする。
+    # 一部だけ登録すると、登録漏れのコードが毎回 Critical で並び、
+    # 本当の異常が埋もれる (littlefamily18br07 で実際に起きた)。
     codes:
-      - "littlefamily03br*"
-      - "littlefamily33br*"
-      - "littlefamily57br*"
+      - "littlefamily*br*"
     # 対象の検知種別。ここに無い種別は既知扱いしない
     # (同じ代理店の別の不具合を見逃さないため)
     categories:

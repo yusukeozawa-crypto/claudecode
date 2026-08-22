@@ -568,6 +568,20 @@ export async function verifyFallback(
   return findings;
 }
 
+/** 文言テンプレートの {company} を会社名に置き換える */
+function fillTemplate(template: string, company: string): string {
+  return template.replaceAll('{company}', company);
+}
+
+/**
+ * 設定に載っているすべての代理店の会社名。
+ * 「代理店名が出ていないこと」を判定するとき、
+ * 特定の 1 社ではなく**どの代理店名も出ていない**ことを確認するために使う。
+ */
+function knownCompanies(config: QaConfig): string[] {
+  return [...new Set(config.agencies.agencies.map((agency) => agency.company ?? ''))];
+}
+
 /**
  * 代理店コードの保存先を調べる。
  *
@@ -668,7 +682,7 @@ export async function verifyDisplayRules(
 
   const findings: FindingInput[] = [];
   const company = spec.company ?? '';
-  const fill = (template: string): string => template.replaceAll('{company}', company);
+  const fill = (template: string): string => fillTemplate(template, company);
 
   // observedValue / expectedValue はチェックリストの表に「あり / なし」を
   // そのまま出すために持たせる。合否だけでは どちらだったか が表に出せない。
@@ -717,22 +731,33 @@ export async function verifyDisplayRules(
         : fail('footer-name', 'フッターに代理店名が表示されていません', `「${footer}」が表示されること`, '表示されていません', 'なし'),
     );
   } else if (spec.agencyName === 'hidden') {
+    // 「代理店名が出ていないこと」の判定。
+    //
+    //   「募集代理店」という語だけで判定してはいけない。
+    //   この LP はフッターに定型文としてこの語を常に持っており、
+    //   コードなしでも出るため、全件が誤検知になる (実測で確認)。
+    //
+    //   判定は「募集代理店：<会社名>」の形で、**実在する代理店の会社名**が
+    //   入っているかで行う。会社名はマスタ全件を照合するので、
+    //   自社コードのときに他の代理店名が出ていても検知できる。
+    const shownNames = knownCompanies(config)
+      .filter((company) => company !== '')
+      .filter((company) => body.includes(fillTemplate(texts.footer, company)));
+
     // 判定はページ全体の表示テキストで行うため、ヘッダーとフッターの
     // 両方について「出ていない」ことを確認できている。
     // 片方だけ結果を残すと、表で「もう片方は未検査」に見えてしまう。
-    const forbidden = texts.forbiddenWhenHidden;
-    const shown = body.includes(forbidden);
     for (const checkId of ['header-name', 'footer-name'] as CheckId[]) {
       findings.push(
-        shown
+        shownNames.length > 0
           ? fail(
               checkId,
               '代理店名が表示されています',
-              `「${forbidden}」が表示されないこと`,
-              `「${forbidden}」が表示されています`,
+              '代理店名が表示されないこと',
+              `「${shownNames.join('」「')}」が表示されています`,
               'あり',
             )
-          : pass(checkId, '代理店名が表示されない', `「${forbidden}」が無いことを確認`, 'なし'),
+          : pass(checkId, '代理店名が表示されない', '代理店の会社名が無いことを確認', 'なし'),
       );
     }
   }

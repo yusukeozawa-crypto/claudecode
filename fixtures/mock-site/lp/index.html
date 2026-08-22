@@ -96,6 +96,12 @@
   <footer class="site-footer" data-testid="site-footer">
     <div class="container">
       <p>テスト保険株式会社</p>
+      <!--
+        実サイトと同じく「募集代理店」という語はコードが無くても常にある。
+        この語だけで「代理店名が出ている」と判定すると全件が誤検知になる
+        (実サイトで実際に起きた)。判定は会社名で行う必要がある。
+      -->
+      <p class="meta">募集代理店に関するお問い合わせは各代理店へお願いします。</p>
       <p data-testid="footer-agency" hidden>募集代理店：<span data-testid="footer-agency-name">-</span></p>
       <ul>
         <li><a href="/faq.html">よくあるご質問</a></li>

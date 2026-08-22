@@ -94,16 +94,49 @@ test.describe('申込導線の観測 @agency @cta', () => {
 
       const expectedHost = expectedApplicationHost(config, null);
       const before = page.url();
-      await cta.click({ timeout: 15000 }).catch((error: unknown) => {
-        qa.add({
-          category: 'agency-handoff',
-          severity: 'high',
-          title: `${spec.code}: 申込ボタンを押せませんでした`,
-          expected: '申込ボタンを押せること',
-          actual: String(error).split('\n')[0],
-          url: before,
+
+      // 申込ボタンを押す。
+      //   SP では固定ヘッダー・追従バナーがボタンに重なって押せないことがある。
+      //   1 回失敗しただけで「押せない」と報告すると、実際には使えるボタンを
+      //   不具合として出してしまうため、順に手を変えて試す。
+      //     1. 画面内に入れてから押す
+      //     2. 重なりを無視して押す (force)
+      //     3. リンクなら遷移先を直接開く
+      let clickError = '';
+      await cta.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => undefined);
+      const clicked = await cta
+        .click({ timeout: 15000 })
+        .then(() => true)
+        .catch((error: unknown) => {
+          clickError = String(error).split('\n')[0];
+          return false;
         });
-      });
+
+      if (!clicked) {
+        const forced = await cta
+          .click({ timeout: 8000, force: true })
+          .then(() => true)
+          .catch(() => false);
+        if (!forced) {
+          // リンクなら href を直接開く (押せるかどうかとは別に、
+          // 引き継ぎが成立するかは確認できる)
+          const href = await cta.getAttribute('href').catch(() => null);
+          if (href) {
+            await qa.goto({ url: new URL(href, before).toString(), agencyCode: spec.code });
+          }
+          qa.add({
+            category: 'agency-handoff',
+            severity: 'high',
+            title: `${spec.code}: 申込ボタンを押せませんでした`,
+            expected: '申込ボタンを押せること',
+            actual: clickError || '押しても反応しません',
+            url: before,
+            detail: href
+              ? `リンク先 (${href}) を直接開いて引き継ぎの確認を続けました。ボタンに他の要素が重なっている可能性があります。`
+              : 'リンクではないため直接開けませんでした。固定ヘッダーや追従バナーが重なっていないか確認してください。',
+          });
+        }
+      }
       // 別ドメインへの遷移を待つ (押しても遷移しない場合は下で報告する)
       await page.waitForURL((url) => url.host === expectedHost, { timeout: 20000 }).catch(() => undefined);
       await page.waitForLoadState('load').catch(() => undefined);

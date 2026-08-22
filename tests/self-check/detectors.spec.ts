@@ -1105,7 +1105,9 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     await page.goto('/lp/');
     await page.waitForLoadState('load');
     const body = await page.evaluate(() => document.body.innerText);
-    expect(body.includes('募集代理店'), 'コードなしの表示に戻ること').toBe(false);
+    // 「募集代理店」という語はコードが無くても定型文として常にある。
+    // 会社名が消えていることで判定する
+    expect(body.includes('株式会社エーワン保険サービス'), 'コードなしの表示に戻ること').toBe(false);
 
     // 同じテストの 2 回目以降は「続き」として何もしない
     // (別コードでの再流入・再訪リダイレクトは前の状態が必要な検査のため)
@@ -1485,6 +1487,25 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       noCode.filter((finding) => finding.severity === 'critical'),
       'コードなしで代理店名が出ないこと',
     ).toEqual([]);
+
+    // 「募集代理店」という語はコードが無くてもフッターの定型文として常にある。
+    // この語だけで判定すると全件が誤検知になる (実サイトで実際に起きた)。
+    const body = await page.evaluate(() => document.body.innerText);
+    expect(body, 'モックにも定型文があること (誤検知の再現条件)').toContain('募集代理店');
+    expect(
+      noCode.map((finding) => finding.observedValue),
+      '定型文があっても「なし」と判定すること (会社名で判定する)',
+    ).toEqual(['なし', 'なし']);
+
+    // 会社名が入っていれば検知すること (見逃しの確認)
+    await page.goto(`/lp/?${param}=A001`);
+    await page.waitForLoadState('load');
+    const shown = await verifyDisplayRules(page, config, { agencyName: 'hidden' }, 'A001 を非表示扱い');
+    expect(
+      shown.filter((finding) => finding.severity === 'critical').length,
+      '会社名が出ていれば検知すること',
+    ).toBe(2);
+    expect(shown[0]?.actual, 'どの会社名が出ているか分かること').toContain('株式会社エーワン保険サービス');
   });
 
   test('申込フォームでコードが維持されているかを判定できる (方式を問わない)', async ({ page }) => {
