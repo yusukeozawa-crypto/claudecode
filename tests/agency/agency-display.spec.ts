@@ -19,7 +19,7 @@ import { pageById, pagesFromConfig } from '../../utils/page-source';
 import {
   agencyPairs, agencySpecs, clearStoredCode, invalidCodes, readStoredCode, storageLabel,
   verifyAssets, verifyCtaText, verifyFallback, verifyNoOtherAgencyInfo,
-  verifySections, verifyStoredCode, verifyTexts, storageChecksEnabled, expectedStoredCode,
+  verifySections, verifyStoredCode, verifyTexts, verifyPageTexts, storageChecksEnabled, expectedStoredCode,
 } from '../../utils/agency';
 import { enterAsAgency, enterPath, enterWithFallback } from '../../utils/agency-entry';
 
@@ -40,6 +40,8 @@ test.describe('代理店ごとの表示 @agency', () => {
 
       qa.addAll(await verifySections(page, spec, label));
       qa.addAll(await verifyTexts(page, spec.expectedTexts, label));
+      // このサイトの中心的な仕様 (代理店名の表示 / あんしんパックの有無)
+      qa.addAll(await verifyPageTexts(page, spec, label));
       qa.addAll(await verifyAssets(page, spec.expectedAssets, label));
       qa.addAll(await verifyCtaText(page, spec, label));
       qa.addAll(await verifyNoOtherAgencyInfo(page, config, spec.code, label));

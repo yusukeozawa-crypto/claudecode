@@ -144,6 +144,7 @@ function buildContext({ pathname, code, fromUrl }) {
     fromUrl: Boolean(fromUrl),
     agency: agency
       ? {
+          mirayaku: agency.mirayaku ?? '○',
           name: agency.name,
           phone: agency.phone,
           banner: agency.banner,

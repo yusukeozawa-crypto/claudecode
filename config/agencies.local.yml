@@ -73,6 +73,12 @@ agencies:
       agency-phone: 03-0000-0001
 
     # バナー・ロゴ (src の部分一致で検証する)
+    # ページ内の文言で検査する項目 (実サイトの中心的な仕様と同じ形)
+    requiredTexts:
+      - "株式会社エーワン保険サービス"
+      - "募集代理店：株式会社エーワン保険サービス"
+      - "あんしんパック"
+    forbiddenTexts: []
     expectedAssets:
       agency-banner: /assets/banner-a001.svg
       agency-logo: /assets/logo-a001.svg
@@ -150,6 +156,11 @@ agencies:
       agency-name: 株式会社ビーツー保険
       agency-phone: 06-0000-0002
 
+    # ページ内の文言で検査する項目 (実サイトの中心的な仕様と同じ形)
+    requiredTexts:
+      - "株式会社ビーツー保険"
+      - "募集代理店：株式会社ビーツー保険"
+    forbiddenTexts: []
     expectedAssets:
       agency-banner: /assets/banner-a002.svg
 
@@ -215,6 +226,12 @@ agencies:
       agency-name: シースリー少額短期保険株式会社
       agency-phone: 052-000-0003
 
+    # ページ内の文言で検査する項目 (実サイトの中心的な仕様と同じ形)
+    requiredTexts:
+      - "シースリー少額短期保険株式会社"
+      - "募集代理店：シースリー少額短期保険株式会社"
+    forbiddenTexts:
+      - "あんしんパック"
     expectedAssets:
       agency-banner: /assets/banner-a003.svg
 
@@ -278,6 +295,11 @@ agencies:
     expectedTexts:
       agency-name: エーフォー限定プラン保険株式会社
       agency-phone: 011-000-0004
+    # ページ内の文言で検査する項目 (実サイトの中心的な仕様と同じ形)
+    requiredTexts:
+      - "エーフォー限定プラン保険株式会社"
+      - "募集代理店：エーフォー限定プラン保険株式会社"
+    forbiddenTexts: []
     expectedAssets: {}
     cta: null
     application: null
@@ -326,6 +348,9 @@ invalidCodes:
     label: 大文字小文字違い (別コードとして扱われるべき)
 
 invalidExpectation:
+  # 無効なコード / コードなしで代理店名が出てはいけない
+  forbiddenTexts:
+    - "募集代理店"
   entryPath: /lp/
   expectedFinalPath: /lp/
   redirected: false
@@ -355,6 +380,9 @@ invalidExpectation:
 # 代理店コードなし (通常流入)
 # ============================================================
 noCodeExpectation:
+  # 無効なコード / コードなしで代理店名が出てはいけない
+  forbiddenTexts:
+    - "募集代理店"
   entryPath: /lp/
   expectedFinalPath: /lp/
   redirected: false

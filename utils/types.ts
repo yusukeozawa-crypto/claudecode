@@ -254,6 +254,17 @@ export interface AgencySpec {
   visibleSections: string[];
   hiddenSections: string[];
   expectedTexts: Record<string, string>;
+  /**
+   * ページ内に必ずある文字列。
+   *   セレクタを知らなくても検査できる形にしている
+   *   (例: 「募集代理店：株式会社◯◯」がヘッダー・フッターに出ること)。
+   */
+  requiredTexts?: string[];
+  /**
+   * ページ内にあってはならない文字列。
+   *   例: みらやく掲載不可の代理店で「あんしんパック」が出ないこと。
+   */
+  forbiddenTexts?: string[];
   expectedAssets: Record<string, string>;
   /**
    * 申込へ進む CTA。
@@ -283,6 +294,8 @@ export interface FallbackExpectation {
   entryPath: string;
   expectedFinalPath: string;
   redirected: boolean;
+  /** ページ内にあってはならない文字列 (無効コードで代理店名が出ないこと等) */
+  forbiddenTexts?: string[];
   redirectMechanism: RedirectMechanism;
   visibleSections: string[];
   hiddenSections: string[];

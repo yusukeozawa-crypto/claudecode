@@ -116,6 +116,12 @@ profiles:
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
+    # 自社コードは代理店コードを無効化してオリジナルを表示する。
+    # 募集代理店の表記は出ない (実測でも出ていない)。
+    requiredTexts:
+      - あんしんパック
+    forbiddenTexts:
+      - 募集代理店
     expectedAssets: {}
     cta: null
     application: null
@@ -130,18 +136,17 @@ profiles:
   #   コードが保存された状態 (Cookie) で通常 LP を開くと専用 LP へ飛ぶ。
   #   そのため流入時 (redirected) と再訪時 (revisitRedirect) を分けて設定する。
   kakakucom:
-    label: カカクコム (専用LPが入口・再訪時にリダイレクト)
-    entryPath: /lp/service-premium/
+    label: カカクコム (専用LPへリダイレクト)
+    # 通常 LP に入ると専用 LP へリダイレクトする
+    entryPath: /lp/service/
     expectedFinalPath: /lp/service-premium/
-    # 流入時はリダイレクトしない (最初から専用 LP に入る)
-    redirected: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    # 再訪時: コードが保存された状態で通常 LP を開くと専用 LP へ飛ぶ
-    revisitRedirect:
-      fromPath: /lp/service/
-      toPath: /lp/service-premium/
+    redirected: true
+    # [未実測] 遷移方式 (http / js / meta-refresh / spa) が未確認。
+    # unknown の間は方式を照合せず、実測値を記録する。
+    redirectMechanism: null
+    expectedRedirectCount: null
+    expectedRedirectPaths:
+      - /lp/service-premium/
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
@@ -159,10 +164,17 @@ profiles:
     expectedRedirectCount: 0
     expectedRedirectPaths: []
     # [未実測] みらやくセクションの data-testid が未確認。
-    # 判明したら visibleSections に入れる (例: mirayaku-section)。
+    # セレクタが分からなくても文言で検査できる (下記)。
     visibleSections: []
     hiddenSections: []
     expectedTexts: {}
+    # ヘッダーとフッターに代理店名、フッターは「募集代理店：<会社名>」。
+    # みらやく掲載可なので「あんしんパック」の記載がある。
+    requiredTexts:
+      - "{company}"
+      - "募集代理店：{company}"
+      - あんしんパック
+    forbiddenTexts: []
     expectedAssets: {}
     cta: null
     application: null
@@ -178,10 +190,15 @@ profiles:
     expectedRedirectCount: 0
     expectedRedirectPaths: []
     visibleSections: []
-    # [未実測] 判明したら hiddenSections に入れる (例: mirayaku-section)。
-    # ここが設定されるまで「×なのに表示されている」は検知できない。
     hiddenSections: []
     expectedTexts: {}
+    # ヘッダーとフッターの代理店名は みらやく可と同じ。
+    # 違いは「あんしんパック」の記載が LP 内に一切ないこと。
+    requiredTexts:
+      - "{company}"
+      - "募集代理店：{company}"
+    forbiddenTexts:
+      - あんしんパック
     expectedAssets: {}
     cta: null
     application: null
@@ -198,6 +215,9 @@ invalidCodes:
 invalidExpectation:
   expectedFinalPath: /lp/service/
   redirected: false
+  # 無効なコードで代理店名が出てはいけない
+  forbiddenTexts:
+    - 募集代理店
   # [未実測] 無効コード時に通常表示へフォールバックすることを
   # 何で確認するか (代理店セクションが出ないこと等)
   visibleSections: []
@@ -207,6 +227,9 @@ invalidExpectation:
 noCodeExpectation:
   expectedFinalPath: /lp/service/
   redirected: false
+  # コードなしで代理店名が出てはいけない
+  forbiddenTexts:
+    - 募集代理店
   visibleSections: []
   hiddenSections: []
   application: null

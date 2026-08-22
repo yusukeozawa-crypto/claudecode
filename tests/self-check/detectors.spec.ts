@@ -18,7 +18,7 @@ import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
-import { agencyPairs, agencySpecs, resolvePerProfile, verifyNoOtherAgencyInfo, verifySections, verifyTexts } from '../../utils/agency';
+import { agencyPairs, agencySpecs, resolvePerProfile, verifyNoOtherAgencyInfo, verifyPageTexts, verifySections, verifyTexts } from '../../utils/agency';
 import { describeApplicationLinks, installRequestGuards, observeApplicationLinks } from '../../utils/handoff';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
@@ -1206,6 +1206,67 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
         `${spec.code} の みらやく掲載可否が ○ か × であること (実際: ${spec.mirayaku})`,
       ).toContain(spec.mirayaku);
     }
+  });
+
+  test('代理店名の欠落と「あんしんパック」の出しすぎを検出できる (中心的な仕様)', async ({ page }) => {
+    // このサイトの中心的な仕様は 3 点で、いずれも文言で判定できる。
+    //   1. カカクコムは専用 LP へリダイレクトする (@redirect で検査)
+    //   2. みらやく可否に関わらず、代理店名がヘッダーとフッターに出る
+    //   3. みらやく不可の代理店は「あんしんパック」の記載が一切ない
+    const param = config.agency.paramName;
+
+    // みらやく可の代理店 (A001): 代理店名と あんしんパック の両方がある
+    await page.goto(`/lp/?${param}=A001`);
+    await page.waitForLoadState('load');
+    const ok = await verifyPageTexts(
+      page,
+      {
+        requiredTexts: ['株式会社エーワン保険サービス', '募集代理店：株式会社エーワン保険サービス', 'あんしんパック'],
+        forbiddenTexts: [],
+      },
+      'A001',
+    );
+    expect(ok, `正しい状態では検知しないこと: ${JSON.stringify(ok)}`).toEqual([]);
+
+    // 代理店名が出ていない場合は検出する (見逃しの確認)
+    const missing = await verifyPageTexts(
+      page,
+      { requiredTexts: ['募集代理店：出るはずのない会社'], forbiddenTexts: [] },
+      'A001',
+    );
+    expect(missing.length, '出るべき文言が無ければ検出すること').toBe(1);
+    expect(missing[0].severity, '売上に直結するため Critical であること').toBe('critical');
+
+    // みらやく不可の扱い: 「あんしんパック」があれば検出する
+    const forbidden = await verifyPageTexts(
+      page,
+      { requiredTexts: [], forbiddenTexts: ['あんしんパック'] },
+      'A001 をみらやく不可として扱った場合',
+    );
+    expect(forbidden.length, '出てはいけない文言があれば検出すること').toBe(1);
+    expect(forbidden[0].severity, 'コンプライアンスに直結するため Critical であること').toBe('critical');
+    expect(forbidden[0].detail, 'どこに出ているか分かること').toContain('あんしんパック');
+
+    // みらやく不可の代理店 (A003): あんしんパック が無く、代理店名は出る。
+    // A003 は meta refresh で専用 LP へ移るため、遷移の完了を待つ
+    await page.goto(`/lp/?${param}=A003`);
+    await page.waitForURL(/\/partner\/a003\//, { timeout: 10000 });
+    await page.waitForLoadState('load');
+    const hidden = await verifyPageTexts(
+      page,
+      {
+        requiredTexts: ['シースリー少額短期保険株式会社', '募集代理店：シースリー少額短期保険株式会社'],
+        forbiddenTexts: ['あんしんパック'],
+      },
+      'A003',
+    );
+    expect(hidden, `みらやく不可の代理店で検知しないこと: ${JSON.stringify(hidden)}`).toEqual([]);
+
+    // コードなしでは代理店名が出ない
+    await page.goto('/lp/');
+    await page.waitForLoadState('load');
+    const noCode = await verifyPageTexts(page, { requiredTexts: [], forbiddenTexts: ['募集代理店'] }, 'コードなし');
+    expect(noCode, 'コードなしで代理店名が出ないこと').toEqual([]);
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

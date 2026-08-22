@@ -565,3 +565,63 @@ export async function verifyFallback(
   findings.push(...(await verifyNoOtherAgencyInfo(page, config, null, label)));
   return findings;
 }
+
+/**
+ * ページ内の文言を検査する。
+ *
+ * セレクタ (data-testid) が分からなくても検査できる形にしている。
+ * このサイトの中心的な仕様は次の 3 点で、いずれも文言で判定できる。
+ *   - 代理店名がヘッダーとフッターに出る (フッターは「募集代理店：<会社名>」)
+ *   - みらやく掲載可の代理店は「あんしんパック」の記載がある
+ *   - みらやく掲載不可の代理店は「あんしんパック」の記載が一切ない
+ *
+ * どちらも売上・コンプライアンスに直結するため Critical とする。
+ */
+export async function verifyPageTexts(
+  page: Page,
+  spec: { requiredTexts?: string[]; forbiddenTexts?: string[] },
+  label: string,
+): Promise<FindingInput[]> {
+  const required = spec.requiredTexts ?? [];
+  const forbidden = spec.forbiddenTexts ?? [];
+  if (required.length === 0 && forbidden.length === 0) return [];
+
+  // 表示されているテキストで判定する (DOM に残っていても非表示なら「無い」)
+  const body = await page
+    .evaluate(() => (document.body?.innerText ?? '').replace(/\s+/g, ' '))
+    .catch(() => '');
+
+  const findings: FindingInput[] = [];
+  for (const text of required) {
+    if (body.includes(text)) continue;
+    findings.push({
+      category: 'agency-display',
+      severity: 'critical',
+      title: `${label}: 「${text}」が表示されていません`,
+      expected: `ページ内に「${text}」が表示されること`,
+      actual: '表示されているテキストに含まれていません',
+      url: page.url(),
+    });
+  }
+  for (const text of forbidden) {
+    if (!body.includes(text)) continue;
+    findings.push({
+      category: 'agency-display',
+      severity: 'critical',
+      title: `${label}: 「${text}」が表示されています`,
+      expected: `ページ内に「${text}」が表示されないこと`,
+      actual: `「${text}」が表示されています`,
+      url: page.url(),
+      detail: extractContext(body, text),
+    });
+  }
+  return findings;
+}
+
+/** 見つかった文言の前後を抜き出す (どこに出ているか分かるように) */
+function extractContext(body: string, text: string): string {
+  const index = body.indexOf(text);
+  if (index < 0) return '';
+  const start = Math.max(0, index - 40);
+  return `…${body.slice(start, index + text.length + 40)}…`;
+}

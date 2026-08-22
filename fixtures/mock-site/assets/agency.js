@@ -105,9 +105,16 @@
     for (var j = 0; j < hidden.length; j++) show(bySection(hidden[j]), false);
 
     show(bySection('fallback-notice'), invalidCode);
+    // 代理店コードが無い / 無効な場合は募集代理店の表記を出さない
+    if (!agency) show(bySection('footer-agency'), false);
 
     if (agency) {
       setText('agency-name', agency.name);
+      // フッターの「募集代理店：<会社名>」
+      setText('footer-agency-name', agency.name);
+      show(bySection('footer-agency'), true);
+      // みらやく × の代理店では「あんしんパック」の記載を一切出さない
+      show(bySection('anshin-pack'), agency.mirayaku !== '×');
       setText('agency-phone', agency.phone);
       setText('agency-campaign-text', agency.campaign);
       setImage('agency-banner', agency.banner, agency.name + 'のご案内');
