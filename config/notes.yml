@@ -46,3 +46,14 @@ notes:
       いまは検査していない (チェックリストでは — になる)。
       決まったら config/agency-profiles.yml の kakakucom.anshinPack を
       present / absent に変える。
+
+  - id: littlefamily42-agency-name-missing
+    kind: 確認待ち
+    title: littlefamily42 (Sasuke（募集人8）) でヘッダー・フッターに代理店名が出ない
+    detail: >-
+      2026-08-22 のステージング検査で検知。br なしの稼働中コードで、
+      支店コードの既知不具合 (2026-09-03 修正予定) とは別件。
+      運用側の確認では稼働中のコードとのこと。
+      募集人系のコード (littlefamily33〜43、Sasuke（募集人1〜10）) で
+      同じことが起きていないか、件数を増やして確認する。
+      再現: /lp/service/?insAgentNo=littlefamily42

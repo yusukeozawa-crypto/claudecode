@@ -1136,12 +1136,30 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       .evaluate((element) => Number(window.getComputedStyle(element).opacity));
     expect(before, '演出前は opacity 0 であること (誤検知の再現条件)').toBe(0);
 
-    // 観測側はスクロールしてから判定するので、表示ありと分かる
+    // PC 用のボタン (SP では display: none) が HTML の先に置かれている。
+    // 先に見つけた方を採用すると「表示されていません」と誤判定する
+    const pcOnlyHidden = await page
+      .locator('[data-testid="cta-pc-only"]')
+      .evaluate((element) => window.getComputedStyle(element).display);
+    expect(pcOnlyHidden, 'SP では PC 用のボタンが隠れていること (再現条件)').toBe('none');
+
+    // 観測側はスクロールしてから判定し、同じリンクが複数あるときは
+    // 表示されている方を採用するので、表示ありと分かる
     const links = await observeApplicationLinks(page, config, 'A001');
     expect(links.length, '申込サイトへのリンクを見つけること').toBeGreaterThan(0);
     expect(
       links.some((link) => link.visible),
       `表示されていると判定すること: ${JSON.stringify(links)}`,
+    ).toBe(true);
+
+    // PC 幅では PC 用のボタンが見えるので、そちらでも表示ありになる
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/broken/scroll-reveal-cta.html');
+    await page.waitForLoadState('load');
+    const pcLinks = await observeApplicationLinks(page, config, 'A001');
+    expect(
+      pcLinks.some((link) => link.visible),
+      `PC でも表示ありと判定すること: ${JSON.stringify(pcLinks)}`,
     ).toBe(true);
   });
 

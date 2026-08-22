@@ -944,8 +944,14 @@ export async function observeApplicationLinks(
     })
     .catch(() => [] as Array<{ kind: 'link' | 'form'; href: string; text: string; visible: boolean }>);
 
-  const found: ApplicationLinkInfo[] = [];
-  const seen = new Set<string>();
+  // 同じ文言・同じ行き先のリンクは 1 件にまとめる。
+  //
+  //   このサイトは PC 用と SP 用のボタンを両方 HTML に持ち、
+  //   使わない方を display: none で隠している。
+  //   先に見つけた方を採用すると、SP では先に置かれている
+  //   PC 用 (隠れている) を記録して「表示されていません」と誤判定する。
+  //   実際にそれで誤検知した。**表示されている方を採用する。**
+  const byKey = new Map<string, ApplicationLinkInfo>();
   for (const entry of raw) {
     let parsed: URL;
     try {
@@ -955,9 +961,10 @@ export async function observeApplicationLinks(
     }
     if (parsed.host !== expectedHost) continue;
     const key = `${entry.kind}|${parsed.pathname}|${entry.text}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    found.push({
+    const existing = byKey.get(key);
+    // 既に表示されている方を記録済みなら差し替えない
+    if (existing && (existing.visible || !entry.visible)) continue;
+    byKey.set(key, {
       kind: entry.kind,
       text: entry.text,
       path: parsed.pathname,
@@ -966,7 +973,7 @@ export async function observeApplicationLinks(
       visible: entry.visible,
     });
   }
-  return found;
+  return [...byKey.values()];
 }
 
 /**

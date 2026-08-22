@@ -23,6 +23,9 @@
       text-align: center;
     }
     .reveal.shown { opacity: 1; }
+    /* SP 幅では PC 用のボタンを隠す (実サイトと同じ作り) */
+    .pc-only { text-align: center; padding: 32px; }
+    @media (max-width: 480px) { .pc-only { display: none; } }
     .cta {
       display: inline-block;
       background: #e8811f;
@@ -40,6 +43,18 @@
     <p>このページは検出ロジックの自己検査用です。下までスクロールすると申込ボタンが現れます。</p>
   </div>
   <div class="filler"></div>
+  <!--
+    実サイトの再現 (2)。
+    PC 用と SP 用のボタンを両方 HTML に持ち、使わない方を display: none で
+    隠している。同じ文言・同じ行き先なので、先に見つけた方を採用すると
+    SP では先に置かれている PC 用 (隠れている) を拾ってしまい、
+    「表示されていません」と誤判定する。実際にそれで誤検知した。
+  -->
+  <div class="pc-only" data-testid="cta-pc-only">
+    <a class="cta" href="http://localhost:4174/entry/">
+      ネットで簡単お手続き 今すぐ申込む
+    </a>
+  </div>
   <div class="reveal" data-testid="reveal-block">
     <a class="cta" data-testid="cta-primary" href="http://localhost:4174/entry/">
       ネットで簡単お手続き 今すぐ申込む

@@ -119,11 +119,15 @@ test.describe('申込導線の観測 @agency @cta', () => {
         });
       }
 
-      // フォーム方式の場合は送信ボタンを押す (リンクではないため直接開けない)
-      const locator =
+      // 押す相手も「表示されている方」を選ぶ。
+      //   PC 用と SP 用のボタンが両方 HTML にあるため、:visible を付けないと
+      //   隠れている方を押して「反応しません」と誤検知する。
+      const selector =
         target.kind === 'form'
-          ? page.locator(`form[action="${target.url}"] :is(button, input[type="submit"])`).first()
-          : page.locator(`a[href="${target.url}"]`).first();
+          ? `form[action="${target.url}"] :is(button, input[type="submit"])`
+          : `a[href="${target.url}"]`;
+      const visibleLocator = page.locator(`${selector} >> visible=true`).first();
+      const locator = (await visibleLocator.count()) > 0 ? visibleLocator : page.locator(selector).first();
       let clicked = false;
       if (!hiddenOnly && (await locator.count()) > 0) {
         await locator.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => undefined);
