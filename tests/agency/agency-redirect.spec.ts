@@ -148,8 +148,17 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
   //   検査する (他の代理店が専用 LP へ誤って飛ばされないため)。
   // ------------------------------------------------------------------
   for (const spec of specs) {
-    const revisit = spec.revisitRedirect ?? null;
-    const fromPath = revisit?.fromPath ?? config.agencies.noCodeExpectation.entryPath;
+    // 再訪時の期待値。
+    //   明示設定 (revisitRedirect) があればそれを使う。
+    //   無い場合は「その代理店の行き先」を期待する:
+    //     リダイレクトする代理店 (カカクコム) は、コードを覚えた状態で
+    //     通常 LP を開いても専用 LP に行くのが仕様。
+    //     リダイレクトしない代理店は、通常 LP に留まるのが仕様。
+    const noCodeEntry = config.agencies.noCodeExpectation.entryPath;
+    const revisit =
+      spec.revisitRedirect ??
+      (spec.redirected ? { fromPath: noCodeEntry, toPath: spec.expectedFinalPath } : null);
+    const fromPath = revisit?.fromPath ?? noCodeEntry;
     const toPath = revisit?.toPath ?? fromPath;
     const title = revisit
       ? `${spec.code}: コード保持後に ${fromPath} を開くと ${toPath} へ遷移する`

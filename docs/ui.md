@@ -45,6 +45,20 @@ QA_AGENCY_PER_PROFILE=3 npm run test:staging   # 標準
 QA_AGENCY_SCOPE=all npm run test:staging        # 全件
 ```
 
+### 実サイトの検査ではツールの自己検査を回さない
+
+`test:staging` / `test:production` は次を除外している。
+
+| 除外 | 理由 |
+|---|---|
+| `@selfcheck` | ツール自身の検査。同梱モックと純粋な計算しか見ないため、実サイトの実行では無意味 |
+| `@discover` | 仕様調査。必要なときに「仕様調査」ボタンから実行する |
+| `@visual` | 実サイトの基準画像が無いため比較できない |
+
+以前は実サイト実行でも自己検査 (188 件) が動いており、
+4 社の検査で 340 件という内訳が読めない状態だった。
+自己検査は `npm run test:local` / `npm run test:selfcheck` で回す。
+
 ### 「対応が必要なこと」の出し方
 
 - 既定は **Critical / High のみ**表示 (チェックで Medium / Low も出せる)。

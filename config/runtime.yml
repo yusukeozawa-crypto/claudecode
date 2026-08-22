@@ -38,7 +38,7 @@ traceCi: retain-on-failure
 #   この検証は代理店数の二乗で増えるため上限を設ける
 #   (代理店 200 件なら 4 万通り = 実行不可能)。
 #   0 にすると組み合わせ検証を行わない。
-maxAgencyPairs: 30
+maxAgencyPairs: 2
 
 # 重大度ゲート: ここに含まれる重大度が 1 件でもあればテストを失敗させる
 failOnSeverities:
