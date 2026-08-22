@@ -39,6 +39,9 @@ function readMaster() {
   const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '' && !line.startsWith('#'));
   if (lines.length === 0) throw new Error(`${MASTER_PATH} にデータがありません`);
   const header = lines[0].split('\t').map((cell) => cell.trim());
+  // handling (スプレッドシートの E 列「扱い」) は任意。
+  // 「ダイレクト扱い」の代理店は自社コードと同じ挙動になるため、
+  // 代理店名が出ないのが正しい。列が無い場合は空として扱う。
   const required = ['code', 'company', 'mirayaku'];
   for (const key of required) {
     if (!header.includes(key)) throw new Error(`${MASTER_PATH}: 列 ${key} がありません`);
@@ -72,6 +75,8 @@ function resolveAssignment(row, assign) {
     // 支店コード (末尾が brNN) のように前方一致では書けない条件を扱う
     if (match.codeMatches !== undefined && !new RegExp(match.codeMatches).test(row.code)) continue;
     if (match.mirayaku !== undefined && match.mirayaku !== row.mirayaku) continue;
+    // スプレッドシートの「扱い」列 (ダイレクト扱い など)
+    if (match.handling !== undefined && match.handling !== (row.handling ?? '')) continue;
     if (match.companyContains !== undefined && !row.company.includes(match.companyContains)) continue;
     if (rule.exclude) return { exclude: true, reason: rule.reason ?? '割り当てルールで除外' };
     if (!rule.profile) throw new Error(`config/agency-profiles.yml: assign に profile も exclude もありません (${row.code})`);
