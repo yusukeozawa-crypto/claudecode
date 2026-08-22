@@ -188,6 +188,32 @@ function notesOrEmpty() {
   }
 }
 
+/**
+ * 画面に渡す要約。
+ *
+ * レポートの summary には代理店 211 社の一覧 (agencyMeta) と
+ * チェックリストが入っており、そのまま送ると 1 回で 90KB を超える。
+ * 画面はこれを数秒ごとに取りに来るため、通信が詰まって
+ * 「画面とつながっていません」と出ることがある。
+ *
+ * 画面が実際に使う項目だけに絞る。
+ * 会社名と みらやく掲載可否はチェックリストの各行が持っているので、
+ * 一覧を別に送る必要はない。
+ */
+function slimSummary(summary) {
+  if (!summary) return null;
+  return {
+    generatedAt: summary.generatedAt,
+    startedAt: summary.startedAt,
+    environment: summary.environment,
+    environmentLabel: summary.environmentLabel,
+    baseUrl: summary.baseUrl,
+    tests: summary.tests,
+    findings: summary.findings,
+    gateFailed: summary.gateFailed,
+  };
+}
+
 export function checklistOf(report) {
   const checklist = report?.summary?.checklist;
   if (!checklist || !Array.isArray(checklist.columns) || !Array.isArray(checklist.tables)) {
@@ -249,13 +275,11 @@ function state() {
     running: Boolean(current),
     runningLabel: current?.label ?? null,
     progress: readJson(PROGRESS_PATH),
-    summary: report?.summary ?? null,
+    summary: slimSummary(report?.summary),
     checklist: checklistOf(report),
     // 保留事項 / 後日確認 / 後日仕様変更。
     // 設定ファイルから直接作るので、検査を 1 回も実行していなくても出る
     notes: notesOrEmpty(),
-    // 代理店コード → 会社名 / みらやく掲載可否 (コードだけでは判断できない)
-    agencyMeta: report?.summary?.agencyMeta ?? {},
     findings: report ? findingGroups(report.records ?? []) : [],
     log: logLines.slice(-40),
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),

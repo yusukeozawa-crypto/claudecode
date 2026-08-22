@@ -234,6 +234,22 @@ await check('検知結果を同じ内容でまとめられる', () => {
   assert.deepEqual(groups[0].agencies, ['A001'], 'どの代理店で出たか分かること');
 });
 
+await check('画面に渡すデータを小さく保つ (通信が詰まらないように)', async () => {
+  // レポートには代理店 211 社の一覧が入っており、そのまま送ると 1 回で
+  // 90KB を超える。画面は数秒ごとに取りに来るため、通信が詰まって
+  // 「画面とつながっていません」と出る。実際にそうなった。
+  const response = await fetch(`${base}/api/state`);
+  const text = await response.text();
+  const body = JSON.parse(text);
+  assert.equal(body.agencyMeta, undefined, '代理店 211 社の一覧を送らないこと');
+  assert.equal(body.summary?.agencyMeta, undefined, '要約の中にも入れないこと');
+  assert.equal(body.summary?.checklist, undefined, 'チェックリストを二重に送らないこと');
+  assert.ok(
+    text.length < 300 * 1024,
+    `1 回のデータを 300KB 未満に保つこと (実際: ${Math.round(text.length / 1024)}KB)`,
+  );
+});
+
 await check('チェックリストの表が画面にある', async () => {
   const { body } = await json('/api/state');
   assert.equal(typeof body.checklist, 'object', 'チェックリストが返ること');
