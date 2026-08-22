@@ -31,8 +31,10 @@ const UI_PATH = path.join(root, 'scripts', 'ui', 'index.html');
 const PORT = Number(process.env.QA_UI_PORT ?? 4180);
 
 /** 実行できる検査。npm script 名は固定リストからしか選べない (任意のコマンドは実行させない) */
+//   練習用サイト (ローカルモック) は画面には出さない。
+//   ツール自身の動作確認用で、対象サイトの品質とは関係がないため。
+//   必要なときは黒い画面で npm run test:local を実行する。
 const TARGETS = {
-  local: { label: '練習用サイト', script: 'test:local', note: '対象サイト不要。ツールの動作確認用' },
   staging: { label: 'ステージング', script: 'test:staging', note: '.env の STAGING_BASE_URL を検査する' },
   production: { label: '本番', script: 'test:production', note: '読み取りのみ。申込完了やデータ送信は行わない' },
 };
@@ -105,7 +107,7 @@ function envStatus() {
     const value = match ? match[1].trim() : '';
     return value === '' ? null : value;
   };
-  const status = { local: { configured: true } };
+  const status = {};
   for (const [target, keys] of Object.entries(ENV_KEYS)) {
     const base = read(keys.base);
     status[target] = {

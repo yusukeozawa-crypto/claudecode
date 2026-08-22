@@ -67,7 +67,13 @@ await check('状態を取得できる', async () => {
   const { status, body } = await json('/api/state');
   assert.equal(status, 200);
   assert.equal(typeof body.running, 'boolean');
-  assert.ok(Array.isArray(body.targets) && body.targets.length === 3, '検査対象が 3 つ返ること');
+  // 練習用サイト (ローカルモック) は画面に出さない (ツール自身の動作確認用)
+  assert.ok(Array.isArray(body.targets) && body.targets.length === 2, '検査対象が 2 つ返ること');
+  assert.deepEqual(
+    body.targets.map((target) => target.key),
+    ['staging', 'production'],
+    '画面から実行できるのはステージングと本番だけであること',
+  );
   assert.ok(body.env && body.env.staging, '環境の設定状況が返ること');
 });
 
@@ -91,7 +97,7 @@ await check('固定リスト以外の操作は実行しない', async () => {
 await check('不明な件数の指定は実行しない', async () => {
   for (const size of ['huge', '1; rm -rf /', '']) {
     const { status, body } = await json(
-      `/api/run?kind=test&key=local&size=${encodeURIComponent(size)}`,
+      `/api/run?kind=test&key=staging&size=${encodeURIComponent(size)}`,
       { method: 'POST' },
     );
     assert.equal(status, 409, `${size || '(空)'} は拒否されること`);

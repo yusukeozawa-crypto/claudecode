@@ -6,132 +6,223 @@
 <title>公開後QA</title>
 <style>
   :root {
-    --critical: #b3261e; --high: #d97706; --medium: #2563eb; --low: #6b7280;
-    --bg: #f4f6f8; --panel: #fff; --border: #dde2e8; --text: #1f2328; --accent: #12243a;
+    --critical: #b3261e; --high: #b45309; --medium: #1d4ed8; --low: #6b7280;
+    --bg: #f6f7f9; --panel: #fff; --border: #e5e8ec; --line: #eef0f3;
+    --text: #14181d; --sub: #5b6672; --faint: #8a949f; --accent: #12243a;
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 8px rgba(16, 24, 40, 0.05);
+    --shadow-lift: 0 2px 4px rgba(16, 24, 40, 0.06), 0 8px 20px rgba(16, 24, 40, 0.09);
+    --radius: 14px;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; background: var(--bg); color: var(--text); }
-  header { background: var(--accent); color: #fff; padding: 16px 24px; display: flex; align-items: baseline; gap: 16px; }
-  header h1 { margin: 0; font-size: 18px; }
-  header .env { font-size: 13px; color: #9fb3c8; }
-  main { padding: 20px 24px 60px; }
-  /* 読み物 (文章が長いもの) は広すぎると読みにくいので幅を抑える。
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- ヘッダー (画面の帯。スクロールしても残す) ---- */
+  header {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--accent); color: #fff; padding: 14px 32px;
+    display: flex; align-items: baseline; gap: 18px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 12px rgba(0, 0, 0, 0.18);
+  }
+  header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
+  header .env { font-size: 12px; color: #a8bdd4; }
+
+  main { padding: 32px 32px 80px; }
+  /* 文章が長いものは広すぎると読みにくいので幅を抑える。
      チェックリストは列が多いので画面幅を使い切る。 */
-  #findings-section, #notes-section, #settings-section, #report-section, #history-section { max-width: 1100px; }
-  section { margin-bottom: 28px; }
-  h2 { font-size: 15px; margin: 0 0 10px; color: #44505c; }
-  .targets { display: flex; gap: 12px; flex-wrap: wrap; }
+  #findings-section, #notes-section, #settings-section, #report-section, #history-section { max-width: 1120px; }
+  section { margin-bottom: 40px; }
+  section:last-child { margin-bottom: 0; }
+  h2 {
+    font-size: 13px; font-weight: 700; margin: 0 0 14px; color: var(--sub);
+    letter-spacing: 0.06em; text-transform: none;
+  }
+  h2 .muted { letter-spacing: 0; }
+
+  /* ---- カード ---- */
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto;
+  }
+
+  /* ---- 判定 (この画面でいちばん大きく出すもの) ---- */
+  .verdict {
+    border-radius: var(--radius); padding: 26px 30px; margin-bottom: 14px;
+    background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow);
+    border-left: 5px solid var(--border);
+  }
+  .verdict .big { font-size: 32px; font-weight: 700; display: block; letter-spacing: -0.01em; line-height: 1.3; }
+  .verdict .sub { font-size: 13px; margin-top: 8px; display: block; color: var(--sub); }
+  .verdict.pass { border-left-color: #1c8a4d; }
+  .verdict.pass .big { color: #14683a; }
+  .verdict.warn { border-left-color: #d99a00; }
+  .verdict.warn .big { color: #8a5a00; }
+  .verdict.fail { border-left-color: var(--critical); }
+  .verdict.fail .big { color: var(--critical); }
+  .verdict.running { border-left-color: #2563eb; }
+  .verdict.running .big { color: #14406e; }
+  .bar { height: 6px; background: #e8ecf1; border-radius: 999px; overflow: hidden; margin-top: 18px; }
+  .bar > span { display: block; height: 100%; background: #2563eb; border-radius: 999px; transition: width 0.3s; }
+  .groups { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; font-size: 12px; }
+  .groups span {
+    background: #f6f7f9; border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px 11px; color: var(--sub);
+  }
+  .groups span.done { background: #eaf6ee; border-color: #c3e3ce; color: #14683a; }
+
+  /* ---- 実行ボタン (対象サイト) ---- */
+  .targets { display: flex; gap: 16px; flex-wrap: wrap; }
   button.target {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-    padding: 16px 20px; min-width: 220px; text-align: left; cursor: pointer; font: inherit;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 20px 24px; min-width: 260px; text-align: left;
+    cursor: pointer; font: inherit; color: inherit;
+    transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
   }
-  button.target:hover:not(:disabled) { border-color: #9db4cc; }
-  button.target:disabled { opacity: 0.5; cursor: not-allowed; }
-  button.target .name { font-size: 16px; font-weight: 700; display: block; }
-  button.target .note { font-size: 12px; color: #6b7280; display: block; margin-top: 4px; }
-  button.target .last { font-size: 12px; margin-top: 8px; display: block; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  button.target:hover:not(:disabled) { box-shadow: var(--shadow-lift); transform: translateY(-1px); border-color: #c9d3de; }
+  button.target:active:not(:disabled) { transform: none; }
+  button.target:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+  button.target .name { font-size: 17px; font-weight: 700; display: block; }
+  button.target .note { font-size: 12px; color: var(--sub); display: block; margin-top: 6px; line-height: 1.6; }
+  button.target .last { font-size: 12px; margin-top: 12px; display: block; color: var(--faint); }
+
+  /* ---- 小さいボタン ---- */
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
   button.small {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
-    padding: 8px 14px; cursor: pointer; font: inherit; font-size: 13px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 16px; cursor: pointer; font: inherit; font-size: 13px; color: var(--sub);
+    box-shadow: 0 1px 1px rgba(16, 24, 40, 0.03); transition: border-color 0.15s, color 0.15s;
   }
-  button.small:hover:not(:disabled) { border-color: #9db4cc; }
+  button.small:hover:not(:disabled) { border-color: #c9d3de; color: var(--text); }
   button.small:disabled { opacity: 0.5; cursor: not-allowed; }
-  button.stop { border-color: #f3b7b2; color: var(--critical); }
-  .verdict { border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
-  .verdict .big { font-size: 28px; font-weight: 700; display: block; }
-  .verdict .sub { font-size: 13px; margin-top: 6px; display: block; opacity: 0.9; }
-  .verdict.pass { background: #e9f7ef; border: 1px solid #b7e0c4; color: #14683a; }
-  .verdict.warn { background: #fff8e6; border: 1px solid #f0d79a; color: #8a5a00; }
-  .verdict.fail { background: #fdecea; border: 1px solid #f3b7b2; color: var(--critical); }
-  .verdict.running { background: #eef4fb; border: 1px solid #bcd3ec; color: #14406e; }
-  .bar { height: 10px; background: #dbe6f2; border-radius: 999px; overflow: hidden; margin-top: 12px; }
-  .bar > span { display: block; height: 100%; background: #2563eb; transition: width 0.3s; }
-  .groups { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: 12px; }
-  .groups span { background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
-  .groups span.done { border-color: #b7e0c4; color: #14683a; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+  button.stop { border-color: #f0c2bd; color: var(--critical); }
+  button.stop:hover:not(:disabled) { border-color: var(--critical); color: var(--critical); }
+
+  /* ---- 表 ---- */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; white-space: nowrap; }
-  th { background: #f0f2f5; }
+  th, td { border-bottom: 1px solid var(--line); padding: 11px 14px; text-align: left; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  th {
+    background: #fafbfc; color: var(--sub); font-size: 12px; font-weight: 700;
+    position: sticky; top: 44px; z-index: 5;
+    box-shadow: inset 0 -1px 0 var(--border);
+  }
   td.center { text-align: center; }
-  .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
   .ok { color: #14683a; font-weight: 700; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; color: #fff; font-size: 11px; font-weight: 700; }
+  .badge {
+    display: inline-block; padding: 2px 9px; border-radius: 999px; color: #fff;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  }
   .badge.critical { background: var(--critical); } .badge.high { background: var(--high); }
   .badge.medium { background: var(--medium); } .badge.low { background: var(--low); }
-  .muted { color: #6b7280; font-size: 12px; }
-  details.log { margin-top: 12px; }
-  details.log summary { cursor: pointer; font-size: 13px; color: #44505c; }
+  .muted { color: var(--faint); font-size: 12px; font-weight: 400; }
+  p.muted { line-height: 1.7; margin: 10px 0 0; }
+
+  /* ---- 実行ログ ---- */
+  details.log { margin-top: 16px; }
+  details.log summary { cursor: pointer; font-size: 13px; color: var(--sub); }
+  details.log summary:hover { color: var(--text); }
   pre.log {
-    background: #1f2328; color: #e6e6e6; padding: 12px; border-radius: 8px; overflow: auto;
-    max-height: 260px; font-size: 12px; line-height: 1.5; margin: 8px 0 0;
+    background: #14181d; color: #dfe3e8; padding: 16px 18px; border-radius: 10px; overflow: auto;
+    max-height: 280px; font-size: 12px; line-height: 1.6; margin: 10px 0 0;
   }
-  iframe.report { width: 100%; height: 70vh; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
-  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .filters { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; }
+
+  .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .filters { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; font-size: 13px; color: var(--sub); }
+
+  /* ---- 検知 1 件 ---- */
   .finding {
     background: var(--panel); border: 1px solid var(--border); border-left-width: 4px;
-    border-radius: 8px; padding: 12px 16px; margin-bottom: 10px;
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; box-shadow: var(--shadow);
   }
   .finding.critical { border-left-color: var(--critical); }
   .finding.high { border-left-color: var(--high); }
   .finding.medium { border-left-color: var(--medium); }
   .finding.low { border-left-color: var(--low); }
-  .finding .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-  .finding .name { font-weight: 700; }
-  .finding dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: 13px; }
-  .finding dt { color: #6b7280; }
+  .finding .head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .finding .name { font-weight: 700; font-size: 14px; }
+  .finding dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 10px 0 0; font-size: 13px; }
+  .finding dt { color: var(--faint); }
   .finding dd { margin: 0; word-break: break-word; }
   .finding dd.expected { color: #14683a; }
   .finding dd.actual { color: var(--critical); }
-  .finding dd.where { color: #44505c; }
+  .finding dd.where { color: var(--sub); }
   .finding a { color: #1a56a8; font-size: 12px; word-break: break-all; }
-  .empty { padding: 16px; color: #14683a; font-weight: 700; }
+  .empty { padding: 22px; color: #14683a; font-weight: 700; }
+
+  /* ---- 設定 ---- */
   #settings-details > summary { cursor: pointer; }
-  .settings-title { font-size: 15px; font-weight: 700; color: #44505c; }
-  .notice {
-    background: #fff8e6; border: 1px solid #f0d79a; color: #8a5a00;
-    border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; line-height: 1.7;
+  .settings-title { font-size: 13px; font-weight: 700; color: var(--sub); letter-spacing: 0.06em; }
+  select, input {
+    font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border);
+    border-radius: 8px; background: #fff; color: var(--text);
   }
-  .notice code { background: #fdf1d5; padding: 1px 5px; border-radius: 4px; }
-  /* 列が多いので、1 画面に収まるよう余白を詰める (横スクロールを避ける) */
-  table.checklist { margin-bottom: 6px; }
-  table.checklist th { font-size: 12px; vertical-align: bottom; padding: 8px 6px; }
-  table.checklist td { padding: 8px 6px; text-align: center; white-space: nowrap; }
-  table.checklist td.pattern { text-align: left; font-weight: 700; }
-  table.checklist td.pattern .since { display: block; font-weight: 400; color: #6b7280; font-size: 11px; }
-  table.checklist td.company { white-space: normal; min-width: 150px; text-align: left; }
+  select:focus, input:focus { outline: 2px solid #bcd3ec; outline-offset: -1px; border-color: #9db4cc; }
+  label { color: var(--sub); font-size: 13px; }
+
+  .notice {
+    background: #fffaf0; border: 1px solid #f0dcb0; color: #8a5a00;
+    border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px; font-size: 13px; line-height: 1.8;
+  }
+  .notice code { background: #fdf1d5; padding: 1px 6px; border-radius: 4px; }
+
+  /* ---- チェックリスト ---- */
+  /*  列が多いので、1 画面に収まるよう余白を詰める (横スクロールを避ける) */
+  table.checklist { margin-bottom: 0; }
+  table.checklist th { font-size: 11px; vertical-align: bottom; padding: 10px 8px; line-height: 1.4; }
+  table.checklist td { padding: 10px 8px; text-align: center; white-space: nowrap; vertical-align: middle; }
+  table.checklist tbody tr:hover td { background: #fafbfc; }
+  table.checklist td.pattern { text-align: left; font-weight: 700; white-space: normal; max-width: 120px; }
+  table.checklist td.pattern .since { display: block; font-weight: 400; color: var(--faint); font-size: 11px; }
+  table.checklist td.company { white-space: normal; text-align: left; max-width: 170px; color: var(--sub); }
   table.checklist td.mirayaku { font-weight: 700; font-size: 15px; }
-  table.checklist td.check-none { color: #c7ccd2; }
-  table.checklist td.check-info { color: #44505c; }
-  table.checklist td.check-ng { background: #fdecea; color: #9c2f24; font-weight: 700; }
+  table.checklist td.check-none { color: #ccd2d9; }
+  table.checklist td.check-info { color: var(--sub); }
+  table.checklist td.check-ng { background: #fdeeec; color: #9c2f24; font-weight: 700; }
+  table.checklist tbody tr:hover td.check-ng { background: #fbe4e1; }
   table.checklist td.check-ng .want { display: block; font-size: 11px; font-weight: 400; }
   /* 何を見て判断したのかを小さく併記する (検査が動いていることが分かるように) */
-  table.checklist td .seen { display: block; font-size: 10px; color: #6b7280; font-weight: 400; max-width: 150px; white-space: normal; margin: 2px auto 0; }
-  /* 会社名とパターン名は折り返してよい。検査項目の列に幅を回す */
-  table.checklist td.pattern { white-space: normal; max-width: 120px; }
-  table.checklist td.company { max-width: 170px; min-width: 0; }
+  table.checklist td .seen {
+    display: block; font-size: 10px; color: var(--faint); font-weight: 400;
+    max-width: 150px; white-space: normal; margin: 3px auto 0; line-height: 1.45;
+  }
   table.checklist td.check-ng .seen { color: #9c2f24; }
-  table.checklist tr.row-ng td.code { background: #fdecea; }
-  .device-title { font-size: 14px; font-weight: 700; margin: 14px 0 6px; color: #44505c; }
+  table.checklist tr.row-ng td.code { background: #fdeeec; }
+  .device-title {
+    font-size: 12px; font-weight: 700; margin: 24px 0 8px; color: var(--sub); letter-spacing: 0.06em;
+  }
   .device-title:first-child { margin-top: 0; }
+
+  /* ---- 備考 ---- */
   #notes { list-style: none; margin: 0; padding: 0; }
-  #notes li { border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 13px; line-height: 1.7; }
+  #notes li { border-bottom: 1px solid var(--line); padding: 16px 20px; font-size: 13px; line-height: 1.8; }
   #notes li:last-child { border-bottom: 0; }
   #notes .kind {
     display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
-    border-radius: 4px; padding: 2px 8px; margin-right: 8px; vertical-align: 1px;
+    border-radius: 5px; padding: 2px 9px; margin-right: 10px; vertical-align: 1px;
   }
   #notes .kind-不具合 { background: #b3261e; }
   #notes .kind-仕様変更 { background: #1a56a8; }
   #notes .kind-確認待ち { background: #8a5a00; }
   #notes .kind-保留 { background: #6b7280; }
   #notes .note-title { font-weight: 700; }
-  #notes .note-detail { color: #44505c; margin-top: 4px; }
-  #notes .note-due { color: #6b7280; font-size: 12px; margin-top: 2px; }
-  #notes li.due-reached { background: #fff8e6; }
+  #notes .note-detail { color: var(--sub); margin-top: 6px; }
+  #notes .note-due { color: var(--faint); font-size: 12px; margin-top: 4px; }
+  #notes li.due-reached { background: #fffaf0; }
   #notes li.due-reached .note-due { color: #8a5a00; font-weight: 700; }
+
+  /* ---- 狭い画面 ---- */
+  @media (max-width: 720px) {
+    header { padding: 12px 16px; }
+    main { padding: 20px 16px 60px; }
+    .verdict { padding: 20px; }
+    .verdict .big { font-size: 26px; }
+    button.target { min-width: 0; width: 100%; }
+    th { top: 40px; }
+  }
 </style>
 </head>
 <body>
@@ -154,7 +245,7 @@
     </div>
     <div class="actions">
       <button class="small stop" id="stop" hidden>実行を止める</button>
-      <button class="small" id="open-report" hidden>レポートを別画面で開く</button>
+      <button class="small" id="open-report" hidden>証跡を別画面で開く</button>
     </div>
     <details class="log" id="log-details">
       <summary>実行ログ (うまくいかないときに開く)</summary>
@@ -232,16 +323,14 @@
   </section>
 
   <section id="report-section" hidden>
-    <h2>詳細レポート</h2>
+    <h2>証跡</h2>
     <p class="muted">
-      スクリーンショット・テスト実行一覧・Playwright の詳細はレポート側にあります。
-      画面で判断できないときだけ開いてください。
+      結果はこの画面が唯一の判断材料です。
+      スクリーンショット・テスト実行一覧・通信の記録だけ、別画面に置いています。
     </p>
     <div class="actions">
-      <button class="small" id="open-report-2">レポートを開く</button>
-      <button class="small" id="toggle-report">この画面に表示する</button>
+      <button class="small" id="open-report-2">証跡を別画面で開く</button>
     </div>
-    <iframe class="report" id="report-frame" title="QAレポート" hidden></iframe>
   </section>
 </main>
 <script>
@@ -539,20 +628,15 @@
     }).join('');
   }
 
+  /**
+   * 証跡へのリンク。
+   *
+   * 判定・チェックリスト・備考はこの画面にしか出さない。
+   * 同じ表を 2 か所に出すと、どちらが本物か分からなくなる
+   * (「ダッシュボードが 2 つある」状態になっていた)。
+   */
   function renderReport(state) {
-    var section = document.getElementById('report-section');
-    var frame = document.getElementById('report-frame');
-    if (!state.hasReport || state.running) {
-      section.hidden = true;
-      return;
-    }
-    section.hidden = false;
-    // 埋め込みは既定で隠す (判定と代理店一覧はこの画面に出しているため二重になる)
-    var url = '/reports/qa-report.html?t=' + encodeURIComponent(state.summary ? state.summary.generatedAt : '');
-    if (!frame.hidden && frame.getAttribute('data-src') !== url) {
-      frame.setAttribute('data-src', url);
-      frame.src = url;
-    }
+    document.getElementById('report-section').hidden = !state.hasReport || state.running;
   }
 
   /**
@@ -682,19 +766,6 @@
 
   document.getElementById('open-report-2').addEventListener('click', function () {
     window.open('/reports/qa-report.html', '_blank');
-  });
-  document.getElementById('toggle-report').addEventListener('click', function () {
-    var frame = document.getElementById('report-frame');
-    var button = document.getElementById('toggle-report');
-    if (frame.hidden) {
-      frame.hidden = false;
-      frame.src = '/reports/qa-report.html';
-      frame.setAttribute('data-src', frame.src);
-      button.textContent = '閉じる';
-    } else {
-      frame.hidden = true;
-      button.textContent = 'この画面に表示する';
-    }
   });
 
   document.getElementById('stop').addEventListener('click', function () { post('/api/stop'); });
