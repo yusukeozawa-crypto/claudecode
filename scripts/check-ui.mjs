@@ -277,6 +277,28 @@ await check('設定から分かる備考は自動で出る (書き写さない)'
   assert.equal(past[0].dueReached, true, '期日が来たものを先に出すこと');
 });
 
+await check('npm script に OS で意味が変わる記号を入れない (Windows 対策)', () => {
+  // Windows では npm script が cmd.exe 経由で動く。
+  //   | & < > ^ は cmd がコマンドの区切り・リダイレクトとして解釈するため、
+  //   引用符で囲んでいても検査プロセスが壊れることがある。
+  //
+  // 実際に --grep-invert "@selfcheck|@discover|@visual" が
+  // パイプとして解釈され、検査が EPIPE (broken pipe) で落ちていた。
+  // Linux / macOS では再現しないため、ここで見張る必要がある。
+  const scripts = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).scripts ?? {};
+  const risky = [];
+  for (const [name, command] of Object.entries(scripts)) {
+    const found = [...new Set((command.match(/[|&<>^]/g) ?? []))];
+    if (found.length > 0) risky.push(`${name}: ${found.join(' ')} (${command})`);
+  }
+  assert.deepEqual(
+    risky,
+    [],
+    '正規表現などは npm script ではなく設定ファイル (playwright.config.ts) 側に持たせてください:\n  ' +
+      risky.join('\n  '),
+  );
+});
+
 await check('検知結果が画面の状態に含まれる', async () => {
   const { body } = await json('/api/state');
   assert.ok(Array.isArray(body.findings), '検知結果の一覧が返ること');

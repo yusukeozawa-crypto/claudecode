@@ -202,3 +202,18 @@ QA_UI_PORT=4200 npm run ui
 ```
 
 ブラウザを自動で開かない場合は `QA_UI_NO_OPEN=1` を付ける。
+
+## Windows で検査プロセスが落ちる場合
+
+npm script は Windows では `cmd.exe` 経由で動く。
+`|` `&` `<` `>` `^` は引用符で囲んでいても cmd がコマンドの区切りとして
+解釈することがあり、検査プロセスが `EPIPE (broken pipe)` で落ちる。
+
+実際に `--grep-invert "@selfcheck|@discover|@visual"` がパイプとして
+解釈され、ステージング/本番の検査が毎回落ちていた
+(画面には古い結果が出たままになるため気づきにくい)。
+
+そのため**正規表現などは npm script に書かず、設定ファイル
+(`playwright.config.ts`) 側に持たせる**。
+`npm run selftest:ui` が npm script にこれらの記号が無いことを検査する
+(Linux / macOS では再現しないため、自動で見張る必要がある)。

@@ -29,8 +29,28 @@ const projects = buildProjects(config.devices, {
   chromiumExecutablePath: process.env.QA_CHROMIUM_EXECUTABLE,
 });
 
+/**
+ * 実サイト (ステージング / 本番) で回さないテスト。
+ *
+ *   @selfcheck … ツール自身の検査。同梱モックと純粋な計算しか見ないため
+ *                実サイトの実行では無意味 (件数だけ増えて内訳が読めなくなる)
+ *   @discover  … 仕様調査。必要なときに「仕様調査」ボタンから実行する
+ *   @visual    … 実サイトの基準画像が無いため比較できない
+ *
+ * これを npm script の --grep-invert "@selfcheck|@discover|@visual" で
+ * 渡していたが、Windows では `|` がコマンドのパイプとして解釈され、
+ * 検査プロセスが EPIPE (broken pipe) で落ちていた。
+ * 正規表現をコマンド行に載せないことで OS による解釈の違いをなくす。
+ *
+ * 仕様調査 (QA_DISCOVER=1) のときは @discover を回す必要があるため除外しない。
+ */
+const SKIP_ON_REAL_SITE = /@selfcheck|@discover|@visual/;
+const grepInvert =
+  config.environmentName === 'local' || process.env.QA_DISCOVER === '1' ? undefined : SKIP_ON_REAL_SITE;
+
 export default defineConfig({
   testDir: './tests',
+  ...(grepInvert ? { grepInvert } : {}),
   outputDir: path.join(REPORT_DIR, 'test-results'),
   // 基準画像は screenshots/baseline/<環境>/<project> 配下に保存する。
   // 環境ごとに分けることで、local の基準画像がステージング/本番の比較に使われることを防ぐ。
