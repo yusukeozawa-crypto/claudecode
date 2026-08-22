@@ -173,7 +173,17 @@ export async function enterAsAgency(qa: QaSession, spec: AgencySpec): Promise<bo
   const opened = await qa.goto({ url: target, agencyCode: spec.code });
   if (!opened) return false;
 
-  const ready = await waitForFinalLanding(qa.page, qa.config, spec.redirected ? spec.expectedFinalPath : null);
+  // カカクコムは URL のコードでは専用 LP へ飛ばない。
+  // 1 回目でコードが保存され、2 回目 (再訪) で専用 LP へ飛ぶ。
+  // 表示の検査は専用 LP で行う必要があるため、ここでもう一度開く。
+  if (spec.landsAfterRevisit) {
+    const revisitTo = spec.revisitRedirect?.fromPath ?? spec.entryPath;
+    const reopened = await qa.goto({ url: buildEntryUrl(qa.config, revisitTo, null), agencyCode: spec.code });
+    if (!reopened) return false;
+  }
+
+  const landing = spec.landsAfterRevisit || spec.redirected ? spec.expectedFinalPath : null;
+  const ready = await waitForFinalLanding(qa.page, qa.config, landing);
   if (!ready) qa.add(readyIndicatorFinding(qa.config, qa.page.url()));
   qa.findings.setContext({ url: qa.page.url() });
   return true;

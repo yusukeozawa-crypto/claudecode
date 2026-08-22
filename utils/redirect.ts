@@ -322,6 +322,15 @@ export interface RedirectExpectation {
   redirectMechanism: RedirectMechanism;
   expectedRedirectCount?: number | null;
   expectedRedirectPaths?: string[];
+  /**
+   * チェックリストの「リダイレクト」列に出す結果かどうか。
+   *
+   * 表に出すのは「**クッキーを持った状態で通常 LP を開いたとき**」の結果だけ。
+   * カカクコムは URL のコードでは飛ばず、保存済みのコードで再訪したときに
+   * 専用 LP へ飛ぶ仕様のため、流入時の結果を表に出すと実態と食い違う。
+   * 再訪の検査だけが 'redirect' を渡す。
+   */
+  checkId?: 'redirect';
 }
 
 /** ブラウザで観測した経路と仕様を突き合わせる */
@@ -347,10 +356,15 @@ export function verifyRedirectTrace(
     return findings;
   }
 
+  // 実際に別のページへ移ったか (クエリだけの違いは遷移とみなさない)
+  const redirected = !samePath(trace.entryUrl, trace.finalUrl);
+
   // (5) 最終 URL
   if (!samePath(trace.finalUrl, expectation.expectedFinalPath)) {
     findings.push({
-      checkId: 'redirect',
+      checkId: expectation.checkId,
+      observedValue: redirected ? 'あり' : 'なし',
+      expectedValue: expectation.redirected ? 'あり' : 'なし',
       category: 'agency-redirect',
       severity: 'critical',
       title: `${label}: 最終的な表示 URL が仕様と異なります`,
@@ -362,17 +376,18 @@ export function verifyRedirectTrace(
   }
 
   // (3) リダイレクト有無・回数
-  const actuallyRedirected = !samePath(trace.entryUrl, trace.finalUrl);
-  if (expectation.redirected !== actuallyRedirected) {
+  if (expectation.redirected !== redirected) {
     findings.push({
-      checkId: 'redirect',
+      checkId: expectation.checkId,
+      observedValue: redirected ? 'あり' : 'なし',
+      expectedValue: expectation.redirected ? 'あり' : 'なし',
       category: 'agency-redirect',
       severity: 'critical',
       title: expectation.redirected
         ? `${label}: リダイレクトされるべきですがリダイレクトされていません`
         : `${label}: リダイレクトされないべきですがリダイレクトされました`,
       expected: expectation.redirected ? `${expectation.expectedFinalPath} へリダイレクト` : 'リダイレクトなし',
-      actual: actuallyRedirected
+      actual: redirected
         ? `${new URL(trace.entryUrl).pathname} -> ${new URL(trace.finalUrl).pathname}`
         : 'リダイレクトなし',
       url,
@@ -459,9 +474,11 @@ export function verifyRedirectTrace(
   // 合否どちらでも記録を残す。
   // ダッシュボードの「代理店 × 検査項目」の表で
   // 「検査したうえで問題なし」と「そもそも検査していない」を区別するために必要。
-  if (!findings.some((finding) => finding.checkId === 'redirect')) {
+  if (expectation.checkId && !findings.some((finding) => finding.checkId === 'redirect')) {
     findings.push({
       checkId: 'redirect',
+      observedValue: redirected ? 'あり' : 'なし',
+      expectedValue: expectation.redirected ? 'あり' : 'なし',
       category: 'agency-redirect',
       severity: 'low',
       title: `[確認OK] ${label}: ${expectation.redirected ? 'リダイレクト先が仕様どおり' : 'リダイレクトされない (仕様どおり)'}`,

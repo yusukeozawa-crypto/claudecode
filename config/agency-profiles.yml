@@ -94,8 +94,17 @@ assign:
   #   (期待結果は仕様どおりのままにし、修正日を過ぎたら通常の不具合として報告する)。
   - match: { code: littlefamily01 }
     profile: direct
+  # 支店コード (末尾 brNN) は親コードと同じ挙動になるのが仕様。
+  # ただし 2026-09-03 のリリースまでは反映されないため、
+  # 「9/3 以降の想定」として別パターンに分けて表に出す。
+  - match: { codeMatches: "^littlefamily03br[0-9]+$" }
+    profile: kakakucom-branch
   - match: { codePrefix: littlefamily03 }
     profile: kakakucom
+  - match: { codeMatches: "br[0-9]+$", mirayaku: "○" }
+    profile: mirayaku-visible-branch
+  - match: { codeMatches: "br[0-9]+$", mirayaku: "×" }
+    profile: mirayaku-hidden-branch
   - match: { mirayaku: "○" }
     profile: mirayaku-visible
   - match: { mirayaku: "×" }
@@ -106,6 +115,7 @@ profiles:
   # 自社コード。代理店コードを無効化しオリジナルを表示する
   direct:
     label: 自社コード (オリジナル表示)
+    patternLabel: ダイレクト
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
     redirected: false
@@ -135,22 +145,31 @@ profiles:
   #   そのため流入時 (redirected) と再訪時 (revisitRedirect) を分けて設定する。
   kakakucom:
     label: カカクコム (専用LPへリダイレクト)
-    # 通常 LP に入ると専用 LP へリダイレクトする
+    patternLabel: カカクコム
     entryPath: /lp/service/
+    # 代理店の最終的な表示ページ (専用 LP)
     expectedFinalPath: /lp/service-premium/
-    redirected: true
+    # 流入時 (URL にコードを付けて通常 LP に入ったとき) の着地。
+    #   URL のコードだけでは専用 LP へ飛ばない (実測)。
+    #   飛ぶのは「コードが保存された状態で通常 LP を開いたとき」。
+    entryFinalPath: /lp/service/
+    redirected: false
+    # 保存されたコードで再訪すると専用 LP へ飛ぶ。
+    # 表示の検査は再訪後の専用 LP で行う必要がある。
+    landsAfterRevisit: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
     # [未実測] 遷移方式 (http / js / meta-refresh / spa) が未確認。
     # unknown の間は方式を照合せず、実測値を記録する。
     redirectMechanism: null
     expectedRedirectCount: null
     expectedRedirectPaths:
       - /lp/service-premium/
-    # 専用 LP でも代理店名は出る (実測済み)。
-    # あんしんパックの扱いは専用 LP では未確定のため検査しない
+    # 専用 LP でもヘッダーとフッターに代理店名が出るのが期待。
+    # あんしんパックも専用 LP に記載がある
     agencyName: shown
-    anshinPack: ignore
-    # リダイレクト後は URL からコードが消えるため、
-    # コードが実際に付与されている (サイト側で保持されている) ことを別に確認する
+    anshinPack: present
     codeApplied: true
     visibleSections: []
     hiddenSections: []
@@ -162,6 +181,7 @@ profiles:
   # みらやく掲載可 (○) — みらやくのセクションが表示される
   mirayaku-visible:
     label: みらやく掲載可
+    patternLabel: みらやく○
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
     redirected: false
@@ -184,6 +204,7 @@ profiles:
   # みらやく掲載不可 (×) — みらやくのセクションが表示されない
   mirayaku-hidden:
     label: みらやく掲載不可
+    patternLabel: みらやく×
     entryPath: /lp/service/
     expectedFinalPath: /lp/service/
     redirected: false
@@ -197,6 +218,76 @@ profiles:
     # 違いは「あんしんパック」の記載が LP 内に一切ないこと。
     agencyName: shown
     anshinPack: absent
+    expectedAssets: {}
+    cta: null
+    application: null
+
+  # ---------- 支店コード (末尾 brNN) ----------
+  #   親コードと同じ挙動になるのが仕様。
+  #   2026-09-03 のリリースで反映される予定のため、
+  #   期待結果は親と同じにしたうえで effectiveFrom を持たせる。
+  #   表には「9/3 以降」と出る。それまでの不一致は
+  #   config/known-issues.yml により Low として扱う。
+  kakakucom-branch:
+    label: カカクコム 支店コード (9/3 以降 専用LPへリダイレクト)
+    patternLabel: カカクコム (br)
+    effectiveFrom: "2026-09-03"
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service-premium/
+    entryFinalPath: /lp/service/
+    redirected: false
+    landsAfterRevisit: true
+    revisitRedirect:
+      fromPath: /lp/service/
+      toPath: /lp/service-premium/
+    redirectMechanism: null
+    expectedRedirectCount: null
+    expectedRedirectPaths:
+      - /lp/service-premium/
+    agencyName: shown
+    anshinPack: present
+    codeApplied: true
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+
+  mirayaku-visible-branch:
+    label: みらやく掲載可 支店コード (9/3 以降 親と同じ挙動)
+    patternLabel: みらやく○ (br)
+    effectiveFrom: "2026-09-03"
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    agencyName: shown
+    anshinPack: present
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
+    expectedAssets: {}
+    cta: null
+    application: null
+
+  mirayaku-hidden-branch:
+    label: みらやく掲載不可 支店コード (9/3 以降 親と同じ挙動)
+    patternLabel: みらやく× (br)
+    effectiveFrom: "2026-09-03"
+    entryPath: /lp/service/
+    expectedFinalPath: /lp/service/
+    redirected: false
+    redirectMechanism: none
+    expectedRedirectCount: 0
+    expectedRedirectPaths: []
+    agencyName: shown
+    anshinPack: absent
+    visibleSections: []
+    hiddenSections: []
+    expectedTexts: {}
     expectedAssets: {}
     cta: null
     application: null

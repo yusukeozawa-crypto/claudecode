@@ -96,9 +96,18 @@ function buildAgency(row, profile) {
     recognized: profile.recognized !== false,
     // 再訪時のリダイレクト (保存済みコードによる遷移)。null = 起きない
     revisitRedirect: profile.revisitRedirect ?? null,
+    // 表に出すパターン名 (ダイレクト / カカクコム / みらやく○ など)
+    patternLabel: profile.patternLabel ?? profile.label,
+    // この期待結果が有効になる日 (支店コードの仕様反映日など)。null = 今から有効
+    effectiveFrom: profile.effectiveFrom ? String(profile.effectiveFrom) : null,
     entryPath: profile.entryPath,
     expectedFinalPath: profile.expectedFinalPath,
+    // 流入時 (URL にコードを付けて入ったとき) の着地。
+    // 省略時は expectedFinalPath と同じ
+    entryFinalPath: profile.entryFinalPath ?? profile.expectedFinalPath,
     redirected: Boolean(profile.redirected),
+    // 保存されたコードで再訪したときに最終ページへ着く (流入だけでは着かない)
+    landsAfterRevisit: profile.landsAfterRevisit === true,
     // null (未実測) は unknown として出力する。
     // unknown は「方式を問わず、実測値をレポートに記録する」の意味。
     redirectMechanism: profile.redirectMechanism ?? 'unknown',

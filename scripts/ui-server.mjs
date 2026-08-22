@@ -190,10 +190,10 @@ function notesOrEmpty() {
 
 export function checklistOf(report) {
   const checklist = report?.summary?.checklist;
-  if (!checklist || !Array.isArray(checklist.columns) || !Array.isArray(checklist.rows)) {
-    return { columns: [], rows: [] };
+  if (!checklist || !Array.isArray(checklist.columns) || !Array.isArray(checklist.tables)) {
+    return { columns: [], tables: [], missingPatterns: [] };
   }
-  return checklist;
+  return { missingPatterns: [], ...checklist };
 }
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
 

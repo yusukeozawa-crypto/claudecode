@@ -17,7 +17,7 @@ import { loadConfig, PROJECT_ROOT } from '../utils/config';
 import { agencySeed, agencySpecs } from '../utils/agency';
 import { activeKnownIssues } from '../utils/known-issues';
 import { buildChecklist } from '../utils/checklist';
-import type { Checklist } from '../utils/checklist';
+import type { AgencyMeta, Checklist } from '../utils/checklist';
 import { maskText } from '../utils/secrets';
 import type { Finding, QaConfig, QaRecord, Severity } from '../utils/types';
 
@@ -233,7 +233,7 @@ export default class QaHtmlReporter implements Reporter {
       agencyMeta: describeAgencyMeta(),
       // 代理店 × 検査項目のチェックリスト。
       // ブラウザ画面もこの値をそのまま表示する (同じ計算を 2 か所に持たない)
-      checklist: buildChecklist(this.records, describeAgencyMeta()),
+      checklist: buildChecklist(this.records, describeAgencyMeta(), allPatternLabels()),
       // 判定基準は config/runtime.yml の failOnSeverities に従う。
       // ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
       failOnSeverities: this.failOnSeverities,
@@ -389,7 +389,7 @@ interface ReportSummary {
   tests: { total: number; passed: number; failed: number; skipped: number };
   /** 代理店の抽選シードと対象件数 (同じ組み合わせを再現するために記録する) */
   agencySampling: { seed: string; scope: string; selected: number; total: number } | null;
-  agencyMeta: Record<string, { company: string; mirayaku: string; agency?: boolean }>;
+  agencyMeta: Record<string, AgencyMeta>;
   /** 代理店 × 検査項目のチェックリスト */
   checklist?: Checklist;
   findings: Record<Severity, number>;
@@ -422,8 +422,8 @@ function describeKnownIssues(): string[] {
  * 代理店コード → 会社名 / みらいの約束 (みらやく) 掲載可否。
  * レポートと画面の一覧表に出すため。無効コードは「検査用」と示す。
  */
-function describeAgencyMeta(): Record<string, { company: string; mirayaku: string; agency?: boolean }> {
-  const meta: Record<string, { company: string; mirayaku: string; agency?: boolean }> = {};
+function describeAgencyMeta(): Record<string, AgencyMeta> {
+  const meta: Record<string, AgencyMeta> = {};
   try {
     const config = loadConfig();
     for (const agency of config.agencies.agencies) {
@@ -431,6 +431,10 @@ function describeAgencyMeta(): Record<string, { company: string; mirayaku: strin
         company: agency.company ?? agency.label ?? '',
         mirayaku: agency.mirayaku ?? '',
         agency: true,
+        // 表の 1 列目に出すパターン名 (ダイレクト / カカクコム / みらやく○ など)
+        pattern: agency.patternLabel ?? agency.profile ?? '',
+        // 支店コードのように「先のリリースで反映される」期待結果は日付を添える
+        effectiveFrom: agency.effectiveFrom ?? null,
       };
     }
     for (const invalid of config.agencies.invalidCodes ?? []) {
@@ -441,6 +445,24 @@ function describeAgencyMeta(): Record<string, { company: string; mirayaku: strin
     // 設定が読めない場合は空のまま (表にはコードだけ出る)
   }
   return meta;
+}
+
+/**
+ * 期待結果を用意しているパターン名の一覧。
+ * 今回検査されなかったパターンを表に示すために使う
+ * (「代理店が無い」のか「抽選から漏れた」のかを人が判断できるように)。
+ */
+function allPatternLabels(): string[] {
+  try {
+    const config = loadConfig();
+    const labels = new Set<string>();
+    for (const agency of config.agencies.agencies) {
+      if (agency.patternLabel) labels.add(agency.patternLabel);
+    }
+    return [...labels];
+  } catch {
+    return [];
+  }
 }
 
 function describeAgencySampling(): ReportSummary['agencySampling'] {
@@ -550,50 +572,74 @@ export function buildAgencyRows(records: QaRecord[]): AgencyRow[] {
 }
 
 /**
- * チェックリスト表 (行 = 代理店 / 列 = 検査項目)。
+ * チェックリスト表 (PC / SP それぞれ 1 枚)。
  *
- * 検知結果を何百件も並べても「全部そろっているか」は分からない。
- * ✅ / ❌ / — の 1 枚の表にして 1 画面で見られるようにする。
+ * 行 = 代理店、列 = 検査項目、セル = 「あり」「なし」。
+ * 期待と違うセルは赤くする。
+ * PC と SP を混ぜないのは、端末で挙動が違ったときに
+ * どちらが悪いのか分からなくなるため。
  */
 function renderChecklist(checklist: Checklist): string {
-  if (checklist.rows.length === 0) {
+  if (checklist.tables.length === 0) {
     return '<p class="empty">代理店コードを使った検査はありませんでした。</p>';
   }
 
-  const body = checklist.rows
-    .map((row) => {
-      const cells = checklist.columns
-        .map((column) => {
-          const cell = row.cells[column.key];
-          if (!cell || cell.state === 'none') {
-            return '<td class="check-none" title="この代理店では対象外の項目です">—</td>';
-          }
-          if (cell.state === 'ok') {
-            return `<td class="check-ok" title="${escapeHtml(cell.note)}">✅</td>`;
-          }
-          return (
-            `<td class="check-ng sev-${cell.severity ?? 'critical'}" title="${escapeHtml(cell.note)}">` +
-            `❌ <span class="muted">${cell.count} 件</span></td>`
-          );
-        })
-        .join('');
-      return (
-        `<tr class="${row.failed ? 'agency-ng' : 'agency-ok'}">` +
-        `<th scope="row">${escapeHtml(row.code)}</th>` +
-        `<td class="company">${escapeHtml(row.company || '-')}</td>` +
-        `<td class="mirayaku">${escapeHtml(row.mirayaku || '-')}</td>` +
-        `${cells}</tr>`
-      );
-    })
-    .join('');
+  const renderTable = (table: Checklist['tables'][number]): string => {
+    const body = table.rows
+      .map((row) => {
+        const cells = checklist.columns
+          .map((column) => {
+            const cell = row.cells[column.key];
+            if (!cell || cell.state === 'none') {
+              return '<td class="check-none" title="この代理店では検査していません">—</td>';
+            }
+            if (cell.state === 'info') {
+              // 正解が未確定の項目 (保存先など)。実態だけ出す
+              return `<td class="check-info" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}</td>`;
+            }
+            if (cell.state === 'ok') {
+              return `<td class="check-ok" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}</td>`;
+            }
+            return (
+              `<td class="check-ng" title="${escapeHtml(cell.note)}">${escapeHtml(cell.observed)}` +
+              `<span class="muted">期待: ${escapeHtml(cell.expected ?? '')}</span></td>`
+            );
+          })
+          .join('');
+        const pattern =
+          escapeHtml(row.pattern || '-') +
+          (row.effectiveFrom ? `<span class="muted">${escapeHtml(row.effectiveFrom)} 以降の想定</span>` : '');
+        return (
+          `<tr class="${row.failed ? 'agency-ng' : 'agency-ok'}">` +
+          `<td class="pattern">${pattern}</td>` +
+          `<th scope="row">${escapeHtml(row.code)}</th>` +
+          `<td class="company">${escapeHtml(row.company || '-')}</td>` +
+          `<td class="mirayaku">${escapeHtml(row.mirayaku || '-')}</td>` +
+          `${cells}</tr>`
+        );
+      })
+      .join('');
 
-  return `<table id="checklist">
+    return `<h3>${escapeHtml(table.deviceLabel)}</h3>
+    <table class="checklist">
       <thead><tr>
-        <th>代理店コード</th><th>会社名</th><th>みらやく</th>
+        <th>パターン</th><th>代理店コード</th><th>会社名</th><th>みらやく</th>
         ${checklist.columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('')}
       </tr></thead>
       <tbody>${body}</tbody>
     </table>`;
+  };
+
+  const missing =
+    checklist.missingPatterns.length === 0
+      ? ''
+      : '<p class="muted">今回検査されなかったパターン: ' +
+        checklist.missingPatterns
+          .map((entry) => `${escapeHtml(entry.pattern)} (${escapeHtml(entry.reason)})`)
+          .join(' / ') +
+        '</p>';
+
+  return checklist.tables.map(renderTable).join('') + missing;
 }
 
 function renderAgencyTable(records: QaRecord[], meta: ReportSummary['agencyMeta']): string {
@@ -748,16 +794,19 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
   #agencies td.mirayaku { font-weight: 700; }
   #agencies td.ok { color: #14683a; font-weight: 700; }
   #agencies tr.agency-ng th[scope="row"] { background: #fdecea; }
-  #checklist th[scope="row"] { background: #fafbfc; font-family: ui-monospace, monospace; white-space: nowrap; }
-  #checklist td { text-align: center; white-space: nowrap; font-size: 18px; }
-  #checklist th { font-size: 12px; }
-  #checklist td.company { text-align: left; white-space: normal; min-width: 160px; font-size: 13px; }
-  #checklist th, #checklist td { padding: 8px 6px; }
-  #checklist td.mirayaku { font-weight: 700; font-size: 16px; }
-  #checklist td.check-none { color: #c3c9d0; }
-  #checklist td.check-ng { background: #fdecea; }
-  #checklist td.check-ng .muted { display: block; font-size: 11px; }
-  #checklist tr.agency-ng th[scope="row"] { background: #fdecea; }
+  table.checklist { margin-bottom: 8px; }
+  table.checklist th[scope="row"] { background: #fafbfc; font-family: ui-monospace, monospace; white-space: nowrap; }
+  table.checklist td { text-align: center; white-space: nowrap; }
+  table.checklist th, table.checklist td { padding: 8px 6px; font-size: 13px; }
+  table.checklist td.company { text-align: left; white-space: normal; min-width: 160px; }
+  table.checklist td.pattern { text-align: left; white-space: nowrap; font-weight: 700; }
+  table.checklist td.pattern .muted { display: block; font-weight: 400; }
+  table.checklist td.mirayaku { font-weight: 700; font-size: 15px; }
+  table.checklist td.check-none { color: #c3c9d0; }
+  table.checklist td.check-info { color: #44505c; }
+  table.checklist td.check-ng { background: #fdecea; color: #9c2f24; font-weight: 700; }
+  table.checklist td.check-ng .muted { display: block; font-size: 11px; font-weight: 400; }
+  table.checklist tr.agency-ng th[scope="row"] { background: #fdecea; }
   .title { font-weight: 600; }
   .expected { color: #14683a; } .actual { color: var(--critical); }
   .url { word-break: break-all; max-width: 260px; font-size: 12px; }
@@ -808,11 +857,11 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
     }</span>
   </div>
 
-  <h2>チェックリスト (代理店 × 検査項目)</h2>
+  <h2>チェックリスト (PC / SP 別)</h2>
   <div class="panel">
     ${renderChecklist(summary.checklist ?? buildChecklist(records, summary.agencyMeta ?? {}))}
   </div>
-  <p class="muted">✅ = 検査して仕様どおり / ❌ = 仕様どおりでない / — = この代理店では対象外。検査した代理店コードは実行ごとに抽選されます。</p>
+  <p class="muted">赤いセル = 期待と違う値。— = この代理店では検査していない。「保存先」は正解が未確定のため表示のみ (赤にしません)。検査した代理店コードは実行ごとに抽選されます。</p>
 
   <h2>種別ごとの内訳 (${buildAgencyRows(records).length} コード)</h2>
   <div class="panel">

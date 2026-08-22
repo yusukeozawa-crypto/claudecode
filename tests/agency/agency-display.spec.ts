@@ -20,6 +20,7 @@ import {
   agencyPairs, agencySpecs, clearStoredCode, invalidCodes, readStoredCode, storageLabel,
   verifyAssets, verifyCtaText, verifyFallback, verifyNoOtherAgencyInfo,
   verifySections, verifyStoredCode, verifyTexts, verifyDisplayRules, storageChecksEnabled, expectedStoredCode,
+  observeStorageLocation,
 } from '../../utils/agency';
 import { enterAsAgency, enterPath, enterWithFallback } from '../../utils/agency-entry';
 import { observeCodeInApplication, verifyCodeApplied } from '../../utils/handoff';
@@ -53,6 +54,12 @@ test.describe('代理店ごとの表示 @agency', () => {
       if (spec.codeApplied) {
         const applied = await observeCodeInApplication(page, config, spec.code);
         qa.addAll(verifyCodeApplied(applied, spec.code, label));
+      }
+
+      // 代理店コードの保存先 (Cookie / localStorage) を記録する。
+      // 設定に頼らず値で探すため、キー名が未確認でも分かる。
+      if (spec.recognized !== false) {
+        qa.addAll(await observeStorageLocation(page, spec.code, label));
       }
 
       const stored = await readStoredCode(page, config);

@@ -93,15 +93,20 @@
   }
   .notice code { background: #fdf1d5; padding: 1px 5px; border-radius: 4px; }
   /* 列が多いので、1 画面に収まるよう余白を詰める (横スクロールを避ける) */
-  #checklist th { font-size: 12px; vertical-align: bottom; padding: 8px 6px; }
-  #checklist td.check { padding: 8px 6px; }
-  #checklist td.company { white-space: normal; min-width: 150px; }
-  #checklist td.mirayaku { font-weight: 700; font-size: 16px; }
-  #checklist td.check { text-align: center; font-size: 19px; white-space: nowrap; }
-  #checklist td.check-none { color: #c7ccd2; }
-  #checklist td.check-ng { background: #fdecea; }
-  #checklist td.check-ng .count { display: block; font-size: 11px; color: #9c2f24; }
-  #checklist tr.row-ng td.code { background: #fdecea; }
+  table.checklist { margin-bottom: 6px; }
+  table.checklist th { font-size: 12px; vertical-align: bottom; padding: 8px 6px; }
+  table.checklist td { padding: 8px 6px; text-align: center; white-space: nowrap; }
+  table.checklist td.pattern { text-align: left; font-weight: 700; }
+  table.checklist td.pattern .since { display: block; font-weight: 400; color: #6b7280; font-size: 11px; }
+  table.checklist td.company { white-space: normal; min-width: 150px; text-align: left; }
+  table.checklist td.mirayaku { font-weight: 700; font-size: 15px; }
+  table.checklist td.check-none { color: #c7ccd2; }
+  table.checklist td.check-info { color: #44505c; }
+  table.checklist td.check-ng { background: #fdecea; color: #9c2f24; font-weight: 700; }
+  table.checklist td.check-ng .want { display: block; font-size: 11px; font-weight: 400; }
+  table.checklist tr.row-ng td.code { background: #fdecea; }
+  .device-title { font-size: 14px; font-weight: 700; margin: 14px 0 6px; color: #44505c; }
+  .device-title:first-child { margin-top: 0; }
   #notes { list-style: none; margin: 0; padding: 0; }
   #notes li { border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 13px; line-height: 1.7; }
   #notes li:last-child { border-bottom: 0; }
@@ -171,8 +176,8 @@
 
   <section id="agency-section" hidden>
     <h2>チェックリスト <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
-    <div class="panel"><table id="checklist"></table></div>
-    <p class="muted">✅ = 検査して仕様どおり / ❌ = 仕様どおりでない / — = この代理店では対象外。検査する代理店コードは実行ごとに抽選されます。</p>
+    <div class="panel" id="checklist"></div>
+    <p class="muted">赤いセル = 期待と違う値。— = この代理店では検査していない。「保存先」は正解が未確定のため表示のみ (赤にしません)。検査する代理店コードは実行ごとに抽選されます。</p>
   </section>
 
   <section id="notes-section" hidden>
@@ -350,63 +355,58 @@
 
   function renderAgencies(state) {
     var section = document.getElementById('agency-section');
-    var table = document.getElementById('checklist');
-    var data = state.checklist || { columns: [], rows: [] };
-    if (!data.rows || data.rows.length === 0) {
+    var box = document.getElementById('checklist');
+    var data = state.checklist || { columns: [], tables: [], missingPatterns: [] };
+    var tables = data.tables || [];
+    if (tables.length === 0) {
       section.hidden = true;
       return;
     }
     section.hidden = false;
     // 実行中は前回の結果を出しているので、そう分かるようにする
     document.getElementById('agency-stale').hidden = !state.running;
-    var head = '<thead><tr><th>代理店コード</th><th>会社名</th><th>みらやく</th>' +
+
+    var head = '<thead><tr><th>パターン</th><th>代理店コード</th><th>会社名</th><th>みらやく</th>' +
       data.columns.map(function (column) { return '<th>' + text(column.label) + '</th>'; }).join('') +
       '</tr></thead>';
-    var body = '<tbody>' + data.rows.map(function (row) {
-      var cells = data.columns.map(function (column) {
-        var cell = row.cells[column.key];
-        // 「検知が無い」を ✅ にはしない。検査が動いていないだけの状態を
-        // 「問題なし」と見せてしまうため、対象外は — で区別する
-        if (!cell || cell.state === 'none') {
-          return '<td class="check check-none" title="この代理店では対象外の項目です">—</td>';
-        }
-        if (cell.state === 'ok') {
-          return '<td class="check" title="' + text(cell.note || '') + '">✅</td>';
-        }
-        return '<td class="check check-ng" title="' + text(cell.note || '') + '">❌' +
-          '<span class="count">' + cell.count + ' 件</span></td>';
-      }).join('');
-      return '<tr class="' + (row.failed ? 'row-ng' : '') + '">' +
-        '<td class="code">' + text(row.code) + '</td>' +
-        '<td class="company">' + text(row.company || '-') + '</td>' +
-        '<td class="center mirayaku">' + text(row.mirayaku || '-') + '</td>' +
-        cells + '</tr>';
-    }).join('') + '</tbody>';
-    table.innerHTML = head + body;
-  }
 
-  function renderNotes(state) {
-    var section = document.getElementById('notes-section');
-    var list = document.getElementById('notes');
-    var notes = state.notes || [];
-    if (notes.length === 0) {
-      section.hidden = true;
-      return;
-    }
-    section.hidden = false;
-    var due = notes.filter(function (note) { return note.dueReached; }).length;
-    document.getElementById('notes-note').textContent =
-      due > 0 ? '— ' + due + ' 件は期日が来ています' : '— ' + notes.length + ' 件';
-    list.innerHTML = notes.map(function (note) {
-      return '<li class="' + (note.dueReached ? 'due-reached' : '') + '">' +
-        '<span class="kind kind-' + text(note.kind) + '">' + text(note.kind) + '</span>' +
-        '<span class="note-title">' + text(note.title) + '</span>' +
-        (note.detail ? '<div class="note-detail">' + text(note.detail) + '</div>' : '') +
-        (note.due
-          ? '<div class="note-due">' + (note.dueReached ? '期日が来ています: ' : '確認する日: ') + text(note.due) + '</div>'
-          : '') +
-        '</li>';
+    var html = tables.map(function (table) {
+      var body = '<tbody>' + table.rows.map(function (row) {
+        var cells = data.columns.map(function (column) {
+          var cell = row.cells[column.key];
+          // 「検知が無い」を合格にはしない。検査していない項目は — で区別する
+          if (!cell || cell.state === 'none') {
+            return '<td class="check-none" title="この代理店では検査していません">—</td>';
+          }
+          if (cell.state === 'info') {
+            // 正解が未確定の項目 (保存先など)。実態だけ出す
+            return '<td class="check-info" title="' + text(cell.note || '') + '">' + text(cell.observed) + '</td>';
+          }
+          if (cell.state === 'ok') {
+            return '<td title="' + text(cell.note || '') + '">' + text(cell.observed) + '</td>';
+          }
+          return '<td class="check-ng" title="' + text(cell.note || '') + '">' + text(cell.observed) +
+            '<span class="want">期待: ' + text(cell.expected || '') + '</span></td>';
+        }).join('');
+        var since = row.effectiveFrom ? '<span class="since">' + text(row.effectiveFrom) + ' 以降の想定</span>' : '';
+        return '<tr class="' + (row.failed ? 'row-ng' : '') + '">' +
+          '<td class="pattern">' + text(row.pattern || '-') + since + '</td>' +
+          '<td class="code">' + text(row.code) + '</td>' +
+          '<td class="company">' + text(row.company || '-') + '</td>' +
+          '<td class="mirayaku">' + text(row.mirayaku || '-') + '</td>' +
+          cells + '</tr>';
+      }).join('') + '</tbody>';
+      return '<div class="device-title">' + text(table.deviceLabel) + '</div>' +
+        '<table class="checklist">' + head + body + '</table>';
     }).join('');
+
+    var missing = data.missingPatterns || [];
+    if (missing.length > 0) {
+      html += '<p class="muted">今回検査されなかったパターン: ' + missing.map(function (entry) {
+        return text(entry.pattern) + ' (' + text(entry.reason) + ')';
+      }).join(' / ') + '</p>';
+    }
+    box.innerHTML = html;
   }
 
   function renderHistory(state) {

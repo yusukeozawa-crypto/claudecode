@@ -41,12 +41,15 @@ function entryUrl(path: string, code: string | null): string {
 
 test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
   for (const spec of specs) {
-    test(`${spec.code}: ${spec.entryPath} から ${spec.expectedFinalPath} への遷移 (${describeMechanism(spec.redirectMechanism)})`, async ({
+    test(`${spec.code}: ${spec.entryPath} から ${spec.entryFinalPath ?? spec.expectedFinalPath} への流入 (${describeMechanism(spec.redirectMechanism)})`, async ({
       qa,
       page,
       request,
     }) => {
       const target = entryUrl(spec.entryPath, spec.code);
+      // 流入時の着地。カカクコムは URL のコードでは専用 LP へ飛ばないため、
+      // 最終ページ (expectedFinalPath) とは別に持っている。
+      const entryLanding = spec.entryFinalPath ?? spec.expectedFinalPath;
       qa.findings.setContext({ agencyCode: spec.code, url: target });
 
       // --- (2) HTTP レベルの経路 (ブラウザを介さずに 3xx を 1 ホップずつ追跡) ---
@@ -55,7 +58,7 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
         verifyHttpChain(httpChain, {
           code: spec.code,
           entryPath: spec.entryPath,
-          expectedFinalPath: spec.expectedFinalPath,
+          expectedFinalPath: entryLanding,
           redirected: spec.redirected,
           redirectMechanism: spec.redirectMechanism,
         }),
@@ -71,7 +74,7 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
       // meta refresh 方式では遷移完了を待つ
       if (spec.redirectMechanism === 'meta-refresh' || spec.redirected) {
         await page
-          .waitForURL((url) => url.pathname.replace(/\/$/, '') === spec.expectedFinalPath.replace(/\/$/, ''), {
+          .waitForURL((url) => url.pathname.replace(/\/$/, '') === entryLanding.replace(/\/$/, ''), {
             timeout: 10000,
           })
           .catch(() => undefined);
@@ -94,7 +97,7 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
           {
             code: spec.code,
             entryPath: spec.entryPath,
-            expectedFinalPath: spec.expectedFinalPath,
+            expectedFinalPath: entryLanding,
             redirected: spec.redirected,
             redirectMechanism: spec.redirectMechanism,
             expectedRedirectCount: spec.expectedRedirectCount,
@@ -196,6 +199,10 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
             entryPath: fromPath,
             expectedFinalPath: toPath,
             redirected: Boolean(revisit),
+            // 表に出すのは「クッキーを持った状態で通常 LP を開いたとき」の結果。
+            // カカクコムは URL のコードでは飛ばず、保存済みのコードで
+            // 再訪したときに専用 LP へ飛ぶ仕様のため。
+            checkId: 'redirect',
             // [未実測] 再訪時の遷移方式は確認できていない。
             // unknown の間は方式を照合せず、実測値を記録する。
             redirectMechanism: revisit ? 'unknown' : 'none',

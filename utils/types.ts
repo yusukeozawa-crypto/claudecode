@@ -34,12 +34,21 @@ export type CheckId =
   | 'footer-name'   // フッターの「募集代理店：<会社名>」
   | 'anshin-pack'   // 「あんしんパック」の表示 / 非表示
   | 'code-applied'  // LP 側で代理店コードが付与されている
-  | 'code-carry';   // 申込フォームでのコード保持
+  | 'code-carry'    // 申込フォームでのコード保持
+  | 'storage';      // 代理店コードの保存先 (Cookie / localStorage)
 
 /** 1 件の不具合検知結果 */
 export interface Finding {
   /** どの検査項目の結果か (チェックリスト表示用)。合否どちらでも入る */
   checkId?: CheckId;
+  /**
+   * チェックリストの表に出す値。
+   *   observedValue … 実際にそうだったか ("あり" / "なし" / "Cookie" など)
+   *   expectedValue … そうあるべきだった値。null = 正解が未確定 (赤にしない)
+   * 合否 (severity) だけでは「あり/なし のどちらだったか」が表に出せない。
+   */
+  observedValue?: string;
+  expectedValue?: string | null;
   severity: Severity;
   category: FindingCategory;
   /** 何を検査したか */
@@ -262,6 +271,26 @@ export interface AgencySpec {
    * 省略時は true。
    */
   recognized?: boolean;
+  /** 表に出すパターン名 (ダイレクト / カカクコム / みらやく○ など) */
+  patternLabel?: string;
+  /**
+   * この期待結果が有効になる日 (YYYY-MM-DD)。
+   * 支店コードのように「先のリリースで仕様が反映される」場合に持たせる。
+   * 表にはこの日付を添えて出す (それまでの不一致は既知として扱う)。
+   */
+  effectiveFrom?: string | null;
+  /**
+   * 流入時 (URL にコードを付けて入ったとき) の着地パス。
+   * 省略時は expectedFinalPath と同じ。
+   * カカクコムは URL のコードでは飛ばないため両者が異なる。
+   */
+  entryFinalPath?: string;
+  /**
+   * 保存されたコードで再訪したときに最終ページへ着くか。
+   * true の場合、表示の検査は再訪後のページで行う
+   * (流入しただけでは代理店のページに着かない)。
+   */
+  landsAfterRevisit?: boolean;
   redirectMechanism: RedirectMechanism;
   /**
    * 期待するリダイレクト回数。

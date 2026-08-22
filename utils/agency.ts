@@ -569,6 +569,78 @@ export async function verifyFallback(
 }
 
 /**
+ * 代理店コードの保存先を調べる。
+ *
+ * 設定 (storage.type) に頼らず、Cookie と localStorage / sessionStorage を
+ * **全部見て**、コードの値が入っている場所を探す。
+ * キー名が分からなくても分かるように、値で探す。
+ *
+ * どちらが正解かは未確定なので合否判定はしない (expectedValue: null)。
+ * 表に「Cookie」「LS」「両方」「なし」を出して実態を見えるようにする。
+ */
+export async function observeStorageLocation(
+  page: Page,
+  code: string,
+  label: string,
+): Promise<FindingInput[]> {
+  const cookies = await page.context().cookies().catch(() => []);
+  const cookieHit = cookies.filter((cookie) => cookie.value.includes(code)).map((cookie) => cookie.name);
+
+  const webStorage = await page
+    .evaluate((target: string) => {
+      const hits: { local: string[]; session: string[] } = { local: [], session: [] };
+      const scan = (storage: Storage | null): string[] => {
+        const keys: string[] = [];
+        if (!storage) return keys;
+        try {
+          for (let index = 0; index < storage.length; index += 1) {
+            const key = storage.key(index);
+            if (!key) continue;
+            const value = storage.getItem(key) ?? '';
+            if (key.includes(target) || value.includes(target)) keys.push(key);
+          }
+        } catch {
+          /* storage が使えない場合は空 */
+        }
+        return keys;
+      };
+      hits.local = scan(window.localStorage);
+      hits.session = scan(window.sessionStorage);
+      return hits;
+    }, code)
+    .catch(() => ({ local: [] as string[], session: [] as string[] }));
+
+  const places: string[] = [];
+  if (cookieHit.length > 0) places.push('Cookie');
+  if (webStorage.local.length > 0) places.push('LS');
+  if (webStorage.session.length > 0) places.push('SS');
+
+  const detail = [
+    cookieHit.length > 0 ? `Cookie: ${cookieHit.join(', ')}` : '',
+    webStorage.local.length > 0 ? `localStorage: ${webStorage.local.join(', ')}` : '',
+    webStorage.session.length > 0 ? `sessionStorage: ${webStorage.session.join(', ')}` : '',
+  ]
+    .filter((part) => part !== '')
+    .join(' / ');
+
+  return [
+    {
+      checkId: 'storage',
+      observedValue: places.length === 0 ? 'なし' : places.join('+'),
+      // どこに保存するのが正しいかは未確定。赤にはしない
+      expectedValue: null,
+      category: 'agency-persistence',
+      severity: 'low',
+      title: `[確認OK] ${label}: 代理店コードの保存先`,
+      expected: '保存先を記録する (正解が未確定のため合否は判定しない)',
+      actual: places.length === 0 ? '保存されていません' : detail,
+      url: page.url(),
+      agencyCode: code,
+    },
+  ];
+}
+
+/**
  * 代理店コードによる表示ルールを検査する。
  *
  * このサイトで代理店コードによって変わるのは次の 3 点だけ。
@@ -598,8 +670,12 @@ export async function verifyDisplayRules(
   const company = spec.company ?? '';
   const fill = (template: string): string => template.replaceAll('{company}', company);
 
-  const pass = (checkId: CheckId, title: string, actual: string): FindingInput => ({
+  // observedValue / expectedValue はチェックリストの表に「あり / なし」を
+  // そのまま出すために持たせる。合否だけでは どちらだったか が表に出せない。
+  const pass = (checkId: CheckId, title: string, actual: string, value: 'あり' | 'なし'): FindingInput => ({
     checkId,
+    observedValue: value,
+    expectedValue: value,
     category: 'agency-display',
     severity: 'low',
     title: `[確認OK] ${label}: ${title}`,
@@ -607,8 +683,17 @@ export async function verifyDisplayRules(
     actual,
     url: page.url(),
   });
-  const fail = (checkId: CheckId, title: string, expected: string, actual: string): FindingInput => ({
+  const fail = (
+    checkId: CheckId,
+    title: string,
+    expected: string,
+    actual: string,
+    value: 'あり' | 'なし',
+  ): FindingInput => ({
     checkId,
+    // 期待とは逆の値が見えた、ということ
+    observedValue: value,
+    expectedValue: value === 'あり' ? 'なし' : 'あり',
     category: 'agency-display',
     severity: 'critical',
     title: `${label}: ${title}`,
@@ -623,13 +708,13 @@ export async function verifyDisplayRules(
     const footer = fill(texts.footer);
     findings.push(
       body.includes(header)
-        ? pass('header-name', 'ヘッダーに代理店名が表示されている', `「${header}」を確認`)
-        : fail('header-name', 'ヘッダーに代理店名が表示されていません', `「${header}」が表示されること`, '表示されていません'),
+        ? pass('header-name', 'ヘッダーに代理店名が表示されている', `「${header}」を確認`, 'あり')
+        : fail('header-name', 'ヘッダーに代理店名が表示されていません', `「${header}」が表示されること`, '表示されていません', 'なし'),
     );
     findings.push(
       body.includes(footer)
-        ? pass('footer-name', 'フッターに代理店名が表示されている', `「${footer}」を確認`)
-        : fail('footer-name', 'フッターに代理店名が表示されていません', `「${footer}」が表示されること`, '表示されていません'),
+        ? pass('footer-name', 'フッターに代理店名が表示されている', `「${footer}」を確認`, 'あり')
+        : fail('footer-name', 'フッターに代理店名が表示されていません', `「${footer}」が表示されること`, '表示されていません', 'なし'),
     );
   } else if (spec.agencyName === 'hidden') {
     // 判定はページ全体の表示テキストで行うため、ヘッダーとフッターの
@@ -645,8 +730,9 @@ export async function verifyDisplayRules(
               '代理店名が表示されています',
               `「${forbidden}」が表示されないこと`,
               `「${forbidden}」が表示されています`,
+              'あり',
             )
-          : pass(checkId, '代理店名が表示されない', `「${forbidden}」が無いことを確認`),
+          : pass(checkId, '代理店名が表示されない', `「${forbidden}」が無いことを確認`, 'なし'),
       );
     }
   }
@@ -659,23 +745,25 @@ export async function verifyDisplayRules(
     if (mode === 'present') {
       findings.push(
         found.length > 0
-          ? pass('anshin-pack', '「あんしんパック」の表示がある', `「${found.join('」「')}」を確認`)
+          ? pass('anshin-pack', '「あんしんパック」の表示がある', `「${found.join('」「')}」を確認`, 'あり')
           : fail(
               'anshin-pack',
               '「あんしんパック」の表示がありません',
               `${variants.join(' / ')} のいずれかが表示されること`,
               '表示されていません',
+              'なし',
             ),
       );
     } else {
       findings.push(
         found.length === 0
-          ? pass('anshin-pack', '「あんしんパック」の表示が一切ない', `${variants.join(' / ')} が無いことを確認`)
+          ? pass('anshin-pack', '「あんしんパック」の表示が一切ない', `${variants.join(' / ')} が無いことを確認`, 'なし')
           : fail(
               'anshin-pack',
               '「あんしんパック」が表示されています (みらやく掲載不可)',
               `${variants.join(' / ')} が表示されないこと`,
               `「${found.join('」「')}」が表示されています`,
+              'あり',
             ),
       );
     }

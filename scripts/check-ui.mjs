@@ -168,30 +168,41 @@ await check('チェックリストをレポートから受け取れる', () => {
   // 画面は結果を渡すだけなので、壊れた・古いレポートで落ちないことを確認する。
   const checklist = {
     columns: [{ key: 'redirect', label: 'リダイレクト' }],
-    rows: [
+    tables: [
       {
-        code: 'littlefamily03',
-        company: '株式会社カカクコム・インシュアランス',
-        mirayaku: '○',
-        cells: { redirect: { state: 'ok', severity: null, count: 0, note: '確認' } },
-        failed: false,
-        okCount: 1,
-        checkedCount: 1,
+        deviceId: 'pc',
+        deviceLabel: 'PC',
+        rows: [
+          {
+            code: 'littlefamily03',
+            company: '株式会社カカクコム・インシュアランス',
+            mirayaku: '○',
+            pattern: 'カカクコム',
+            effectiveFrom: null,
+            cells: { redirect: { state: 'ok', observed: 'あり', expected: 'あり', severity: null, note: '' } },
+            failed: false,
+          },
+        ],
       },
     ],
+    missingPatterns: [],
   };
   assert.deepEqual(checklistOf({ summary: { checklist } }), checklist, 'そのまま渡すこと');
   assert.deepEqual(
     checklistOf({ summary: {} }),
-    { columns: [], rows: [] },
+    { columns: [], tables: [], missingPatterns: [] },
     'チェックリストが無いレポートでも壊れないこと',
   );
   assert.deepEqual(
     checklistOf({ summary: { checklist: { columns: 'こわれた' } } }),
-    { columns: [], rows: [] },
+    { columns: [], tables: [], missingPatterns: [] },
     '形が違う場合は空にすること',
   );
-  assert.deepEqual(checklistOf(null), { columns: [], rows: [] }, 'レポートが無くても壊れないこと');
+  assert.deepEqual(
+    checklistOf(null),
+    { columns: [], tables: [], missingPatterns: [] },
+    'レポートが無くても壊れないこと',
+  );
 });
 
 await check('検知結果を同じ内容でまとめられる', () => {
@@ -226,15 +237,16 @@ await check('検知結果を同じ内容でまとめられる', () => {
 await check('チェックリストの表が画面にある', async () => {
   const { body } = await json('/api/state');
   assert.equal(typeof body.checklist, 'object', 'チェックリストが返ること');
-  assert.ok(Array.isArray(body.checklist.rows), '行の一覧が返ること');
+  assert.ok(Array.isArray(body.checklist.tables), 'PC / SP の表が返ること');
   const response = await fetch(base);
   const html = await response.text();
   assert.ok(html.includes('会社名'), '会社名の列を持つこと');
   assert.ok(html.includes('みらやく'), 'みらやくの列を持つこと');
   // 「検知が無い」を ✅ にすると、検査が動いていないだけの状態を
   // 「問題なし」と見せてしまう。対象外は — で区別できる必要がある
-  assert.ok(html.includes("cell.state === 'none'"), '対象外を区別すること');
-  assert.ok(html.includes('✅') && html.includes('❌') && html.includes('—'), '3 つの表示を持つこと');
+  assert.ok(html.includes("cell.state === 'none'"), '検査していない項目を区別すること');
+  assert.ok(html.includes('check-ng'), '期待と違うセルを赤くする指定を持つこと');
+  assert.ok(html.includes('table.deviceLabel'), 'PC / SP を分けて出すこと');
 });
 
 await check('備考が検査の実行前でも出る', async () => {

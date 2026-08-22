@@ -1119,15 +1119,15 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
   });
 
   test('チェックリスト表を組み立てられる (ダッシュボードの本体)', async () => {
-    // 行 = 代理店 / 列 = 検査項目 / セル = ✅ ❌ — の表。
+    // 表 = PC / SP それぞれ 1 枚、行 = 代理店、セル = あり / なし。
     //
-    // ここで最も重要なのは「検知が無いこと」を ✅ にしないこと。
+    // ここで最も重要なのは「検知が無いこと」を合格にしないこと。
     // 検査が動いていないだけの状態を「問題なし」と見せると、
     // 不具合を見逃したまま OK と表示してしまう。
     const record = (
       agencyCode: string,
       deviceId: string,
-      findings: Array<{ checkId: CheckId; severity: Severity; title: string }>,
+      findings: Array<{ checkId: CheckId; observedValue: string; expectedValue: string | null; severity: Severity }>,
     ) => ({
       testId: `t-${agencyCode}-${deviceId}`,
       testTitle: 'self check',
@@ -1145,31 +1145,41 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       findings: findings.map((entry) => ({
         ...entry,
         category: 'agency-display' as FindingCategory,
+        title: 'self check',
         url: 'http://127.0.0.1:4173/lp/',
         agencyCode,
+        deviceId,
       })),
     });
 
     const meta = {
-      A001: { company: '株式会社エーワン保険サービス', mirayaku: '○' },
-      A003: { company: 'シースリー少額短期保険株式会社', mirayaku: '×' },
+      A001: { company: '株式会社エーワン保険サービス', mirayaku: '○', pattern: 'みらやく○', agency: true },
+      A003: {
+        company: 'シースリー少額短期保険株式会社',
+        mirayaku: '×',
+        pattern: 'みらやく× (br)',
+        effectiveFrom: '2026-09-03',
+        agency: true,
+      },
     };
 
     const checklist = buildChecklist(
       [
         record('A001', 'pc', [
-          { checkId: 'header-name', severity: 'low', title: '[確認OK] ヘッダー' },
-          { checkId: 'footer-name', severity: 'low', title: '[確認OK] フッター' },
-          { checkId: 'anshin-pack', severity: 'low', title: '[確認OK] あんしんパック' },
+          { checkId: 'header-name', observedValue: 'あり', expectedValue: 'あり', severity: 'low' },
+          { checkId: 'anshin-pack', observedValue: 'あり', expectedValue: 'あり', severity: 'low' },
+          { checkId: 'storage', observedValue: 'Cookie+LS', expectedValue: null, severity: 'low' },
+        ]),
+        // 同じ代理店でも PC と SP で結果が違うことがある
+        record('A001', 'sp', [
+          { checkId: 'header-name', observedValue: 'なし', expectedValue: 'あり', severity: 'critical' },
         ]),
         record('A003', 'pc', [
-          { checkId: 'header-name', severity: 'low', title: '[確認OK] ヘッダー' },
-          { checkId: 'anshin-pack', severity: 'critical', title: 'あんしんパックが表示されています' },
+          { checkId: 'anshin-pack', observedValue: 'あり', expectedValue: 'なし', severity: 'critical' },
         ]),
-        // PC は通って SP で落ちる場合、その代理店は ❌ として扱う
-        record('A003', 'sp', [{ checkId: 'header-name', severity: 'critical', title: 'ヘッダー欠落' }]),
       ],
       meta,
+      ['みらやく○', 'みらやく× (br)', 'カカクコム'],
     );
 
     expect(
@@ -1178,29 +1188,41 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).toEqual(CHECK_COLUMNS.map((column) => column.key));
 
     expect(
-      checklist.rows.map((row) => row.code),
-      '問題のある代理店を先に出すこと',
-    ).toEqual(['A003', 'A001']);
+      checklist.tables.map((table) => table.deviceId),
+      'PC と SP を別の表にすること (端末で挙動が違ったとき切り分けられるように)',
+    ).toEqual(['pc', 'sp']);
 
-    const a001 = checklist.rows.find((row) => row.code === 'A001');
-    expect(a001?.company, '会社名を出せること').toBe('株式会社エーワン保険サービス');
-    expect(a001?.mirayaku, 'みらやく掲載可否を出せること').toBe('○');
-    expect(a001?.cells['header-name'].state, '確認できた項目は ok').toBe('ok');
-    expect(a001?.cells['anshin-pack'].state, 'あんしんパックも ok').toBe('ok');
-    expect(a001?.failed, '問題が無ければ failed でないこと').toBe(false);
-    // 検査していない項目を ok にしてはならない
-    expect(a001?.cells.redirect.state, '検査していない項目は none (—) にすること').toBe('none');
-    expect(a001?.cells['code-carry'].state, '検査していない項目は none (—) にすること').toBe('none');
-    expect(a001?.checkedCount, '検査した項目数を数えること').toBe(3);
+    const pc = checklist.tables[0];
+    const a001pc = pc.rows.find((row) => row.code === 'A001');
+    expect(a001pc?.pattern, 'パターン名を出せること').toBe('みらやく○');
+    expect(a001pc?.cells['header-name'].state, '期待どおりなら ok').toBe('ok');
+    expect(a001pc?.cells['header-name'].observed, '見えた値をそのまま出すこと').toBe('あり');
+    expect(a001pc?.failed, '問題が無ければ failed でないこと').toBe(false);
+    // 検査していない項目を合格にしてはならない
+    expect(a001pc?.cells.redirect.state, '検査していない項目は none (—)').toBe('none');
+    expect(a001pc?.cells['code-carry'].state, '検査していない項目は none (—)').toBe('none');
+    // 正解が未確定の項目は赤にしない
+    expect(a001pc?.cells.storage.state, '正解が未確定なら info (表示だけ)').toBe('info');
+    expect(a001pc?.cells.storage.observed, '保存先を出せること').toBe('Cookie+LS');
 
-    const a003 = checklist.rows.find((row) => row.code === 'A003');
-    expect(a003?.cells['anshin-pack'].state, '仕様どおりでない項目は ng').toBe('ng');
-    expect(a003?.cells['anshin-pack'].severity, '重大度を残すこと').toBe('critical');
+    // SP だけ落ちている場合、SP の表だけ赤になる
+    const sp = checklist.tables[1];
+    const a001sp = sp.rows.find((row) => row.code === 'A001');
+    expect(a001sp?.cells['header-name'].state, 'SP で期待と違えば ng').toBe('ng');
+    expect(a001sp?.cells['header-name'].observed, '実際の値を出すこと').toBe('なし');
+    expect(a001sp?.cells['header-name'].expected, '期待値も出すこと').toBe('あり');
+    expect(a001sp?.failed, '1 つでも ng なら failed').toBe(true);
+    expect(a001pc?.failed, 'PC 側は影響を受けないこと').toBe(false);
+
+    const a003 = pc.rows.find((row) => row.code === 'A003');
+    expect(a003?.cells['anshin-pack'].state, 'みらやく× で表示があれば ng').toBe('ng');
+    expect(a003?.effectiveFrom, '支店コードは有効になる日を出すこと').toBe('2026-09-03');
+    expect(pc.rows[0]?.code, '問題のある代理店を先に出すこと').toBe('A003');
+
     expect(
-      a003?.cells['header-name'].state,
-      'PC で通っても SP で落ちれば ng にすること',
-    ).toBe('ng');
-    expect(a003?.failed, '1 つでも ng なら failed').toBe(true);
+      checklist.missingPatterns.map((entry) => entry.pattern),
+      '検査されなかったパターンを示すこと (抽選漏れか代理店が無いかを判断できるように)',
+    ).toEqual(['カカクコム']);
   });
 
   test('安全装置による遮断を不具合として報告しない (自作自演の防止)', async ({ page }) => {

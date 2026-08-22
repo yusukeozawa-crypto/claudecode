@@ -1201,6 +1201,8 @@ export function verifyCodeCarried(
   if (observation.foundIn.length === 0) {
     findings.push({
       checkId: 'code-carry',
+      observedValue: 'なし',
+      expectedValue: 'あり',
       category: 'agency-handoff',
       severity: 'critical',
       title: `${label}: 申込フォームに代理店コードが引き継がれていません`,
@@ -1219,6 +1221,8 @@ export function verifyCodeCarried(
   } else {
     findings.push({
       checkId: 'code-carry',
+      observedValue: 'あり',
+      expectedValue: 'あり',
       category: 'agency-handoff',
       severity: 'low',
       title: `[確認OK] ${label}: 申込フォームに代理店コードが引き継がれています`,

@@ -4,16 +4,20 @@
  * このサイトで代理店コードによって変わる仕様は数が限られている。
  * 検知結果を何百件も並べるのではなく、
  *
- *   行 = 代理店 (コード / 会社名 / みらやく掲載可否)
+ *   表 = PC / SP それぞれ 1 枚
+ *   行 = 代理店 (パターン / コード / 会社名 / みらやく掲載可否)
  *   列 = 検査項目
- *   セル = ✅ (確認できた) / ❌ (仕様どおりでない) / — (この代理店では対象外)
+ *   セル = 「あり」「なし」。期待と違えば赤くする
  *
- * の 1 枚の表にして、1 画面で「全部そろっているか」を見られるようにする。
+ * にして、1 画面で「全部そろっているか」を見られるようにする。
  *
- * セルの元になるのは Finding の checkId。
- * 検査は合否どちらの場合も checkId 付きの結果を残すため、
- * 「確認して問題なし (✅)」と「そもそも検査していない (—)」を区別できる。
- * 検知が無いことを ✅ の根拠にすると、検査が動いていないだけの状態を
+ * PC と SP を混ぜないのは、端末で挙動が違ったときに
+ * どちらが悪いのか分からなくなるため。
+ *
+ * セルの元になるのは Finding の checkId / observedValue / expectedValue。
+ * 検査は合否どちらの場合も記録を残すため、
+ * 「確認して仕様どおり」と「そもそも検査していない」を区別できる。
+ * 検知が無いことを合格の根拠にすると、検査が動いていないだけの状態を
  * 「問題なし」と表示してしまう。
  */
 import { SEVERITY_ORDER } from './findings';
@@ -22,22 +26,27 @@ import type { CheckId, QaRecord, Severity } from './types';
 /** チェックリストの列 (代理店コードで変わる仕様のみ) */
 export const CHECK_COLUMNS: Array<{ key: CheckId; label: string }> = [
   { key: 'redirect', label: 'リダイレクト' },
-  { key: 'code-applied', label: '代理店コードの付与' },
   { key: 'header-name', label: 'ヘッダーに代理店名' },
   { key: 'footer-name', label: 'フッターに代理店名' },
   { key: 'anshin-pack', label: 'あんしんパック' },
   { key: 'code-carry', label: '申込フォームでコード保持' },
+  { key: 'storage', label: '保存先' },
 ];
 
 /** セル 1 つの状態 */
 export interface ChecklistCell {
-  /** ok = 確認できた / ng = 仕様どおりでない / none = この代理店では検査対象外 */
-  state: 'ok' | 'ng' | 'none';
+  /**
+   * ok = 期待どおり / ng = 期待と違う / info = 正解が未確定なので判定しない /
+   * none = この代理店では検査していない
+   */
+  state: 'ok' | 'ng' | 'info' | 'none';
+  /** 実際にそうだったか ("あり" / "なし" / "Cookie" など) */
+  observed: string;
+  /** そうあるべきだった値。null = 正解が未確定 */
+  expected: string | null;
   /** ng のときの最も重い重大度 */
   severity: Severity | null;
-  /** 検知件数 (ng のとき) */
-  count: number;
-  /** 何を期待した検査かの説明 (画面のツールチップ用) */
+  /** 補足 (画面のツールチップ用) */
   note: string;
 }
 
@@ -45,25 +54,38 @@ export interface ChecklistRow {
   code: string;
   company: string;
   mirayaku: string;
+  /** パターン名 (ダイレクト / カカクコム / みらやく○ など) */
+  pattern: string;
+  /** この期待結果が有効になる日 (支店コードなど)。null = 今から有効 */
+  effectiveFrom: string | null;
   cells: Record<string, ChecklistCell>;
-  /** 1 つでも ng があるか */
+  /** 1 つでも期待と違うものがあるか */
   failed: boolean;
-  /** ✅ が付いた項目数 / 検査した項目数 */
-  okCount: number;
-  checkedCount: number;
+}
+
+export interface ChecklistTable {
+  /** pc / sp */
+  deviceId: string;
+  deviceLabel: string;
+  rows: ChecklistRow[];
 }
 
 export interface Checklist {
   columns: Array<{ key: string; label: string }>;
-  rows: ChecklistRow[];
+  tables: ChecklistTable[];
+  /**
+   * 期待結果を用意しているのに、今回 1 件も検査対象にならなかったパターン。
+   * 「代理店が存在しない」のか「抽選から漏れた」のかを人が判断できるように出す。
+   */
+  missingPatterns: Array<{ pattern: string; reason: string }>;
 }
 
-/** 合格として記録された結果か (検査が動いて問題が無かった) */
-function isPass(severity: Severity, title: string): boolean {
-  // 合格の記録は Low + 「[確認OK]」で残す。
-  // Low には「未設定なので実測値を記録した」等の情報も入るため、
-  // 重大度だけでは合格と区別できない。
-  return severity === 'low' && title.includes('[確認OK]');
+export interface AgencyMeta {
+  company: string;
+  mirayaku: string;
+  agency?: boolean;
+  pattern?: string;
+  effectiveFrom?: string | null;
 }
 
 function worseOf(a: Severity | null, b: Severity | null): Severity | null {
@@ -72,40 +94,51 @@ function worseOf(a: Severity | null, b: Severity | null): Severity | null {
   return SEVERITY_ORDER.indexOf(a) <= SEVERITY_ORDER.indexOf(b) ? a : b;
 }
 
+const DEVICE_LABEL: Record<string, string> = { pc: 'PC', sp: 'スマートフォン' };
+
 /**
- * 検知結果からチェックリスト表を組み立てる。
+ * 検知結果からチェックリストを組み立てる。
  *
- * meta は代理店コード → 会社名 / みらやく掲載可否。
+ * meta は代理店コード → 会社名 / みらやく掲載可否 / パターン名。
  * コードだけでは人が「どの会社か」を判断できないため必須。
+ * allPatterns には期待結果を用意しているパターン名をすべて渡す
+ * (今回検査されなかったパターンを missingPatterns として示すため)。
  */
 export function buildChecklist(
   records: QaRecord[],
-  meta: Record<string, { company: string; mirayaku: string; agency?: boolean }> = {},
+  meta: Record<string, AgencyMeta> = {},
+  allPatterns: string[] = [],
 ): Checklist {
-  const rows = new Map<string, ChecklistRow>();
+  // device → code → row
+  const tables = new Map<string, Map<string, ChecklistRow>>();
 
   const emptyCells = (): Record<string, ChecklistCell> =>
     Object.fromEntries(
       CHECK_COLUMNS.map((column) => [
         column.key,
-        { state: 'none' as const, severity: null, count: 0, note: '' },
+        { state: 'none' as const, observed: '', expected: null, severity: null, note: '' },
       ]),
     );
 
-  const ensure = (code: string): ChecklistRow => {
-    const existing = rows.get(code);
+  const ensure = (deviceId: string, code: string): ChecklistRow => {
+    let byCode = tables.get(deviceId);
+    if (!byCode) {
+      byCode = new Map();
+      tables.set(deviceId, byCode);
+    }
+    const existing = byCode.get(code);
     if (existing) return existing;
     const info = meta[code] ?? { company: '', mirayaku: '' };
     const created: ChecklistRow = {
       code,
       company: info.company,
       mirayaku: info.mirayaku,
+      pattern: info.pattern ?? '',
+      effectiveFrom: info.effectiveFrom ?? null,
       cells: emptyCells(),
       failed: false,
-      okCount: 0,
-      checkedCount: 0,
     };
-    rows.set(code, created);
+    byCode.set(code, created);
     return created;
   };
 
@@ -120,39 +153,68 @@ export function buildChecklist(
       // 「代理店ごとにそろっているか」の表には出さない。
       // 実在しない行が混ざると、何社を確認したのかが読めなくなる。
       if (meta[code]?.agency === false) continue;
+      const deviceId = finding.deviceId ?? record.deviceId ?? 'pc';
 
-      const cell = ensure(code).cells[checkId];
-      if (isPass(finding.severity, finding.title)) {
-        // すでに ng が入っている場合は ng を優先する
-        // (PC で通り SP で落ちるなら、その代理店は ❌ として扱う)
-        if (cell.state !== 'ng') {
-          cell.state = 'ok';
-          if (cell.note === '') cell.note = finding.actual ?? finding.expected ?? '';
+      const cell = ensure(deviceId, code).cells[checkId];
+      const observed = finding.observedValue ?? '';
+      const expected = finding.expectedValue ?? null;
+
+      if (expected === null) {
+        // 正解が未確定の項目 (保存先など)。実態だけ出す
+        if (cell.state === 'none') {
+          cell.state = 'info';
+          cell.observed = observed;
+          cell.note = finding.actual ?? '';
         }
-      } else {
-        cell.state = 'ng';
-        cell.severity = worseOf(cell.severity, finding.severity);
-        cell.count += 1;
-        cell.note = finding.actual ?? finding.expected ?? '';
+        continue;
       }
+
+      const ok = observed === expected;
+      // 一度 ng になったセルは ng のままにする
+      // (同じ項目を複数回検査した場合、悪い方を残す)
+      if (cell.state === 'ng' && ok) continue;
+
+      cell.state = ok ? 'ok' : 'ng';
+      cell.observed = observed;
+      cell.expected = expected;
+      cell.note = finding.actual ?? '';
+      if (!ok) cell.severity = worseOf(cell.severity, finding.severity);
     }
   }
 
-  for (const row of rows.values()) {
-    for (const column of CHECK_COLUMNS) {
-      const cell = row.cells[column.key];
-      if (cell.state === 'none') continue;
-      row.checkedCount += 1;
-      if (cell.state === 'ok') row.okCount += 1;
-      else row.failed = true;
+  const built: ChecklistTable[] = [];
+  // pc → sp の順に並べる (見る順番を毎回同じにする)
+  const deviceOrder = ['pc', 'sp'];
+  const deviceIds = [...tables.keys()].sort(
+    (a, b) => (deviceOrder.indexOf(a) + 1 || 99) - (deviceOrder.indexOf(b) + 1 || 99),
+  );
+
+  const seenPatterns = new Set<string>();
+  for (const deviceId of deviceIds) {
+    const rows = [...(tables.get(deviceId) ?? new Map()).values()];
+    for (const row of rows) {
+      row.failed = CHECK_COLUMNS.some((column) => row.cells[column.key].state === 'ng');
+      if (row.pattern) seenPatterns.add(row.pattern);
     }
+    // 期待と違う代理店を先に出す (対応すべき行が上に来る)
+    rows.sort((a, b) => {
+      if (a.failed !== b.failed) return a.failed ? -1 : 1;
+      if (a.pattern !== b.pattern) return a.pattern.localeCompare(b.pattern);
+      return a.code.localeCompare(b.code);
+    });
+    built.push({ deviceId, deviceLabel: DEVICE_LABEL[deviceId] ?? deviceId.toUpperCase(), rows });
   }
 
-  // ❌ のある代理店を先に出す (対応すべき行が上に来る)
-  const sorted = [...rows.values()].sort((a, b) => {
-    if (a.failed !== b.failed) return a.failed ? -1 : 1;
-    return a.code.localeCompare(b.code);
-  });
+  const missingPatterns = allPatterns
+    .filter((pattern) => !seenPatterns.has(pattern))
+    .map((pattern) => ({
+      pattern,
+      reason: '該当する代理店コードが今回の検査対象にありませんでした',
+    }));
 
-  return { columns: CHECK_COLUMNS.map(({ key, label }) => ({ key, label })), rows: sorted };
+  return {
+    columns: CHECK_COLUMNS.map(({ key, label }) => ({ key, label })),
+    tables: built,
+    missingPatterns,
+  };
 }
