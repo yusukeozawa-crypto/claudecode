@@ -47,13 +47,16 @@ const TARGETS = {
  *   ただし画面にドメインだけを出すと「検査しているのは本当にあの LP か」が
  *   分からない。実際に開く URL を出す。
  */
-function lpEntryPath() {
+function entryPaths() {
   try {
     const file = path.join(root, 'config', 'agencies.yml');
     const parsed = parseYaml(fs.readFileSync(file, 'utf8')) ?? {};
-    return parsed.noCodeExpectation?.entryPath ?? '/';
+    return {
+      lp: parsed.noCodeExpectation?.entryPath ?? '/',
+      application: parsed.noCodeExpectation?.application?.expectedPath ?? '/',
+    };
   } catch {
-    return '/';
+    return { lp: '/', application: '/' };
   }
 }
 
@@ -313,8 +316,8 @@ function state() {
     findings: report ? findingGroups(report.records ?? []) : [],
     log: logLines.slice(-40),
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),
-    // 実際に開く LP のパス (画面で URL をそのまま見せるため)
-    lpPath: lpEntryPath(),
+    // 実際に開く LP / 申込ページのパス (画面で URL をそのまま見せるため)
+    entryPaths: entryPaths(),
     sizes: Object.entries(SIZES).map(([key, value]) => ({ key, label: value.label })),
     restartRequired,
     env: envStatus(),

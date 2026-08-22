@@ -162,7 +162,9 @@
   .empty { padding: 22px; color: #14683a; font-weight: 700; }
 
   /* ---- 設定 ---- */
-  #settings-details > summary { cursor: pointer; }
+  #settings-details > summary, #discover-details > summary { cursor: pointer; }
+  #discover-details { margin-top: 20px; }
+  #discover-details code { background: #f3f5f7; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
   .settings-title { font-size: 13px; font-weight: 700; color: var(--sub); letter-spacing: 0.06em; }
   select, input {
     font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border);
@@ -272,9 +274,31 @@
     <div class="targets" id="targets"></div>
     <div class="actions">
       <button class="small" data-action="update">最新版に更新</button>
-      <button class="small" data-action="discover-staging">仕様調査 (ステージング)</button>
-      <button class="small" data-action="discover-production">仕様調査 (本番)</button>
     </div>
+
+    <!-- 検査ではない道具は畳んでおく。
+         「ステージング / 本番」のボタンが 2 組並ぶと、
+         どちらが検査なのか分からなくなる。 -->
+    <details id="discover-details">
+      <summary><span class="settings-title">代理店コードによる表示差分を調べる</span></summary>
+      <div class="panel" style="padding: 18px 20px; margin-top: 10px;">
+        <p class="muted" style="margin-top: 0;">
+          これは検査ではありません。パターンごとに代表 1 社ずつ LP を開き、
+          「代理店コードによって何が変わるのか」を洗い出して
+          <code>reports/discovery/agency-section-diff.md</code> に出します。
+          サイトの仕様が変わったときに、検査項目の取りこぼしを見つけるために使います。
+        </p>
+        <div class="row">
+          <label>対象
+            <select id="discover-env">
+              <option value="discover-staging">ステージング</option>
+              <option value="discover-production">本番</option>
+            </select>
+          </label>
+          <button class="small" id="discover-run" data-action-manual="1">調べる</button>
+        </div>
+      </div>
+    </details>
   </section>
 
   <section id="findings-section" hidden>
@@ -382,13 +406,16 @@
       //   検査は LP から始まり、申込サイトへの引き継ぎまで見る。
       //   申込サイトが未設定だと「申込フォームでコード保持」が
       //   検査できないため、どちらの URL も画面で確認できるようにする。
-      // .env にはドメインだけを保存するので、実際に開く URL を組み立てて出す
-      var lpUrl = info.baseUrl ? info.baseUrl + (state.lpPath || '/') : '';
+      // .env にはドメインだけを保存するので、実際に開く URL を組み立てて出す。
+      //   ドメインだけを出すと「間違っている」ように見えるため、
+      //   設定が持っているページのパスまでつなげて出す。
+      var paths = state.entryPaths || {};
+      var join = function (origin, entryPath) { return origin + (entryPath || '/'); };
       var urls = configured
-        ? '<span class="url"><b>LP</b>' + text(lpUrl) + '</span>' +
+        ? '<span class="url"><b>LP</b>' + text(join(info.baseUrl, paths.lp)) + '</span>' +
           '<span class="url"><b>申込</b>' +
           (info.applicationBaseUrl
-            ? text(info.applicationBaseUrl)
+            ? text(join(info.applicationBaseUrl, paths.application))
             : '<em class="unset">未設定 — 申込フォームのコード保持を検査できません</em>') +
           '</span>'
         : '<span class="url one"><em class="unset">LP の URL が未設定です — 下の「対象サイトの設定」から登録してください</em></span>';
@@ -715,9 +742,10 @@
         renderHistory(state);
         renderReport(state);
         document.getElementById('log').textContent = (state.log || []).join('\n');
-        Array.prototype.forEach.call(document.querySelectorAll('[data-action]'), function (button) {
-          button.disabled = state.running;
-        });
+        Array.prototype.forEach.call(
+          document.querySelectorAll('[data-action], [data-action-manual]'),
+          function (button) { button.disabled = state.running; },
+        );
         // 実行中はログを自動で開き、経過が見えるようにする
         if (state.running) document.getElementById('log-details').open = true;
   }
@@ -805,6 +833,10 @@
     button.addEventListener('click', function () {
       post('/api/run?kind=action&key=' + encodeURIComponent(button.getAttribute('data-action')));
     });
+  });
+  document.getElementById('discover-run').addEventListener('click', function () {
+    var key = document.getElementById('discover-env').value;
+    post('/api/run?kind=action&key=' + encodeURIComponent(key));
   });
 
   refresh();
