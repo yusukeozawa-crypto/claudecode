@@ -86,6 +86,14 @@
   button.target:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
   button.target .name { font-size: 17px; font-weight: 700; display: block; }
   button.target .note { font-size: 12px; color: var(--sub); display: block; margin-top: 6px; line-height: 1.6; }
+  /* LP と申込サイトの URL を並べて出す (どちらを検査するのか画面で分かるように) */
+  button.target .url {
+    display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: baseline;
+    font-size: 12px; color: var(--sub); margin-top: 6px; word-break: break-all; line-height: 1.5;
+  }
+  button.target .url b { color: var(--faint); font-weight: 700; font-size: 11px; }
+  button.target .url.one { grid-template-columns: 1fr; }
+  button.target .url .unset { color: var(--critical); font-style: normal; }
   button.target .last { font-size: 12px; margin-top: 12px; display: block; color: var(--faint); }
 
   /* ---- 小さいボタン ---- */
@@ -370,10 +378,22 @@
       var lastText = last
         ? formatTime(last.startedAt) + ' — ' + (last.gateFailed ? '問題あり' : '異常なし')
         : '未実行';
+      // LP と申込サイトの両方を出す。
+      //   検査は LP から始まり、申込サイトへの引き継ぎまで見る。
+      //   申込サイトが未設定だと「申込フォームでコード保持」が
+      //   検査できないため、どちらの URL も画面で確認できるようにする。
+      var urls = configured
+        ? '<span class="url"><b>LP</b>' + text(info.baseUrl) + '</span>' +
+          '<span class="url"><b>申込</b>' +
+          (info.applicationBaseUrl
+            ? text(info.applicationBaseUrl)
+            : '<em class="unset">未設定 — 申込フォームのコード保持を検査できません</em>') +
+          '</span>'
+        : '<span class="url one"><em class="unset">LP の URL が未設定です — 下の「対象サイトの設定」から登録してください</em></span>';
       return '<button class="target" data-target="' + text(target.key) + '"' +
         (configured && !state.running ? '' : ' disabled') + '>' +
         '<span class="name">' + text(target.label) + '</span>' +
-        '<span class="note">' + text(configured ? (info.baseUrl || target.note) : 'URL が未設定です — 下の「対象サイトの設定」から登録してください') + '</span>' +
+        urls +
         '<span class="last muted">前回: ' + text(lastText) + '</span>' +
         '</button>';
     }).join('');
