@@ -29,6 +29,7 @@ import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-
 import { detectCrossPageInconsistency } from '../../utils/text-rules';
 import { collectLinks } from '../../utils/links';
 import { applyKnownIssue } from '../../utils/known-issues';
+import { startClean } from '../../utils/agency-entry';
 import { buildAgencyRows } from '../../reporters/qa-html-reporter';
 import { CHECK_COLUMNS, buildChecklist } from '../../utils/checklist';
 import type { CheckId, FindingCategory, KnownIssuesFile, RedirectTrace, Severity } from '../../utils/types';
@@ -1065,6 +1066,56 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     );
     expect(missing[0]?.severity, '付与されていなければ Critical').toBe('critical');
     expect(missing[0]?.detail, '入れ物だけの状態は参考情報として示すこと').toContain('insAgentNo');
+  });
+
+  test('前回の代理店コードが残っていたら、消したうえで報告する (見逃しの防止)', async ({ qa, page, context }) => {
+    // 代理店コードは Cookie / localStorage に保存され、次に開いたページを
+    // その代理店として表示する。前の検査の状態が残っていると、
+    // コードが付与されていない場合でも「付与されている」と判定してしまう。
+    // 残留状態は**不具合を隠す**ため、検知が無いことを合格の根拠にしている
+    // チェックリストでは特に危険。
+
+    // 状態を作る (前の検査が残した状況を再現する)
+    await page.goto(`/lp/?${config.agency.paramName}=A001`);
+    await page.waitForLoadState('load');
+    expect((await context.cookies()).length, '状態が作られたこと').toBeGreaterThan(0);
+    expect(
+      await page.evaluate(() => window.localStorage.getItem('agency_code')),
+      '保存領域にもコードがあること',
+    ).toBe('A001');
+
+    // まっさらから始める処理が、残留に気づいて報告し、そのうえで消すこと
+    const findings = await startClean(qa);
+    expect(findings.length, '黙って消さずに報告すること').toBe(1);
+    expect(
+      findings[0].severity,
+      '残留は他の結果を信頼できなくするため Critical であること',
+    ).toBe('critical');
+    expect(findings[0].actual, '何が残っていたか分かること').toContain('agency_code');
+    expect(findings[0].title, 'サイトの不具合と区別できること').toContain('検査環境');
+
+    expect((await context.cookies()).length, 'Cookie が消えていること').toBe(0);
+    expect(
+      await page.evaluate(() => window.localStorage.getItem('agency_code')),
+      '保存領域も消えていること',
+    ).toBeNull();
+
+    // 消したあとに通常 LP を開くと代理店として扱われないこと
+    // (= 残留による誤った合格が起きない状態になっている)
+    await page.goto('/lp/');
+    await page.waitForLoadState('load');
+    const body = await page.evaluate(() => document.body.innerText);
+    expect(body.includes('募集代理店'), 'コードなしの表示に戻ること').toBe(false);
+
+    // 同じテストの 2 回目以降は「続き」として何もしない
+    // (別コードでの再流入・再訪リダイレクトは前の状態が必要な検査のため)
+    await page.goto(`/lp/?${config.agency.paramName}=A002`);
+    await page.waitForLoadState('load');
+    expect(await startClean(qa), '2 回目は状態を消さないこと').toEqual([]);
+    expect(
+      await page.evaluate(() => window.localStorage.getItem('agency_code')),
+      '2 回目の呼び出しで状態を壊さないこと',
+    ).toBe('A002');
   });
 
   test('チェックリスト表を組み立てられる (ダッシュボードの本体)', async () => {
