@@ -382,8 +382,10 @@
       //   検査は LP から始まり、申込サイトへの引き継ぎまで見る。
       //   申込サイトが未設定だと「申込フォームでコード保持」が
       //   検査できないため、どちらの URL も画面で確認できるようにする。
+      // .env にはドメインだけを保存するので、実際に開く URL を組み立てて出す
+      var lpUrl = info.baseUrl ? info.baseUrl + (state.lpPath || '/') : '';
       var urls = configured
-        ? '<span class="url"><b>LP</b>' + text(info.baseUrl) + '</span>' +
+        ? '<span class="url"><b>LP</b>' + text(lpUrl) + '</span>' +
           '<span class="url"><b>申込</b>' +
           (info.applicationBaseUrl
             ? text(info.applicationBaseUrl)

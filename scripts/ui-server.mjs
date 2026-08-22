@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { withBinPath } from './lib/env-path.mjs';
 import { parseOrigin, writeEnvValues } from './lib/env-file.mjs';
 import { buildNotes } from './lib/notes.mjs';
+import { parse as parseYaml } from 'yaml';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const REPORT_DIR = path.join(root, 'reports');
@@ -38,6 +39,23 @@ const TARGETS = {
   staging: { label: 'ステージング', script: 'test:staging', note: '.env の STAGING_BASE_URL を検査する' },
   production: { label: '本番', script: 'test:production', note: '読み取りのみ。申込完了やデータ送信は行わない' },
 };
+
+/**
+ * 検査の入口になる LP のパス。
+ *
+ *   .env にはドメインだけを保存する (ページのパスは設定ファイルが持つ)。
+ *   ただし画面にドメインだけを出すと「検査しているのは本当にあの LP か」が
+ *   分からない。実際に開く URL を出す。
+ */
+function lpEntryPath() {
+  try {
+    const file = path.join(root, 'config', 'agencies.yml');
+    const parsed = parseYaml(fs.readFileSync(file, 'utf8')) ?? {};
+    return parsed.noCodeExpectation?.entryPath ?? '/';
+  } catch {
+    return '/';
+  }
+}
 
 /** 環境ごとの .env のキー名 */
 const ENV_KEYS = {
@@ -285,6 +303,8 @@ function state() {
     findings: report ? findingGroups(report.records ?? []) : [],
     log: logLines.slice(-40),
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),
+    // 実際に開く LP のパス (画面で URL をそのまま見せるため)
+    lpPath: lpEntryPath(),
     sizes: Object.entries(SIZES).map(([key, value]) => ({ key, label: value.label })),
     restartRequired,
     env: envStatus(),
