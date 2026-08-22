@@ -24,11 +24,19 @@
   header {
     position: sticky; top: 0; z-index: 20;
     background: var(--accent); color: #fff; padding: 14px 32px;
-    display: flex; align-items: baseline; gap: 18px;
+    display: flex; align-items: center; gap: 18px;
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 12px rgba(0, 0, 0, 0.18);
   }
   header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
   header .env { font-size: 12px; color: #a8bdd4; }
+  /* 検査ではない操作 (ツールの更新)。検査ボタンと混ざらないよう帯の右端に置く */
+  header .header-action {
+    margin-left: auto; font: inherit; font-size: 12px; color: #cfe0f2; cursor: pointer;
+    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 8px; padding: 6px 14px; transition: background 0.15s, color 0.15s;
+  }
+  header .header-action:hover:not(:disabled) { background: rgba(255, 255, 255, 0.2); color: #fff; }
+  header .header-action:disabled { opacity: 0.45; cursor: not-allowed; }
 
   main { padding: 32px 32px 80px; }
   /* 文章が長いものは広すぎると読みにくいので幅を抑える。
@@ -73,27 +81,34 @@
   }
   .groups span.done { background: #eaf6ee; border-color: #c3e3ce; color: #14683a; }
 
-  /* ---- 実行ボタン (対象サイト) ---- */
-  .targets { display: flex; gap: 16px; flex-wrap: wrap; }
-  button.target {
+  /* ---- 対象サイトのカード ---- */
+  /*  カード全体をボタンにしていたため「押せる」ように見えなかった。
+      カードは枠として置き、中に押すためのボタンを入れる。 */
+  .targets { display: flex; gap: 20px; flex-wrap: wrap; }
+  .target {
     background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 20px 24px; min-width: 260px; text-align: left;
-    cursor: pointer; font: inherit; color: inherit;
-    transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+    box-shadow: var(--shadow); padding: 22px 24px 20px; min-width: 300px; flex: 1 1 340px;
+    max-width: 460px; display: flex; flex-direction: column;
   }
-  button.target:hover:not(:disabled) { box-shadow: var(--shadow-lift); transform: translateY(-1px); border-color: #c9d3de; }
-  button.target:active:not(:disabled) { transform: none; }
-  button.target:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-  button.target .name { font-size: 17px; font-weight: 700; display: block; }
-  button.target .note { font-size: 12px; color: var(--sub); display: block; margin-top: 6px; line-height: 1.6; }
+  .target .name { font-size: 17px; font-weight: 700; display: block; }
   /* LP と申込サイトの URL を並べて出す (どちらを検査するのか画面で分かるように) */
-  button.target .url {
+  .target .url {
     display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: baseline;
-    font-size: 12px; color: var(--sub); margin-top: 6px; word-break: break-all; line-height: 1.5;
+    font-size: 12px; color: var(--sub); margin-top: 8px; word-break: break-all; line-height: 1.5;
   }
-  button.target .url b { color: var(--faint); font-weight: 700; font-size: 11px; }
-  button.target .url.one { grid-template-columns: 1fr; }
-  button.target .url .unset { color: var(--critical); font-style: normal; }
+  .target .url b { color: var(--faint); font-weight: 700; font-size: 11px; }
+  .target .url.one { grid-template-columns: 1fr; }
+  .target .url .unset { color: var(--critical); font-style: normal; }
+  .target .last { font-size: 12px; margin-top: 14px; display: block; color: var(--faint); }
+  /* 押すためのボタン。押せることが見た目で分かるよう色で塗る */
+  .target button.run {
+    margin-top: 16px; width: 100%; font: inherit; font-size: 14px; font-weight: 700;
+    color: #fff; background: #1d4ed8; border: 1px solid #1d4ed8; border-radius: 10px;
+    padding: 12px 16px; cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+  .target button.run:hover:not(:disabled) { background: #1a44bd; box-shadow: var(--shadow-lift); }
+  .target button.run:disabled { background: #e8ebef; border-color: #e8ebef; color: #9aa4ae; cursor: not-allowed; }
   button.target .last { font-size: 12px; margin-top: 12px; display: block; color: var(--faint); }
 
   /* ---- 小さいボタン ---- */
@@ -230,7 +245,9 @@
     main { padding: 20px 16px 60px; }
     .verdict { padding: 20px; }
     .verdict .big { font-size: 26px; }
-    button.target { min-width: 0; width: 100%; }
+    .target { min-width: 0; max-width: none; }
+    header { flex-wrap: wrap; gap: 10px; }
+    header .header-action { margin-left: 0; }
     th { top: 40px; }
   }
 </style>
@@ -239,6 +256,9 @@
 <header>
   <h1>Webサイト公開後 自動QA</h1>
   <span class="env" id="env-label"></span>
+  <!-- 検査ではない操作はヘッダーへ。検査ボタンの横に置くと
+       「どれが検査なのか」が読めなくなる。 -->
+  <button class="header-action" data-action="update">最新版に更新</button>
 </header>
 <main>
   <div class="notice" id="restart-notice" hidden>
@@ -272,9 +292,6 @@
       <span class="muted" id="size-note">まずは最小で動作を確認し、問題がなくなってから増やしてください。</span>
     </div>
     <div class="targets" id="targets"></div>
-    <div class="actions">
-      <button class="small" data-action="update">最新版に更新</button>
-    </div>
 
     <!-- 検査ではない道具は畳んでおく。
          「ステージング / 本番」のボタンが 2 組並ぶと、
@@ -419,19 +436,24 @@
             : '<em class="unset">未設定 — 申込フォームのコード保持を検査できません</em>') +
           '</span>'
         : '<span class="url one"><em class="unset">LP の URL が未設定です — 下の「対象サイトの設定」から登録してください</em></span>';
-      return '<button class="target" data-target="' + text(target.key) + '"' +
-        (configured && !state.running ? '' : ' disabled') + '>' +
+      // .env に同じキーが 2 行以上あると、どちらが効くのか分からない。
+      // 検査は後の行を使うので、画面と食い違わないよう知らせる。
+      var warning = (info.duplicateKeys || []).length > 0
+        ? '<span class="url one"><em class="unset">.env に ' +
+          text(info.duplicateKeys.join(', ')) +
+          ' が複数行あります (後の行が使われます。1 行に直してください)</em></span>'
+        : '';
+      // カード全体をボタンにしていたため「押せる」ように見えなかった。
+      // カードは枠として置き、中に押すためのボタンを 1 つ入れる。
+      return '<div class="target">' +
         '<span class="name">' + text(target.label) + '</span>' +
         urls +
+        warning +
         '<span class="last muted">前回: ' + text(lastText) + '</span>' +
-        // .env に同じキーが 2 行以上あると、どちらが効くのか分からない。
-        // 検査は後の行を使うので、画面と食い違わないよう知らせる。
-        ((info.duplicateKeys || []).length > 0
-          ? '<span class="url one"><em class="unset">.env に ' +
-            text(info.duplicateKeys.join(', ')) +
-            ' が複数行あります (後の行が使われます。1 行に直してください)</em></span>'
-          : '') +
-        '</button>';
+        '<button class="run" data-target="' + text(target.key) + '"' +
+        (configured && !state.running ? '' : ' disabled') + '>' +
+        text(target.label) + 'を検査する</button>' +
+        '</div>';
     }).join('');
     Array.prototype.forEach.call(container.querySelectorAll('[data-target]'), function (button) {
       button.addEventListener('click', function () {
