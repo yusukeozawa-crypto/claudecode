@@ -109,6 +109,7 @@
     if (!agency) {
       show(bySection('footer-agency'), false);
       show(bySection('header-agency'), false);
+      show(bySection('header-agency-sp'), false);
     }
 
     if (agency) {
@@ -116,9 +117,11 @@
       // フッターの「募集代理店：<会社名>」
       setText('footer-agency-name', agency.name);
       show(bySection('footer-agency'), true);
-      // ヘッダーの代理店名 (実サイトと同じ)
+      // ヘッダーの代理店名 (実サイトと同じく PC 用 / スマートフォン用の 2 要素)
       setText('header-agency-name', agency.name);
       show(bySection('header-agency'), true);
+      setText('header-agency-sp-name', agency.name);
+      show(bySection('header-agency-sp'), true);
       // みらやく × の代理店では「あんしんパック」の記載を一切出さない
       show(bySection('anshin-pack'), agency.mirayaku !== '×');
       setText('agency-phone', agency.phone);

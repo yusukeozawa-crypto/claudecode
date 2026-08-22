@@ -25,7 +25,14 @@
     </nav>
     <p class="meta">現在時刻 <span data-testid="current-datetime">-</span></p>
     <!-- 実サイトと同じく、ヘッダーにも代理店名を出す -->
-    <p class="header-agency" data-testid="header-agency" hidden>募集代理店：<span data-testid="header-agency-name">-</span></p>
+    <!--
+      実サイトと同じ構造にする。実サイトのヘッダーは PC 用と
+      スマートフォン用の 2 要素に分かれており、画面幅で片方だけが
+      表示される (hidden md:block / md:hidden)。
+      1 要素だけのモックにすると、この作りを取り違えても気づけない。
+    -->
+    <p class="header-agency header-agency-pc" data-testid="header-agency" hidden>募集代理店：<span data-testid="header-agency-name">-</span></p>
+    <p class="header-agency header-agency-sp" data-testid="header-agency-sp" hidden>募集代理店：<span data-testid="header-agency-sp-name">-</span></p>
   </header>
 
   <div class="main-visual" data-testid="default-hero">

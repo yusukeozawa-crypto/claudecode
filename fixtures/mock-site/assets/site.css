@@ -49,11 +49,13 @@ footer.site-footer { margin-top: 32px; padding: 24px 16px; background: #f4f6f8; 
 }
 
 /*
-  実サイトと同じく、ヘッダーの代理店名は PC のみ表示する
-  (実サイトは Tailwind の hidden / md:block で幅により隠している)。
-  端末を区別せずに判定すると、スマートフォンで毎回「出ていない」と
-  報告してしまう。この差をモックでも再現しておく。
+  ヘッダーの代理店名は PC 用 / スマートフォン用の 2 要素に分かれており、
+  画面幅で片方だけを表示する (実サイトの hidden md:block / md:hidden と同じ)。
+  どちらの幅でも「出ている方」を読み取れることを、この構造で確かめる。
 */
+.header-agency-sp { display: none; }
 @media (max-width: 767px) {
-  .header-agency { display: none !important; }
+  .header-agency-pc { display: none !important; }
+  .header-agency-sp[hidden] { display: none !important; }
+  .header-agency-sp:not([hidden]) { display: block; }
 }
