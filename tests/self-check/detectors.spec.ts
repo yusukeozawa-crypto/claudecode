@@ -1488,6 +1488,15 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       'どの項目が欠けているか分かること',
     ).toEqual(['footer-name', 'header-name']);
 
+    // 名前が一致しないとき、実際に出ている代理店名を出せること。
+    //   マスタ (スプレッドシート) の会社名が社内の管理名になっている場合があり
+    //   (例「Sasuke（募集人1）」「病院貼り付け窓口バナー用」)、
+    //   その場合はサイト側が正しい。「表示されていません」だけでは
+    //   サイトの不具合なのか名前の持ち方の問題なのか区別できない。
+    const footerFail = missing.find((finding) => finding.checkId === 'footer-name');
+    expect(footerFail?.actual, '実際に出ている代理店名を出すこと').toContain(company);
+    expect(footerFail?.detail, '名前の持ち方の問題かもしれないと示すこと').toContain('管理名');
+
     // みらやく不可の扱い: 「あんしんパック」があれば検出する
     const forbidden = await verifyDisplayRules(
       page,

@@ -131,6 +131,10 @@ test.describe('申込導線の観測 @agency @cta', () => {
       let clicked = false;
       if (!hiddenOnly && (await locator.count()) > 0) {
         await locator.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => undefined);
+        // 別タブで開く場合 (target="_blank") に備える。
+        //   元のページの URL を見ているだけでは「遷移していない」と
+        //   誤判定する (実サイトの専用 LP で発生した)。
+        const popupPromise = context.waitForEvent('page', { timeout: 20000 }).catch(() => null);
         clicked = await locator
           .click({ timeout: 15000 })
           .then(() => true)
@@ -153,6 +157,19 @@ test.describe('申込導線の観測 @agency @cta', () => {
             agencyCode: spec.code,
             detail: '他の要素が重なっている可能性があります。遷移先を直接開いて引き継ぎの確認を続けました。',
           });
+        }
+
+        // 別タブが開いた場合はその行き先を確認する。
+        //   Cookie は同じコンテキストで共有されるため、
+        //   その URL を元のタブで開いても引き継ぎの確認は成立する。
+        const popup = await popupPromise;
+        if (popup) {
+          await popup.waitForLoadState('load').catch(() => undefined);
+          const popupUrl = popup.url();
+          await popup.close().catch(() => undefined);
+          if (popupUrl && popupUrl !== 'about:blank') {
+            await qa.goto({ url: popupUrl, agencyCode: spec.code });
+          }
         }
       }
 

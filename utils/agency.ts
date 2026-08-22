@@ -676,9 +676,33 @@ export async function verifyDisplayRules(
   if (!texts) return [];
 
   // 表示されているテキストで判定する (DOM に残っていても非表示なら「無い」)
-  const body = await page
-    .evaluate(() => (document.body?.innerText ?? '').replace(/\s+/g, ' '))
-    .catch(() => '');
+  const rawBody = await page.evaluate(() => document.body?.innerText ?? '').catch(() => '');
+  const body = rawBody.replace(/\s+/g, ' ');
+
+  /**
+   * 実際にフッターに出ている代理店名を拾う。
+   *
+   * 期待した名前と一致しないとき「表示されていません」だけでは、
+   * サイトの不具合なのか、こちらが持っている名前が違うのかが分からない。
+   * マスタ (スプレッドシート) の会社名が社内の管理名になっている場合があり
+   * (例: 「Sasuke（募集人1）」「病院貼り付け窓口バナー用」)、
+   * その場合はサイト側が正しい。実際の名前を出せば一目で判断できる。
+   */
+  const shownName = ((): string | null => {
+    const prefix = texts.footer.split('{company}')[0];
+    if (prefix === '') return null;
+    const index = rawBody.indexOf(prefix);
+    if (index < 0) return null;
+    const name = rawBody.slice(index + prefix.length).split('\n')[0].trim();
+    return name === '' ? null : name.slice(0, 60);
+  })();
+  const actualName = shownName === null
+    ? '表示されていません'
+    : `実際は「${texts.footer.split('{company}')[0]}${shownName}」が表示されています`;
+  const nameHint = shownName === null
+    ? undefined
+    : 'サイト側の表示が正しく、こちらが持っている会社名が社内の管理名になっている可能性があります ' +
+      '(その場合は config/agency-master.tsv の company を実際の表示名に直してください)。';
 
   const findings: FindingInput[] = [];
   const company = spec.company ?? '';
@@ -723,12 +747,18 @@ export async function verifyDisplayRules(
     findings.push(
       body.includes(header)
         ? pass('header-name', 'ヘッダーに代理店名が表示されている', `「${header}」を確認`, 'あり')
-        : fail('header-name', 'ヘッダーに代理店名が表示されていません', `「${header}」が表示されること`, '表示されていません', 'なし'),
+        : {
+            ...fail('header-name', 'ヘッダーに代理店名が表示されていません', `「${header}」が表示されること`, actualName, 'なし'),
+            detail: nameHint,
+          },
     );
     findings.push(
       body.includes(footer)
         ? pass('footer-name', 'フッターに代理店名が表示されている', `「${footer}」を確認`, 'あり')
-        : fail('footer-name', 'フッターに代理店名が表示されていません', `「${footer}」が表示されること`, '表示されていません', 'なし'),
+        : {
+            ...fail('footer-name', 'フッターに代理店名が表示されていません', `「${footer}」が表示されること`, actualName, 'なし'),
+            detail: nameHint,
+          },
     );
   } else if (spec.agencyName === 'hidden') {
     // 「代理店名が出ていないこと」の判定。
