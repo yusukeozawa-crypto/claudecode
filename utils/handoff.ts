@@ -1026,3 +1026,170 @@ export function describeApplicationLinks(
 
   return findings;
 }
+
+/** 申込フォーム側でコードが「どこに」残っていたか */
+export interface CodeCarryObservation {
+  /** コードの値が実際に見つかった場所 (人が読める説明) */
+  foundIn: string[];
+  /**
+   * 参考情報。値ではなく「入れ物」があっただけのもの
+   *   (例: agency_code という項目はあるが空)。
+   * これを根拠に合格にしてはいけない。
+   */
+  hints: string[];
+  /** 別の代理店コードが見つかった場合 (誤帰属) */
+  otherCodes: string[];
+  url: string;
+}
+
+/**
+ * 申込フォームに遷移しても代理店コードが維持されているかを観測する。
+ *
+ * 引き継ぎ方式 (クエリ / hidden / Cookie / セッション / API) が
+ * 確定していなくても検査できるように、**あり得る置き場所すべて**を見る。
+ * どこか 1 つでも残っていれば「維持されている」とみなす。
+ * 方式を推測して 1 か所だけ見ると、正常なサイトを不具合として報告してしまう。
+ */
+export async function observeCodeInApplication(
+  page: Page,
+  config: QaConfig,
+  code: string,
+  otherCandidates: string[] = [],
+): Promise<CodeCarryObservation> {
+  const paramName = config.agency.paramName;
+  const url = page.url();
+  const foundIn: string[] = [];
+
+  // 1. URL (クエリ・パス)
+  if (url.includes(code)) foundIn.push('URL');
+
+  const inPage = await page
+    .evaluate(
+      ({ target, param }: { target: string; param: string }) => {
+        const places: string[] = [];
+        const collect = (label: string, values: Array<string | null | undefined>) => {
+          if (values.some((value) => typeof value === 'string' && value.includes(target))) places.push(label);
+        };
+
+        // 2. hidden を含む入力値
+        const inputs = Array.from(document.querySelectorAll('input, select, textarea'));
+        collect('入力値 (hidden 含む)', inputs.map((element) => (element as HTMLInputElement).value));
+
+        // 3. 画面に表示されているテキスト
+        collect('表示テキスト', [document.body?.innerText ?? '']);
+
+        // 4. data 属性 (data-agency-code など)
+        const dataValues: string[] = [];
+        for (const element of Array.from(document.querySelectorAll('[data-agency-code], [data-agency], [data-code]'))) {
+          for (const attribute of Array.from(element.attributes)) dataValues.push(attribute.value);
+        }
+        collect('data 属性', dataValues);
+
+        // 5. localStorage / sessionStorage
+        const readStorage = (storage: Storage | null): string[] => {
+          if (!storage) return [];
+          const values: string[] = [];
+          for (let index = 0; index < storage.length; index += 1) {
+            const key = storage.key(index);
+            if (key) values.push(`${key}=${storage.getItem(key) ?? ''}`);
+          }
+          return values;
+        };
+        collect('localStorage', readStorage(window.localStorage));
+        collect('sessionStorage', readStorage(window.sessionStorage));
+
+        // 6. JavaScript の変数として埋め込まれている場合 (dataLayer など)
+        const globals = (window as unknown as { dataLayer?: unknown }).dataLayer;
+        if (globals) {
+          try {
+            collect('dataLayer', [JSON.stringify(globals)]);
+          } catch {
+            // 循環参照などで文字列化できない場合は無視する
+          }
+        }
+
+        // 7. 参考情報: 代理店コードの項目が「ある」だけ (値は空かもしれない)。
+        //    これは合格の根拠にしない
+        const hints: string[] = [];
+        if (document.querySelector(`[name="${param}"]`)) hints.push(`${param} という項目がある (値は別途確認)`);
+        return { places, hints };
+      },
+      { target: code, param: paramName },
+    )
+    .catch(() => ({ places: [] as string[], hints: [] as string[] }));
+  foundIn.push(...inPage.places);
+
+  // 8. Cookie (申込ドメインのもの)
+  const cookies = await page.context().cookies(url).catch(() => []);
+  if (cookies.some((cookie) => cookie.value.includes(code))) foundIn.push('Cookie');
+
+  // 別の代理店コードが入っていないか (誤帰属の検知)
+  const otherCodes: string[] = [];
+  if (otherCandidates.length > 0) {
+    const haystack = [url, ...cookies.map((cookie) => cookie.value)].join(' ');
+    const bodyText = await page.evaluate(() => document.body?.innerText ?? '').catch(() => '');
+    for (const candidate of otherCandidates) {
+      if (candidate === code) continue;
+      if (haystack.includes(candidate) || bodyText.includes(candidate)) otherCodes.push(candidate);
+    }
+  }
+
+  return { foundIn: [...new Set(foundIn)], hints: inPage.hints, otherCodes, url };
+}
+
+/**
+ * 申込フォームに遷移しても代理店コードが維持されているかを検証する。
+ *
+ * 維持されていない = その申込が代理店に帰属しない (売上に直結) ため Critical。
+ * 別の代理店コードに置き換わっている場合も Critical (誤帰属)。
+ */
+export function verifyCodeCarried(
+  observation: CodeCarryObservation,
+  code: string,
+  label: string,
+): FindingInput[] {
+  const findings: FindingInput[] = [];
+
+  if (observation.foundIn.length === 0) {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'critical',
+      title: `${label}: 申込フォームに代理店コードが引き継がれていません`,
+      expected: `申込フォーム側に ${code} が保持されていること`,
+      actual: 'URL・入力値・表示テキスト・保存領域・Cookie のいずれにも見つかりません',
+      url: observation.url,
+      agencyCode: code,
+      detail: [
+        'この状態では申込がこの代理店に帰属しません。',
+        // 「項目はあるが空」は不具合の手がかりになるので示す
+        observation.hints.length > 0 ? `参考: ${observation.hints.join(', ')}` : '',
+      ]
+        .filter((part) => part !== '')
+        .join(' '),
+    });
+  } else {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'low',
+      title: `[確認OK] ${label}: 申込フォームに代理店コードが引き継がれています`,
+      expected: `申込フォーム側に ${code} が保持されていること`,
+      actual: `見つかった場所: ${observation.foundIn.join(', ')}`,
+      url: observation.url,
+      agencyCode: code,
+    });
+  }
+
+  for (const other of observation.otherCodes) {
+    findings.push({
+      category: 'agency-handoff',
+      severity: 'critical',
+      title: `${label}: 別の代理店コードが申込フォームに現れています`,
+      expected: `${code} 以外の代理店コードが現れないこと`,
+      actual: `${other} が見つかりました`,
+      url: observation.url,
+      agencyCode: code,
+    });
+  }
+
+  return findings;
+}

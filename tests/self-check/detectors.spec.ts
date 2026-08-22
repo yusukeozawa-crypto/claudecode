@@ -19,7 +19,10 @@ import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene
 import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
 import { agencyPairs, agencySpecs, resolvePerProfile, verifyNoOtherAgencyInfo, verifyPageTexts, verifySections, verifyTexts } from '../../utils/agency';
-import { describeApplicationLinks, installRequestGuards, observeApplicationLinks } from '../../utils/handoff';
+import {
+  describeApplicationLinks, installRequestGuards, observeApplicationLinks,
+  observeCodeInApplication, verifyCodeCarried,
+} from '../../utils/handoff';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
@@ -1262,11 +1265,64 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     );
     expect(hidden, `みらやく不可の代理店で検知しないこと: ${JSON.stringify(hidden)}`).toEqual([]);
 
-    // コードなしでは代理店名が出ない
+    // コードなしでは代理店名が出ない。
+    // 直前の検査でコードが保存されているため、消してから確認する
+    // (保存値からの復元は仕様どおりの動作)
+    await page.context().clearCookies();
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
     await page.goto('/lp/');
     await page.waitForLoadState('load');
     const noCode = await verifyPageTexts(page, { requiredTexts: [], forbiddenTexts: ['募集代理店'] }, 'コードなし');
     expect(noCode, 'コードなしで代理店名が出ないこと').toEqual([]);
+  });
+
+  test('申込フォームでコードが維持されているかを判定できる (方式を問わない)', async ({ page }) => {
+    // 引き継ぎ方式 (クエリ / hidden / Cookie / セッション / API) が
+    // 未確定でも「維持されているか」は検査できる必要がある。
+    const param = config.agency.paramName;
+    const application = config.environment.applicationBaseUrl;
+    test.skip(!application, '申込ドメインが未設定です');
+
+    // クエリでコードが渡っている場合 = 維持されている
+    await page.goto(`${application}/entry/?${param}=A001`);
+    await page.waitForLoadState('load');
+    const carried = await observeCodeInApplication(page, config, 'A001', ['A002', 'A003']);
+    expect(carried.foundIn.length, `どこかに残っていることを検出する: ${JSON.stringify(carried)}`).toBeGreaterThan(0);
+    expect(carried.otherCodes, '別の代理店コードは現れないこと').toEqual([]);
+
+    const ok = verifyCodeCarried(carried, 'A001', 'A001');
+    expect(ok.length, '記録が 1 件出ること').toBe(1);
+    expect(ok[0].severity, '維持されていれば Low (記録) であること').toBe('low');
+    expect(ok[0].title, '確認できたと分かること').toContain('[確認OK]');
+
+    // コードが渡っていない場合 = 維持されていない (Critical)
+    await page.context().clearCookies();
+    await page.goto(`${application}/entry/`);
+    await page.waitForLoadState('load');
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+    await page.reload();
+    await page.waitForLoadState('load');
+    const dropped = await observeCodeInApplication(page, config, 'A001');
+    expect(dropped.foundIn, `残っていないことを検出する: ${JSON.stringify(dropped)}`).toEqual([]);
+    const ng = verifyCodeCarried(dropped, 'A001', 'A001');
+    expect(ng[0].severity, '引き継がれていなければ Critical であること').toBe('critical');
+    expect(ng[0].title, '内容が分かる文言であること').toContain('引き継がれていません');
+
+    // 別の代理店コードが現れた場合 = 誤帰属 (Critical)
+    await page.goto(`${application}/entry/?${param}=A002`);
+    await page.waitForLoadState('load');
+    const wrong = await observeCodeInApplication(page, config, 'A001', ['A002']);
+    const wrongFindings = verifyCodeCarried(wrong, 'A001', 'A001');
+    expect(
+      wrongFindings.some((finding) => finding.title.includes('別の代理店コード')),
+      `別の代理店コードに置き換わっていれば検出すること: ${JSON.stringify(wrong)}`,
+    ).toBe(true);
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {
