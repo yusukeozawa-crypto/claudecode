@@ -279,7 +279,7 @@ const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
  * 内容が同じものは 1 件にまとめ、端末と代理店を並べて示す。
  * 画面で対応を判断できるだけの情報 (期待・実際・再現URL) を持たせる。
  */
-export function findingGroups(records, limit = 200) {
+export function findingGroups(records, limit = 200, meta = {}) {
   const groups = new Map();
   for (const record of records) {
     for (const finding of record.findings ?? []) {
@@ -296,6 +296,8 @@ export function findingGroups(records, limit = 200) {
           url: finding.url,
           devices: [],
           agencies: [],
+          /** 会社名つきの表示 (コードだけでは会社が分からない) */
+          agencyLabels: [],
           pages: [],
           count: 0,
         };
@@ -306,7 +308,12 @@ export function findingGroups(records, limit = 200) {
         if (value && !list.includes(value)) list.push(value);
       };
       push(group.devices, finding.deviceId ?? record.deviceId);
-      push(group.agencies, finding.agencyCode ?? record.agencyCode);
+      const code = finding.agencyCode ?? record.agencyCode;
+      push(group.agencies, code);
+      // コードだけでは人が「どの会社か」を判断できない。
+      // 会社名も一緒に出す (マスタの B 列)。
+      const company = code && meta[code] ? meta[code].company : '';
+      push(group.agencyLabels, company ? `${company} (${code})` : code);
       push(group.pages, finding.pageName ?? finding.pageId ?? record.pageName);
     }
   }
@@ -330,7 +337,7 @@ function state() {
     // 保留事項 / 後日確認 / 後日仕様変更。
     // 設定ファイルから直接作るので、検査を 1 回も実行していなくても出る
     notes: notesOrEmpty(),
-    findings: report ? findingGroups(report.records ?? []) : [],
+    findings: report ? findingGroups(report.records ?? [], 200, report.summary?.agencyMeta ?? {}) : [],
     log: logLines.slice(-40),
     targets: Object.entries(TARGETS).map(([key, value]) => ({ key, ...value })),
     // 実際に開く LP / 申込ページのパス (画面で URL をそのまま見せるため)

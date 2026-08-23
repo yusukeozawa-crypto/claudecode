@@ -96,7 +96,12 @@ if (target.length === 0) {
       break;
     }
     const devices = [...new Set(items.map((item) => item.deviceId).filter(Boolean))];
-    const codes = [...new Set(items.map((item) => item.agencyCode).filter(Boolean))];
+    // コードだけでは人が「どの会社か」を判断できないため会社名も出す
+    const agencyMeta = summary.agencyMeta ?? {};
+    const codes = [...new Set(items.map((item) => item.agencyCode).filter(Boolean))].map((code) => {
+      const company = agencyMeta[code]?.company;
+      return company ? `${company} (${code})` : code;
+    });
     const pages = [...new Set(items.map((item) => item.pageName ?? item.pageId).filter(Boolean))];
     console.log('');
     console.log(`[${SEVERITY_LABEL[finding.severity]}] ${finding.title}`);

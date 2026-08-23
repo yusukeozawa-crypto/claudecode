@@ -76,7 +76,14 @@
 
   <footer class="site-footer" data-testid="site-footer">
     <div class="container">
-      <p data-testid="footer-agency" hidden>募集代理店：<span data-testid="footer-agency-name">-</span></p>
+      <!--
+        会社名を別の要素に分けた形。
+          サイトの作りによっては「募集代理店：」と会社名が別要素になる。
+          文言のある要素だけを見ると会社名が空になり、
+          出ているのに「表示されていません」と報告してしまう
+          (実サイトで実際に起きた)。この形もモックで持っておく。
+      -->
+      <p data-testid="footer-agency" hidden><span>募集代理店：</span><span data-testid="footer-agency-name">-</span></p>
       <p>テスト保険株式会社</p>
       <ul>
         <li><a href="/faq.html">よくあるご質問</a></li>

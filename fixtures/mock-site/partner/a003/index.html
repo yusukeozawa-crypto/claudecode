@@ -76,7 +76,20 @@
 
   <footer class="site-footer" data-testid="site-footer">
     <div class="container">
-      <p data-testid="footer-agency" hidden>募集代理店：<span data-testid="footer-agency-name">-</span></p>
+      <!--
+        実サイトのフッターと同じ形。
+          ・「募集代理店：」が別要素 (太字) になっている
+          ・会社名が行として分かれる場合がある
+          ・すぐ下に「引受保険会社：」という別の項目が並ぶ
+        会社名が無いときに隣の項目を会社名として読まないことも、
+        この形で確かめる。
+      -->
+      <dl class="footer-agency" data-testid="footer-agency" hidden>
+        <dt>募集代理店：</dt>
+        <dd data-testid="footer-agency-name">-</dd>
+        <dt>引受保険会社：</dt>
+        <dd>テスト保険株式会社</dd>
+      </dl>
       <p>テスト保険株式会社</p>
       <ul>
         <li><a href="/faq.html">よくあるご質問</a></li>

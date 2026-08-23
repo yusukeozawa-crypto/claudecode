@@ -695,17 +695,53 @@ export async function verifyDisplayRules(
   const displayed = await page
     .evaluate(
       ({ prefix, footerSelectors }: { prefix: string; footerSelectors: string[] }) => {
-        const footerElement = (() => {
-          for (const selector of footerSelectors) {
-            try {
-              const element = document.querySelector(selector);
-              if (element instanceof HTMLElement) return element;
-            } catch {
-              /* セレクタが不正な場合は次へ */
+        // フッターの要素は **すべて** 集める。
+        //   1 つ目だけを見ると、ページ内にカード用の <footer> などが
+        //   先にある場合に本物のフッターを取り違える。
+        const footerElements: HTMLElement[] = [];
+        for (const selector of footerSelectors) {
+          try {
+            for (const element of Array.from(document.querySelectorAll(selector))) {
+              if (element instanceof HTMLElement) footerElements.push(element);
             }
+          } catch {
+            /* セレクタが不正な場合は次へ */
           }
-          return null;
-        })();
+        }
+
+        /**
+         * 「募集代理店：」の直後にある会社名を読む。
+         *
+         *   会社名がどの要素に入っているかはサイトの作りによって変わる。
+         *     <div>募集代理店：<span>会社名</span></div>   … 同じ要素の中
+         *     <dt>募集代理店：</dt><dd>会社名</dd>          … 別の要素
+         *   後者では、文言のある要素だけを見ると会社名が空になり、
+         *   出ているのに「表示されていません」と報告してしまう。
+         *   空だったら親へ上がって読み直す。
+         */
+        const nameNear = (element: HTMLElement): string => {
+          let current: HTMLElement | null = element;
+          for (let depth = 0; depth < 4 && current !== null; depth += 1) {
+            // innerText は画面に出ている形 (改行つき) で取れる
+            const text = current.innerText ?? current.textContent ?? '';
+            const index = text.indexOf(prefix);
+            if (index >= 0) {
+              const after = text.slice(index + prefix.length);
+              for (const raw of after.split('\n')) {
+                const line = raw.trim();
+                // 同じ行に無ければ次の行を見る (dt / dd のように分かれる作りがある)
+                if (line === '') continue;
+                // 「引受保険会社：…」のような別の項目に当たったら打ち切る。
+                //   会社名が無いときに隣の項目を会社名として読んでしまうと、
+                //   出ていないことに気づけなくなる。
+                if (line.includes('：') || line.includes(':')) break;
+                return line.slice(0, 60);
+              }
+            }
+            current = current.parentElement;
+          }
+          return '';
+        };
 
         // 「募集代理店：」を含む最も内側の要素を集める。
         //   実サイトのヘッダーは Tailwind のユーティリティクラスだけで
@@ -722,24 +758,34 @@ export async function verifyDisplayRules(
               (child) => (child.textContent ?? '').includes(prefix),
             );
             if (deeper) continue;
-            const after = own.slice(own.indexOf(prefix) + prefix.length);
-            const name = after.split('\n')[0].trim().slice(0, 60);
             const rect = element.getBoundingClientRect();
             occurrences.push({
-              name,
+              name: nameNear(element),
               // display:none の要素は DOM にあっても「表示されていない」
               visible: element.offsetParent !== null && rect.width > 0 && rect.height > 0,
-              inFooter: Boolean(footerElement && footerElement.contains(element)),
+              inFooter: footerElements.some((footer) => footer.contains(element)),
               top: rect.top + window.scrollY,
             });
           }
         }
         occurrences.sort((a, b) => a.top - b.top);
-        return { occurrences, foundFooterElement: Boolean(footerElement) };
+
+        // 見つからなかったときに原因を追えるよう、
+        //   「代理店」を含む行をそのまま持ち帰る。
+        //   文言が想定と違う (全角コロン・別の言い回し) 場合に、
+        //   もう一度サイトを開かずに気づけるようにする。
+        const agencyLines = (document.body?.innerText ?? '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.includes('代理店'))
+          .slice(0, 6)
+          .map((line) => line.slice(0, 100));
+
+        return { occurrences, foundFooterElement: footerElements.length > 0, agencyLines };
       },
       { prefix: footerPrefix, footerSelectors: texts.footerSelectors ?? ['footer'] },
     )
-    .catch(() => ({ occurrences: [], foundFooterElement: false }));
+    .catch(() => ({ occurrences: [], foundFooterElement: false, agencyLines: [] as string[] }));
 
   const occurrences = displayed.occurrences;
   // ヘッダー = フッターの外にあるもの。フッター = フッターの中にあるもの。
@@ -765,6 +811,23 @@ export async function verifyDisplayRules(
   const locateHint = headerHiddenByCss
     ? 'ヘッダーの枠は DOM にありますが表示されていません (CSS で隠されています)。'
     : undefined;
+
+  /**
+   * 見つからなかったときの手がかり。
+   *
+   *   「出ているのに表示されていません と報告された」ときに、
+   *   もう一度サイトを開いて調べ直すのは手間がかかる。
+   *   探した文言と、実際にページに出ていた「代理店」を含む行を
+   *   結果に残しておけば、次の実行の結果だけで原因が分かる。
+   */
+  const notFoundHint = (where: string): string =>
+    [
+      `「${footerPrefix}」で探しましたが ${where} に見つかりませんでした。`,
+      displayed.agencyLines.length > 0
+        ? `ページに出ていた「代理店」を含む行: ${displayed.agencyLines.map((line) => `「${line}」`).join(' / ')}`
+        : 'ページに「代理店」を含む行がありません。',
+      '文言が想定と違う場合は config/agency.yml の agencyNameTexts.footer を実物に合わせてください。',
+    ].join(' ');
 
   const findings: FindingInput[] = [];
 
@@ -843,7 +906,11 @@ export async function verifyDisplayRules(
         // 注記は「出るはずなのに出ていない」ときだけ出す。
         //   出ないのが正しい場合 (SP・代理店なし) に出すと、
         //   問題があるように読めてしまう。
-        detail: entry.checkId === 'header-name' && expectHere ? locateHint : undefined,
+        detail: !ok && expectHere
+          ? [entry.checkId === 'header-name' ? locateHint : undefined, notFoundHint(entry.where)]
+            .filter((part) => part !== undefined)
+            .join(' ')
+          : undefined,
       });
     }
   }

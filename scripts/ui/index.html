@@ -758,8 +758,13 @@
     list.innerHTML = visible.map(function (group) {
       var where = [];
       if (group.devices.length > 0) where.push(group.devices.join(' / ').toUpperCase());
-      if (group.agencies.length > 0) where.push('代理店 ' + group.agencies.slice(0, 6).join(', ') +
-        (group.agencies.length > 6 ? ' ...他 ' + (group.agencies.length - 6) : ''));
+      // コードだけでは人が「どの会社か」を判断できないため、会社名つきで出す。
+      // 古いレポート (会社名を持たない) でもコードだけで出せるようにする。
+      var agencyList = (group.agencyLabels && group.agencyLabels.length > 0)
+        ? group.agencyLabels
+        : group.agencies;
+      if (agencyList.length > 0) where.push('代理店 ' + agencyList.slice(0, 6).join(' / ') +
+        (agencyList.length > 6 ? ' ...他 ' + (agencyList.length - 6) : ''));
       if (group.pages.length > 0) where.push(group.pages.slice(0, 4).join(', '));
       return '<div class="finding ' + text(group.severity) + '">' +
         '<div class="head">' +
