@@ -29,6 +29,13 @@ const JSON_PATH = path.join(REPORT_DIR, 'qa-report.json');
 const PROGRESS_PATH = path.join(REPORT_DIR, 'progress.json');
 /** 過去の実行結果 (ブラウザ UI の履歴) */
 const HISTORY_DIR = path.join(REPORT_DIR, 'history');
+/**
+ * 途中結果を書き出す最短間隔 (ミリ秒)。
+ *   全件の検査は 1 時間を超えるため、途中で止まっても
+ *   「ここまでは確認できた」が残るように書き出す。
+ *   毎テストごとに書くと無駄が大きいので間隔を空ける。
+ */
+const SNAPSHOT_INTERVAL_MS = 10_000;
 
 /**
  * テストを人が分かる単位にまとめる。
@@ -82,6 +89,8 @@ export default class QaHtmlReporter implements Reporter {
   /** 進行状況 (ブラウザ UI 用) */
   private plannedTotal = 0;
   private completed = 0;
+  /** 途中結果を最後に書いた時刻 (書きすぎないよう間隔を空ける) */
+  private lastSnapshotAt = 0;
   private readonly groupProgress = new Map<string, { done: number; total: number }>();
   private currentLabel = '';
 
@@ -206,14 +215,23 @@ export default class QaHtmlReporter implements Reporter {
     const group = this.groupProgress.get(this.currentLabel);
     if (group) group.done += 1;
     this.writeProgress(true);
+    // 途中で止まっても結果が残るように書き出す
+    this.writeSnapshot();
   }
 
-  async onEnd(result: FullResult): Promise<void> {
-    fs.mkdirSync(REPORT_DIR, { recursive: true });
-
-    // テストの件数は「実際に走ったテスト」で数える。
-    //   下で端末をまたいだ比較の結果を 1 件足すため、
-    //   先に数えておかないとテスト数が 1 つ増えて見える。
+  /**
+   * いまの結果からレポートの中身を組み立てる。
+   *
+   *   検査中にも呼ぶため、this.records を書き換えないこと。
+   *   端末をまたいだ比較の結果を push してしまうと、
+   *   呼ぶたびに同じ記録が増えていく。
+   */
+  private buildReport(playwrightStatus: string, running: boolean): {
+    summary: ReportSummary;
+    records: QaRecord[];
+  } {
+    // テストの件数は「実際に走ったテスト」で数える
+    // (端末をまたいだ比較の結果は 1 テストではない)。
     const tests = {
       total: this.records.length,
       passed: this.records.filter((record) => record.status === 'passed').length,
@@ -221,11 +239,10 @@ export default class QaHtmlReporter implements Reporter {
       skipped: this.records.filter((record) => record.status === 'skipped').length,
     };
 
-    // 端末をまたいだ食い違いは、すべての結果がそろうここでしか見られない
-    this.records.push(...compareAcrossDevices(this.records));
+    // 端末をまたいだ食い違いは、両方の記録がそろってはじめて分かる
+    const records = [...this.records, ...compareAcrossDevices(this.records)];
+    const counts = countBySeverity(records.flatMap((record) => record.findings));
 
-    const allFindings = this.records.flatMap((record) => record.findings);
-    const counts = countBySeverity(allFindings);
     const summary = {
       generatedAt: new Date().toISOString(),
       startedAt: this.startedAt.toISOString(),
@@ -234,7 +251,7 @@ export default class QaHtmlReporter implements Reporter {
       environmentLabel: this.environmentLabel,
       baseUrl: this.baseUrl,
       projects: this.projectNames,
-      playwrightStatus: result.status,
+      playwrightStatus,
       tests,
       findings: counts,
       agencySampling: describeAgencySampling(),
@@ -243,7 +260,7 @@ export default class QaHtmlReporter implements Reporter {
       // 代理店 × 検査項目のチェックリスト。
       // ブラウザ画面もこの値をそのまま表示する (同じ計算を 2 か所に持たない)
       checklist: buildChecklist(
-        this.records,
+        records,
         describeAgencyMeta(),
         allPatternLabels(),
         patternOrder(),
@@ -253,12 +270,50 @@ export default class QaHtmlReporter implements Reporter {
       // ここで固定値を持つと、設定を変えたときにテスト側の判定とずれる。
       failOnSeverities: this.failOnSeverities,
       gateFailed: this.failOnSeverities.some((severity) => (counts[severity] ?? 0) > 0),
+      /**
+       * 途中の結果かどうか。
+       *   全件の検査は 1 時間を超える。最後にまとめて書き出す作りだと、
+       *   途中で止まった時点で結果が 1 件も残らない (実際に問題になった)。
+       *   検査中も書き出し、それが途中の結果であることを明示する。
+       */
+      partial: running,
     };
 
-    fs.writeFileSync(JSON_PATH, JSON.stringify({ summary, records: this.records }, null, 2), 'utf8');
+    return { summary, records };
+  }
+
+  /**
+   * 検査中の途中結果をファイルに書く。
+   *
+   *   途中で止まっても「ここまでは確認できた」を残すため。
+   *   毎テストごとに書くと無駄が大きいので、間隔を空ける。
+   *   書き込み失敗で検査を止めないよう例外は無視する。
+   */
+  private writeSnapshot(): void {
+    const now = Date.now();
+    if (now - this.lastSnapshotAt < SNAPSHOT_INTERVAL_MS) return;
+    this.lastSnapshotAt = now;
+    try {
+      fs.mkdirSync(REPORT_DIR, { recursive: true });
+      const { summary, records } = this.buildReport('running', true);
+      fs.writeFileSync(JSON_PATH, JSON.stringify({ summary, records }, null, 2), 'utf8');
+      fs.writeFileSync(HTML_PATH, renderHtml(summary, records), 'utf8');
+    } catch {
+      /* 途中結果を書けなくても検査は続ける */
+    }
+  }
+
+  async onEnd(result: FullResult): Promise<void> {
+    fs.mkdirSync(REPORT_DIR, { recursive: true });
+
+    const { summary, records } = this.buildReport(result.status, false);
+    const allFindings = records.flatMap((record) => record.findings);
+    const counts = summary.findings;
+
+    fs.writeFileSync(JSON_PATH, JSON.stringify({ summary, records }, null, 2), 'utf8');
     this.writeProgress(false);
     this.saveHistory(summary);
-    fs.writeFileSync(HTML_PATH, renderHtml(summary, this.records), 'utf8');
+    fs.writeFileSync(HTML_PATH, renderHtml(summary, records), 'utf8');
 
     const relativeHtml = path.relative(PROJECT_ROOT, HTML_PATH);
     console.log('');
@@ -409,6 +464,8 @@ interface ReportSummary {
   checklist?: Checklist;
   findings: Record<Severity, number>;
   gateFailed: boolean;
+  /** 検査中に書き出した途中の結果か (全件の検査は 1 時間を超えるため) */
+  partial?: boolean;
 }
 
 /**

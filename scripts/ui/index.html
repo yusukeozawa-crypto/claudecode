@@ -377,7 +377,7 @@
   </section>
 
   <section id="agency-section" hidden>
-    <h2>チェックリスト <span class="muted" id="agency-stale" hidden>— 前回の結果</span></h2>
+    <h2>チェックリスト <span class="muted" id="agency-stale" hidden></span></h2>
     <div id="checklist"></div>
     <p class="muted">赤いセル = 期待と違う値。— = この代理店では検査していない。「保存先」は正解が未確定のため表示のみ (赤にしません)。検査する代理店コードは実行ごとに抽選されます。</p>
   </section>
@@ -592,8 +592,13 @@
       return;
     }
     section.hidden = false;
-    // 実行中は前回の結果を出しているので、そう分かるようにする
-    document.getElementById('agency-stale').hidden = !state.running;
+    // 何の結果を見ているのかを明示する。
+    //   検査中は途中の結果 (検査が進むにつれて増える) を出しており、
+    //   確定した結果ではない。前回の結果と混同させない。
+    var stale = document.getElementById('agency-stale');
+    var partial = state.summary && state.summary.partial;
+    stale.hidden = !state.running;
+    stale.textContent = partial ? '— 実行中の途中結果 (まだ増えます)' : '— 前回の結果';
 
     // 代理店の情報 (左) と検査結果 (右) の境目を線で分ける。
     // 列が多いので、どこから検査項目なのかが分かるようにする。

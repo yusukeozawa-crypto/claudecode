@@ -249,7 +249,7 @@ function notesOrEmpty() {
  * 会社名と みらやく掲載可否はチェックリストの各行が持っているので、
  * 一覧を別に送る必要はない。
  */
-function slimSummary(summary) {
+export function slimSummary(summary) {
   if (!summary) return null;
   return {
     generatedAt: summary.generatedAt,
@@ -260,6 +260,9 @@ function slimSummary(summary) {
     tests: summary.tests,
     findings: summary.findings,
     gateFailed: summary.gateFailed,
+    // 検査中に書き出した途中の結果か。
+    //   途中の結果を「確定した結果」と読ませてはいけない。
+    partial: Boolean(summary.partial),
   };
 }
 

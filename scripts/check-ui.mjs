@@ -19,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 process.env.QA_UI_IMPORT = '1';
-const { server, checklistOf, findingGroups } = await import('./ui-server.mjs');
+const { server, checklistOf, findingGroups, slimSummary } = await import('./ui-server.mjs');
 const { buildNotes } = await import('./lib/notes.mjs');
 const { parseOrigin, readEnvValues } = await import('./lib/env-file.mjs');
 const os = await import('node:os');
@@ -202,6 +202,20 @@ await check('画面に出す URL はドメインまで (設定のパスと二重
   const parsed = parseOrigin('https://lp.example.jp/lp/service');
   assert.equal(parsed.origin, 'https://lp.example.jp', 'ドメインだけを取り出すこと');
   assert.equal(parsed.droppedPath, '/lp/service', '落としたパスを知らせること');
+});
+
+await check('途中の結果と確定した結果を区別できる', () => {
+  // 全件の検査は 1 時間を超える。途中で止まったときに
+  // 「ここまでは確認できた」を残す一方、それを確定した結果と
+  // 読ませてはいけない。
+  const running = slimSummary({ partial: true, tests: {}, findings: {} });
+  assert.equal(running.partial, true, '途中の結果であることを画面に伝えること');
+  const done = slimSummary({ tests: {}, findings: {} });
+  assert.equal(done.partial, false, '確定した結果では立てないこと');
+  assert.equal(slimSummary(null), null, 'レポートが無くても壊れないこと');
+
+  const html = fs.readFileSync(path.join(root, 'scripts', 'ui', 'index.html'), 'utf8');
+  assert.ok(html.includes('実行中の途中結果'), '途中の結果だと画面に出すこと');
 });
 
 await check('チェックリストをレポートから受け取れる', () => {
