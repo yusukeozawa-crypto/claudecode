@@ -58,6 +58,18 @@ export interface Finding {
    */
   observedDetail?: string[];
   /**
+   * 端末をまたいで一致すべき値。
+   *
+   *   PC と SP は別々に実行されるため、1 つのテストの中から
+   *   「もう片方の端末では何と書いてあったか」は見られない。
+   *   ここに値を入れておくと、レポートを作る段階で端末間を見比べ、
+   *   食い違っていれば報告する。
+   *
+   *   例) 申込ボタンの文言。PC「今すぐ申込む」/ SP「今すぐ申し込む」の
+   *       ような表記ゆれは、端末を分けて見ている限り気づけない。
+   */
+  sameAcrossDevices?: { key: string; label: string; value: string };
+  /**
    * 仕様どおりだったか。
    * 表の色 (白 / 赤) はこれで決める。
    * 見えた値をそのまま出す項目 (代理店名など) では
@@ -339,7 +351,17 @@ export interface AgencySpec {
    *   toPath へリダイレクトされる、という挙動を検査する。
    *   null = 再訪してもリダイレクトされない (fromPath に留まる)。
    */
-  revisitRedirect?: { fromPath: string; toPath: string } | null;
+  /**
+   * 保存済みコードで再訪したときの遷移。
+   *   mechanism / count は実測値を入れると、以降その変化を検知できる。
+   *   null のままだと実測値を記録するだけで照合しない。
+   */
+  revisitRedirect?: {
+    fromPath: string;
+    toPath: string;
+    mechanism?: RedirectMechanism | null;
+    count?: number | null;
+  } | null;
   visibleSections: string[];
   hiddenSections: string[];
   expectedTexts: Record<string, string>;

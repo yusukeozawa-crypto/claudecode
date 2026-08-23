@@ -225,10 +225,16 @@ profiles:
     revisitRedirect:
       fromPath: /lp/service/
       toPath: /lp/service-premium/
-    # [未実測] 遷移方式 (http / js / meta-refresh / spa) が未確認。
-    # unknown の間は方式を照合せず、実測値を記録する。
-    redirectMechanism: null
-    expectedRedirectCount: null
+      # 再訪時の遷移方式と回数 (2026-08-23 本番で実測)。
+      #   HTTP 3xx ではなく JavaScript による遷移。
+      #   設定しておくと「方式が変わった」「回数が増えた」を検知できる。
+      #   JavaScript 遷移は完了までに時間がかかるため、
+      #   測り方が甘いと「リダイレクトなし」と誤検知しうる (実際に起きた)。
+      mechanism: js
+      count: 1
+    # 流入時 (URL にコードを付けて通常 LP に入ったとき) は遷移しない (実測)。
+    redirectMechanism: none
+    expectedRedirectCount: 0
     # 流入時は専用 LP を通らない (URL のコードでは飛ばない)。
     # ここに /lp/service-premium/ を書くと流入の検査が誤検知になる。
     # 再訪時の経路は revisitRedirect 側で検査する。

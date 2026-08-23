@@ -23,6 +23,7 @@ import {
   describeApplicationLinks, installRequestGuards, observeApplicationLinks,
   observeCodeInApplication, verifyCodeApplied, verifyCodeCarried,
 } from '../../utils/handoff';
+import { compareAcrossDevices } from '../../utils/cross-device';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
@@ -32,7 +33,7 @@ import { applyKnownIssue } from '../../utils/known-issues';
 import { startClean } from '../../utils/agency-entry';
 import { buildAgencyRows } from '../../reporters/qa-html-reporter';
 import { CHECK_COLUMNS, buildChecklist } from '../../utils/checklist';
-import type { CheckId, FindingCategory, KnownIssuesFile, RedirectTrace, Severity } from '../../utils/types';
+import type { CheckId, FindingCategory, KnownIssuesFile, QaRecord, RedirectTrace, Severity } from '../../utils/types';
 
 const config = loadConfig();
 const SP_VIEWPORT = { width: 390, height: 844 };
@@ -1654,6 +1655,80 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(misattributed?.checkId, 'チェックリストの列に出すこと').toBe('code-carry');
     expect(misattributed?.checkOk, '表で赤にすること').toBe(false);
     expect(misattributed?.observedDetail, '化けている先のコードを表に出すこと').toContain('A002');
+  });
+
+  // ------------------------------------------------------------------
+  // 端末をまたいだ食い違い (PC と SP で申込ボタンの文言が違う)
+  //
+  //   PC と SP は別々のプロセスで実行されるため、テストの中からは
+  //   もう片方の端末を見られない。実サイトで
+  //   「今すぐ申込む」/「今すぐ申し込む」の表記ゆれが見つかったが、
+  //   これは人が目でログを読んで気づいたもので、ツールは検知できていなかった。
+  // ------------------------------------------------------------------
+  test('申込ボタンの文言が端末で違う場合に検知できる', async ({ page }) => {
+    const config = loadConfig();
+    const param = config.agency.paramName;
+
+    // まず観測側が「端末で比べる値」を持たせていることを確認する。
+    // ここが抜けると、比較しようとしても材料が無い。
+    await page.goto(`${config.environment.baseUrl}/lp/?${param}=A001`);
+    await page.waitForLoadState('load');
+    const links = await observeApplicationLinks(page, config, 'A001');
+    const described = describeApplicationLinks(links, config, 'A001', page.url());
+    const tagged = described.find((finding) => finding.sameAcrossDevices !== undefined);
+    expect(tagged?.sameAcrossDevices?.key, '代理店ごとに比べられる key を持つこと').toBe('cta-text:A001');
+    expect(tagged?.sameAcrossDevices?.value, 'ボタンの文言を値にすること').not.toBe('');
+
+    // 次に比較そのもの。PC と SP の記録を作って見比べる。
+    const record = (deviceId: string, value: string): QaRecord => ({
+      testId: `t-${deviceId}`,
+      testTitle: 'dummy',
+      suite: 'dummy',
+      environment: 'local',
+      environmentLabel: 'ローカル',
+      baseUrl: config.environment.baseUrl,
+      browserId: 'chromium',
+      deviceId,
+      deviceLabel: deviceId,
+      status: 'passed',
+      durationMs: 0,
+      startedAt: new Date().toISOString(),
+      findings: [
+        {
+          category: 'agency-handoff',
+          severity: 'low',
+          title: '[確認OK] 申込サイトへの導線を確認しました',
+          url: `${config.environment.baseUrl}/lp/`,
+          deviceId,
+          agencyCode: 'A001',
+          sameAcrossDevices: { key: 'cta-text:A001', label: '申込ボタンの文言', value },
+        },
+      ],
+    });
+
+    const differ = compareAcrossDevices([
+      record('pc', '今すぐ申込む'),
+      record('sp', '今すぐ申し込む'),
+    ]);
+    expect(differ.length, '食い違いがあれば結果を返すこと').toBe(1);
+    const finding = differ[0].findings[0];
+    expect(finding.title, '何が違うのか分かる文言であること').toContain('申込ボタンの文言');
+    expect(finding.actual, 'PC 側の値を出すこと').toContain('今すぐ申込む');
+    expect(finding.actual, 'SP 側の値を出すこと').toContain('今すぐ申し込む');
+    expect(finding.severity, '意図した違いもあり得るので Low であること').toBe('low');
+    expect(finding.agencyCode, 'どの代理店か分かること').toBe('A001');
+
+    // 同じなら何も出さない (正常なサイトを不具合として報告しない)
+    expect(
+      compareAcrossDevices([record('pc', '今すぐ申し込む'), record('sp', '今すぐ申し込む')]).length,
+      '一致していれば報告しないこと',
+    ).toBe(0);
+
+    // 片方の端末しか記録が無い場合は比べられないので報告しない
+    expect(
+      compareAcrossDevices([record('pc', '今すぐ申し込む')]).length,
+      '片方だけでは報告しないこと',
+    ).toBe(0);
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

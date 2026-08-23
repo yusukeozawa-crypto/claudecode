@@ -98,6 +98,8 @@ agencies:
     revisitRedirect:
       fromPath: /lp/service/
       toPath: /lp/service-premium/
+      mechanism: js
+      count: 1
     patternLabel: カカクコム
     effectiveFrom: null
     entryPath: /lp/service/
@@ -105,8 +107,8 @@ agencies:
     entryFinalPath: /lp/service/
     redirected: false
     landsAfterRevisit: true
-    redirectMechanism: unknown
-    expectedRedirectCount: null
+    redirectMechanism: none
+    expectedRedirectCount: 0
     expectedRedirectPaths: []
     visibleSections: []
     hiddenSections: []

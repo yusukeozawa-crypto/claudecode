@@ -203,10 +203,10 @@ test.describe('代理店ごとのリダイレクト @agency @redirect', () => {
             // カカクコムは URL のコードでは飛ばず、保存済みのコードで
             // 再訪したときに専用 LP へ飛ぶ仕様のため。
             checkId: 'redirect',
-            // [未実測] 再訪時の遷移方式は確認できていない。
-            // unknown の間は方式を照合せず、実測値を記録する。
-            redirectMechanism: revisit ? 'unknown' : 'none',
-            expectedRedirectCount: revisit ? null : 0,
+            // 再訪時の遷移方式と回数。設定にあればそれと照合し、
+            // 無ければ実測値を記録するだけにする (推測で合否を出さない)。
+            redirectMechanism: revisit ? (revisit.mechanism ?? 'unknown') : 'none',
+            expectedRedirectCount: revisit ? (revisit.count ?? null) : 0,
             expectedRedirectPaths: revisit ? [toPath] : [],
           },
           config,

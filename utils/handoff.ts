@@ -1063,6 +1063,19 @@ export function describeApplicationLinks(
       actual: `${links.length} 件 (表示中 ${visible.length} 件): ${sample}`,
       url,
       agencyCode: agencyCode ?? 'none',
+      // 申込ボタンの文言は PC と SP で同じであるべき。
+      //   レイアウトや文章量は端末で違ってよいが、ボタンの文言が
+      //   違っていれば打ち間違いの可能性が高い
+      //   (実サイトで「今すぐ申込む」/「今すぐ申し込む」が見つかった)。
+      sameAcrossDevices: {
+        key: `cta-text:${agencyCode ?? 'none'}`,
+        label: '申込ボタンの文言',
+        value: (visible.length > 0 ? visible : links)
+          .map((link) => link.text.trim())
+          .filter((text) => text !== '')
+          .sort()
+          .join(' / '),
+      },
       detail: '「文言」がボタンの表示名です。config/agency.yml の selectors.ctaPrimary はこの文言に合わせてください。',
     },
   ];

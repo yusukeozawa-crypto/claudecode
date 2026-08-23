@@ -17,6 +17,7 @@ import { loadConfig, PROJECT_ROOT } from '../utils/config';
 import { agencySeed, agencySpecs } from '../utils/agency';
 import { activeKnownIssues } from '../utils/known-issues';
 import { buildChecklist } from '../utils/checklist';
+import { compareAcrossDevices } from '../utils/cross-device';
 import type { AgencyMeta, Checklist } from '../utils/checklist';
 import { maskText } from '../utils/secrets';
 import type { Finding, QaConfig, QaRecord, Severity } from '../utils/types';
@@ -210,6 +211,19 @@ export default class QaHtmlReporter implements Reporter {
   async onEnd(result: FullResult): Promise<void> {
     fs.mkdirSync(REPORT_DIR, { recursive: true });
 
+    // テストの件数は「実際に走ったテスト」で数える。
+    //   下で端末をまたいだ比較の結果を 1 件足すため、
+    //   先に数えておかないとテスト数が 1 つ増えて見える。
+    const tests = {
+      total: this.records.length,
+      passed: this.records.filter((record) => record.status === 'passed').length,
+      failed: this.records.filter((record) => record.status === 'failed' || record.status === 'timedOut').length,
+      skipped: this.records.filter((record) => record.status === 'skipped').length,
+    };
+
+    // 端末をまたいだ食い違いは、すべての結果がそろうここでしか見られない
+    this.records.push(...compareAcrossDevices(this.records));
+
     const allFindings = this.records.flatMap((record) => record.findings);
     const counts = countBySeverity(allFindings);
     const summary = {
@@ -221,12 +235,7 @@ export default class QaHtmlReporter implements Reporter {
       baseUrl: this.baseUrl,
       projects: this.projectNames,
       playwrightStatus: result.status,
-      tests: {
-        total: this.records.length,
-        passed: this.records.filter((record) => record.status === 'passed').length,
-        failed: this.records.filter((record) => record.status === 'failed' || record.status === 'timedOut').length,
-        skipped: this.records.filter((record) => record.status === 'skipped').length,
-      },
+      tests,
       findings: counts,
       agencySampling: describeAgencySampling(),
       // コードだけでは人が判断できないため、会社名と みらやく掲載可否を持たせる
@@ -458,6 +467,7 @@ function describeAgencyMeta(): Record<string, AgencyMeta> {
  * 今回検査されなかったパターンを表に示すために使う
  * (「代理店が無い」のか「抽選から漏れた」のかを人が判断できるように)。
  */
+
 function allPatternLabels(): string[] {
   try {
     const config = loadConfig();
