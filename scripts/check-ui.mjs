@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 process.env.QA_UI_IMPORT = '1';
 const { server, checklistOf, findingGroups, slimSummary } = await import('./ui-server.mjs');
 const { buildNotes } = await import('./lib/notes.mjs');
+const { buildLogic, logicMarkdown } = await import('./lib/logic.mjs');
+const { parse: parseYaml } = await import('yaml');
 const { parseOrigin, readEnvValues } = await import('./lib/env-file.mjs');
 const os = await import('node:os');
 
@@ -422,6 +424,92 @@ await check('設定から分かる備考は自動で出る (書き写さない)'
   assert.equal(after.dueReached, true, '修正予定日を過ぎたら期日扱いにすること');
   assert.ok(after.title.includes('過ぎました'), '過ぎたことが分かる表記であること');
   assert.equal(past[0].dueReached, true, '期日が来たものを先に出すこと');
+});
+
+await check('ロジックの説明が検査の実行前でも出る', async () => {
+  // 「どういうロジックですか」と聞かれたときに出すものなので、
+  // 検査結果ではなく設定ファイルから作る (実行していなくても出る)。
+  const logic = buildLogic(root);
+  assert.deepEqual(
+    logic.tabs.map((tab) => tab.id),
+    ['simple', 'detail', 'limits'],
+    '簡易 / 詳細 / 限界と前提 の 3 つを返すこと',
+  );
+  for (const tab of logic.tabs) {
+    assert.ok(tab.label, 'タブ名があること');
+    assert.ok(tab.blocks.length > 0, `${tab.label} に中身があること`);
+    for (const block of tab.blocks) {
+      assert.ok(block.title, '見出しがあること');
+      assert.ok(
+        (block.lines ?? []).length > 0 || block.table,
+        `${block.title} に本文か表があること`,
+      );
+    }
+  }
+  // 実行中に変わらないものなので、数秒ごとの状態とは別の口から取る
+  const { body } = await json('/api/logic');
+  assert.ok(body.logic && Array.isArray(body.logic.tabs), '画面がロジックを取得できること');
+  const { body: state } = await json('/api/state');
+  assert.equal(state.logic, undefined, '数秒ごとの通信にロジックを混ぜないこと');
+  const html = await (await fetch(base)).text();
+  assert.ok(html.includes('logic-section'), 'ロジックの節を持つこと');
+  assert.ok(html.includes('data-logic-tab'), 'タブで切り替えられること');
+  assert.ok(html.includes('data-action="logic"'), '書き出しボタンがあること');
+  assert.ok(html.includes("fetch('/api/logic')"), '画面が別の口から取ること');
+});
+
+await check('ロジックの説明は設定から作る (書き写さない)', () => {
+  // 説明を手で書くと、設定を変えたときに説明だけが古くなる。
+  // 古い説明を人に渡すと、そこを突かれて全体が信用されなくなる。
+  const markdown = logicMarkdown(buildLogic(root));
+  const agency = parseYaml(fs.readFileSync(path.join(root, 'config', 'agency.yml'), 'utf8'));
+  const devices = parseYaml(fs.readFileSync(path.join(root, 'config', 'devices.yml'), 'utf8'));
+  const runtime = parseYaml(fs.readFileSync(path.join(root, 'config', 'runtime.yml'), 'utf8'));
+
+  assert.ok(markdown.includes(agency.paramName), 'URL パラメータ名が設定と同じであること');
+  for (const keyword of agency.agencyNameTexts.anshinPack) {
+    assert.ok(markdown.includes(keyword), `安心パックの判定語が出ること: ${keyword}`);
+  }
+  for (const entry of agency.agencyNameTexts.anshinPackAlwaysForbidden ?? []) {
+    assert.ok(markdown.includes(entry.text), `固定で違反にする文言が出ること: ${entry.text}`);
+    assert.ok(markdown.includes(entry.reason), 'そう決めた理由も一緒に出ること');
+  }
+  for (const device of devices.devices) {
+    assert.ok(
+      markdown.includes(`${device.viewport.width}×${device.viewport.height}`),
+      `端末の大きさが設定と同じであること: ${device.id}`,
+    );
+  }
+  for (const severity of runtime.failOnSeverities) {
+    assert.ok(markdown.includes(severity), `失敗にする重大度が出ること: ${severity}`);
+  }
+  // 検査項目はチェックリストの列 (utils/checklist.ts) と同じであること
+  const source = fs.readFileSync(path.join(root, 'utils', 'checklist.ts'), 'utf8');
+  const block = source.match(/CHECK_COLUMNS[^=]*=\s*\[([\s\S]*?)\];/)[1];
+  const labels = [...block.matchAll(/label:\s*'([^']+)'/g)].map((match) => match[1]);
+  assert.ok(labels.length > 0, 'チェックリストの列を読み取れること');
+  for (const label of labels) {
+    assert.ok(markdown.includes(label), `検査項目が説明に出ること: ${label}`);
+  }
+});
+
+await check('ロジックの説明に「分からないこと」が書いてある', () => {
+  // 限界を隠した説明を渡すと、読んだ人 (や AI) に穴を突かれて
+  // 全体が信用されなくなる。先に書いておく。
+  const limits = buildLogic(root).tabs.find((tab) => tab.id === 'limits');
+  const written = limits.blocks
+    .map((block) => `${block.title} ${(block.lines ?? []).join(' ')}`)
+    .join('\n');
+  for (const phrase of [
+    '抽選',               // 毎回全件を見ていない
+    'A/B',                // 片方しか見ていない
+    '検知できません',     // 語を含まない訴求文
+    '読み取り専用',       // 本番では送信を伴う確認をしない
+    '証拠ではありません', // コード保持は有効なコードの証拠ではない
+    'スリープ',           // 中断された実行は信用しない
+  ]) {
+    assert.ok(written.includes(phrase), `限界の説明に含まれること: ${phrase}`);
+  }
 });
 
 await check('npm script に OS で意味が変わる記号を入れない (Windows 対策)', () => {

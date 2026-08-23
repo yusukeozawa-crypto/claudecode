@@ -42,6 +42,7 @@
   /* 文章が長いものは広すぎると読みにくいので幅を抑える。
      チェックリストは列が多いので画面幅を使い切る。 */
   #findings-section, #notes-section, #settings-section, #report-section, #history-section { max-width: 1120px; }
+  #logic-section { max-width: 1120px; }
   section { margin-bottom: 40px; }
   section:last-child { margin-bottom: 0; }
   h2 {
@@ -301,8 +302,46 @@
   #notes li.due-reached { background: #fffaf0; }
   #notes li.due-reached .note-due { color: #8a5a00; font-weight: 700; }
 
+  /* ---- ロジックの説明 ---- */
+  #logic-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  #logic-tabs button {
+    background: #fff; border: 1px solid var(--border); color: var(--sub);
+    border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  #logic-tabs button:hover { border-color: #c7ced6; color: var(--text); }
+  #logic-tabs button.on { background: var(--text); border-color: var(--text); color: #fff; }
+  #logic-body { padding: 4px 22px 20px; font-size: 13px; line-height: 1.9; }
+  #logic-body .logic-summary { color: var(--sub); margin: 16px 0 0; }
+  #logic-body h3 { font-size: 14px; margin: 22px 0 8px; }
+  #logic-body .logic-note { color: var(--sub); margin: 0 0 8px; }
+  #logic-body ul { margin: 0; padding-left: 20px; }
+  #logic-body li { margin-bottom: 5px; }
+  #logic-body .logic-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  /* 列を固定幅にして、長い説明は折り返す。
+     横スクロールにすると「合格の条件」「重大度」が画面の外に出て読まれない。 */
+  #logic-body table { font-size: 12px; width: 100%; table-layout: fixed; }
+  #logic-body table th:nth-child(1), #logic-body table td:nth-child(1) { width: 13%; }
+  #logic-body table th:nth-child(2), #logic-body table td:nth-child(2) { width: 27%; }
+  #logic-body table th:nth-child(3), #logic-body table td:nth-child(3) { width: 30%; }
+  #logic-body table th:nth-child(4), #logic-body table td:nth-child(4) { width: 15%; }
+  #logic-body table th:nth-child(5), #logic-body table td:nth-child(5) { width: 15%; }
+  #logic-body table th {
+    background: #f7f8fa; color: var(--sub); font-size: 11px; text-align: left;
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+  }
+  /* 全体の表は 1 行に収める設計 (white-space: nowrap) だが、
+     ここは長い文章を入れるので折り返す。折り返さないと隣の列に重なる。 */
+  #logic-body table th, #logic-body table td { white-space: normal; overflow-wrap: anywhere; }
+  #logic-body table td {
+    padding: 9px 12px; vertical-align: top; border-bottom: 1px solid var(--line); line-height: 1.8;
+  }
+  #logic-body table tbody tr:last-child td { border-bottom: 0; }
+  #logic-body table td:first-child { font-weight: 700; }
+
   /* ---- 狭い画面 ---- */
   @media (max-width: 720px) {
+    /* 狭い画面では列を固定できないので横スクロールに戻す */
+    #logic-body table { table-layout: auto; min-width: 720px; }
     header { padding: 12px 16px; }
     main { padding: 20px 16px 60px; }
     .verdict { padding: 20px; }
@@ -427,6 +466,16 @@ powercfg /change monitor-timeout-ac 10</code>
     <h2>備考 <span class="muted" id="notes-note"></span></h2>
     <div class="panel"><ul id="notes"></ul></div>
     <p class="muted">保留事項・後日確認・後日仕様変更の覚え書き。<code>config/notes.yml</code> に書けます (設定から分かるものは自動で出ます)。</p>
+  </section>
+
+  <section id="logic-section" hidden>
+    <h2>ロジック <span class="muted" id="logic-note"></span></h2>
+    <div id="logic-tabs"></div>
+    <div class="panel" id="logic-body"></div>
+    <div class="actions">
+      <button class="small" id="export-logic" data-action="logic">ロジックを書き出す</button>
+      <span class="muted">reports/export/logic.md ができます (人に渡す・AI に読ませる用)</span>
+    </div>
   </section>
 
   <section id="history-section" hidden>
@@ -764,6 +813,77 @@ powercfg /change monitor-timeout-ac 10</code>
     }).join('');
   }
 
+  /**
+   * 判定ロジックの説明 (簡易 / 詳細 / 限界と前提)。
+   *
+   * 中身はサーバーが設定ファイルから作る。画面は表示するだけ。
+   * 同じ説明を画面と Markdown の 2 か所に書くと、必ず片方が古くなる。
+   */
+  var logicData = null;
+  var logicTab = 'simple';
+
+  function logicBlockHtml(block) {
+    var html = '<h3>' + text(block.title) + '</h3>';
+    if (block.note) html += '<p class="logic-note">' + text(block.note) + '</p>';
+    if (block.lines && block.lines.length > 0) {
+      html += '<ul>' + block.lines.map(function (line) {
+        return '<li>' + text(line) + '</li>';
+      }).join('') + '</ul>';
+    }
+    if (block.table) {
+      html += '<div class="logic-table-wrap"><table><thead><tr>' +
+        (block.table.head || []).map(function (cell) { return '<th>' + text(cell) + '</th>'; }).join('') +
+        '</tr></thead><tbody>' +
+        (block.table.rows || []).map(function (row) {
+          return '<tr>' + row.map(function (cell) { return '<td>' + text(cell) + '</td>'; }).join('') + '</tr>';
+        }).join('') +
+        '</tbody></table></div>';
+    }
+    return html;
+  }
+
+  function renderLogicBody() {
+    if (!logicData) return;
+    var tabs = logicData.tabs || [];
+    var current = tabs.filter(function (tab) { return tab.id === logicTab; })[0] || tabs[0];
+    if (!current) return;
+    document.getElementById('logic-tabs').innerHTML = tabs.map(function (tab) {
+      return '<button type="button" data-logic-tab="' + text(tab.id) + '"' +
+        (tab.id === current.id ? ' class="on"' : '') + '>' + text(tab.label) + '</button>';
+    }).join('');
+    document.getElementById('logic-body').innerHTML =
+      '<p class="logic-summary">' + text(current.summary) + '</p>' +
+      (current.blocks || []).map(logicBlockHtml).join('');
+  }
+
+  /**
+   * ロジックの説明は実行中に変わらないので 1 回だけ取る。
+   * 状態 (数秒ごと) に混ぜると通信が重くなる。
+   */
+  function loadLogic() {
+    fetch('/api/logic')
+      .then(function (res) { return res.json(); })
+      .then(function (body) {
+        var section = document.getElementById('logic-section');
+        if (!body.logic || !(body.logic.tabs || []).length) {
+          section.hidden = true;
+          return;
+        }
+        logicData = body.logic;
+        section.hidden = false;
+        document.getElementById('logic-note').textContent = '— 何をどう判定しているか (設定から自動生成)';
+        renderLogicBody();
+      })
+      .catch(function () { /* 説明が出ないだけにする (画面は止めない) */ });
+  }
+
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest ? event.target.closest('[data-logic-tab]') : null;
+    if (!button) return;
+    logicTab = button.getAttribute('data-logic-tab');
+    renderLogicBody();
+  });
+
   function renderHistory(state) {
     var section = document.getElementById('history-section');
     var table = document.getElementById('history');
@@ -1044,6 +1164,7 @@ powercfg /change monitor-timeout-ac 10</code>
   });
 
   refresh();
+  loadLogic();
   setInterval(function () { if (!busy) refresh(); }, 1500);
 </script>
 </body>

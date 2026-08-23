@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { withBinPath } from './lib/env-path.mjs';
 import { parseOrigin, readEnvValues, writeEnvValues } from './lib/env-file.mjs';
 import { buildNotes } from './lib/notes.mjs';
+import { buildLogic } from './lib/logic.mjs';
 import { parse as parseYaml } from 'yaml';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -98,6 +99,8 @@ const ACTIONS = {
   update: { label: '最新版に更新', script: 'update' },
   // 保存済みのレポートを CSV にするだけ。検査は実行しない
   export: { label: 'CSV に書き出す', script: 'export' },
+  // 判定ロジックの説明を Markdown にする。検査は実行しない
+  logic: { label: 'ロジックを書き出す', script: 'logic' },
   'discover-staging': { label: '仕様調査 (ステージング)', script: 'discover:staging' },
   'discover-production': { label: '仕様調査 (本番)', script: 'discover:production' },
 };
@@ -230,6 +233,19 @@ function historyList() {
  * 画面はそれをそのまま表示する。同じ計算を 2 か所に持つと、
  * レポートと画面で違う結果が出て「どちらが正しいのか」が分からなくなる。
  */
+/**
+ * 判定ロジックの説明。設定ファイルから作る。
+ *   画面の「ロジック」タブに出す。検査を 1 回も実行していなくても出せる。
+ *   説明を手で書くと実際の判定とずれるため、設定から作る。
+ */
+function logicOrEmpty() {
+  try {
+    return buildLogic(root);
+  } catch {
+    return null;
+  }
+}
+
 /** 備考。設定が壊れていても画面を落とさない */
 function notesOrEmpty() {
   try {
@@ -473,6 +489,12 @@ export const server = http.createServer((req, res) => {
   }
   if (req.method === 'GET' && url.pathname === '/api/state') {
     sendJson(res, 200, state());
+    return;
+  }
+  // ロジックの説明は実行中に変わらないため、状態とは分けて 1 回だけ取らせる
+  // (数秒ごとの通信に 17KB 足すと、通信が詰まって「画面とつながっていません」になる)
+  if (req.method === 'GET' && url.pathname === '/api/logic') {
+    sendJson(res, 200, { logic: logicOrEmpty() });
     return;
   }
   if (req.method === 'POST' && url.pathname === '/api/run') {
