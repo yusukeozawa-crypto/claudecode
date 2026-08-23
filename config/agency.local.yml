@@ -41,6 +41,14 @@ agencyNameTexts:
   #   + 「見出しの中でない」の 3 つを満たしたときだけ許す。
   anshinPackAnnotationMarkers:
     - "※"
+  # 否定表現。
+  #   「安心パックなし」は「安心パックが付かない場合」で、訴求の正反対。
+  #   保険料の前提条件として注釈に出るもので、資格の問題にはあたらない。
+  #   語の直後にこれが来る場合は訴求とみなさない。
+  anshinPackNegations:
+    - なし
+    - 無し
+    - 未加入
 
 storage:
   # cookie | localStorage | both — サイトの実装に合わせる

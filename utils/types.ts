@@ -230,6 +230,12 @@ export interface AgencyFile {
      */
     anshinPackAnnotationMarkers?: string[];
     /**
+     * 否定表現。
+     * 「安心パックなし」は「付かない場合」で訴求の正反対。
+     * 保険料の前提条件として注釈に出るもので、資格の問題にはあたらない。
+     */
+    anshinPackNegations?: string[];
+    /**
      * 代理店名を読み取る場所。上から順に最初に見つかった要素を使う。
      * 見つからない場合はページ全体から探す (判定は甘くなる)。
      */

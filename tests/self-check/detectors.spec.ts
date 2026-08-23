@@ -1749,12 +1749,14 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     const config = loadConfig();
     const keywords = config.agency.agencyNameTexts?.anshinPack ?? [];
     const markers = config.agency.agencyNameTexts?.anshinPackAnnotationMarkers ?? ['※'];
+    const negations = config.agency.agencyNameTexts?.anshinPackNegations ?? [];
+    expect(negations, '否定表現を設定に持つこと').toContain('なし');
     expect(keywords, 'みらいの約束も同じ扱いにすること (= 安心パック)').toContain('みらいの約束');
 
     // 許してよい注釈と、許してはいけない訴求を並べた再現ページ
     await page.goto(`${config.environment.baseUrl}/broken/anshin-promo.html`);
     await page.waitForLoadState('load');
-    const occurrences = await observeAnshinOccurrences(page, keywords, markers);
+    const occurrences = await observeAnshinOccurrences(page, keywords, markers, negations);
     const find = (part: string) => occurrences.find((entry) => entry.text.includes(part));
 
     // 許すもの: ※ 付き・本文より小さい文字
@@ -1769,6 +1771,15 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     const splitAnnotation = find('所定の特約を付帯');
     expect(splitAnnotation, '別要素に分かれた注釈も拾うこと').toBeDefined();
     expect(splitAnnotation?.allowed, '同じ行に ※ があれば注釈として許すこと').toBe(true);
+
+    // 許すもの: 否定表現 (安心パックなし = 付かない場合)。
+    //   ※ が同じ行に無くても訴求ではない。実サイトの保険料の注釈がこの形。
+    //   以前この判定を落として、正しい注釈 3 件を Critical にしていた。
+    const negation = find('安心パックなしの場合');
+    expect(negation, '否定表現を拾うこと').toBeDefined();
+    expect(negation?.negated, '否定表現だと分かること').toBe(true);
+    expect(negation?.hasMarker, '同じ行に ※ が無いこと (前提条件)').toBe(false);
+    expect(negation?.allowed, '否定表現は ※ が無くても許すこと').toBe(true);
 
     // 許さないもの: ※ が無い訴求
     const plain = find('もあわせてご検討');

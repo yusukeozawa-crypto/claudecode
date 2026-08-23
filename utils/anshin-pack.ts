@@ -22,8 +22,10 @@ export interface AnshinOccurrence {
   fontPx: number;
   /** 本文 (body) のフォントサイズ (px) */
   bodyFontPx: number;
-  /** 同じ要素に注釈の目印 (※) があるか */
+  /** 同じ行に注釈の目印 (※) があるか */
   hasMarker: boolean;
+  /** 否定表現 (安心パックなし = 付かない場合) か。訴求ではない */
+  negated: boolean;
   /** 要素のタグ (h2 / p / td など) */
   tag: string;
   /** 見出しの中か */
@@ -43,11 +45,12 @@ export async function observeAnshinOccurrences(
   page: Page,
   keywords: string[],
   markers: string[],
+  negations: string[] = [],
 ): Promise<AnshinOccurrence[]> {
   if (keywords.length === 0) return [];
   return page
     .evaluate(
-      ({ words, marks }: { words: string[]; marks: string[] }) => {
+      ({ words, marks, nots }: { words: string[]; marks: string[]; nots: string[] }) => {
         const bodyFontPx = parseFloat(getComputedStyle(document.body).fontSize) || 16;
         const results: Array<{
           keyword: string;
@@ -55,6 +58,7 @@ export async function observeAnshinOccurrences(
           fontPx: number;
           bodyFontPx: number;
           hasMarker: boolean;
+          negated: boolean;
           tag: string;
           inHeading: boolean;
           inTable: boolean;
@@ -87,22 +91,69 @@ export async function observeAnshinOccurrences(
           //   あるだけで訴求文まで注釈と判定してしまう。
           //   そこで「一番近いブロック要素 (= その行)」だけを見る。
           //   その行が長すぎる場合は行とみなせないので採用しない。
-          const blockDisplays = ['block', 'flex', 'grid', 'list-item', 'table', 'flow-root'];
-          const nearestBlock = (() => {
-            let current: HTMLElement | null = element;
-            for (let depth = 0; depth < 5 && current !== null; depth += 1) {
-              const display = getComputedStyle(current).display;
-              if (blockDisplays.some((name) => display.startsWith(name))) return current;
-              current = current.parentElement;
+          /**
+           * 否定表現かどうか。
+           *
+           *   「安心パックなし」は「安心パックが付かない場合」で、
+           *   訴求の正反対。保険料の前提条件として注釈に出るもので、
+           *   資格の問題にはあたらない。
+           *   語の直後 (閉じ括弧などを飛ばして数文字) に否定語があれば
+           *   訴求ではないと判断する。
+           *
+           *   語が複数回出る場合は、**否定でない出現が 1 つでもあれば**
+           *   訴求とみなす (安全側)。
+           */
+          const negated = (() => {
+            if (nots.length === 0) return false;
+            for (const word of words) {
+              let from = 0;
+              for (;;) {
+                const index = own.indexOf(word, from);
+                if (index < 0) break;
+                const after = own.slice(index + word.length).replace(/^[」』"'）)\s]+/, '');
+                if (!nots.some((not) => not !== '' && after.startsWith(not))) return false;
+                from = index + word.length;
+              }
             }
-            return null;
+            return true;
           })();
-          const lineText = nearestBlock?.textContent ?? '';
-          const lineIsShortEnough = lineText.length <= 600;
+
           const markerInOwn = marks.some((mark) => mark !== '' && own.includes(mark));
-          const markerInLine = lineIsShortEnough
-            && marks.some((mark) => mark !== '' && lineText.includes(mark));
-          const hasMarker = markerInOwn || markerInLine;
+
+          // 目印は「この要素のすぐ前」にあるものだけを認める。
+          //
+          //   実サイトの注釈は目印と本文が別の要素に分かれている:
+          //     <p><span>※5</span><span>「安心パック」は…</span></p>
+          //   そのため要素自身だけを見ると注釈と分からない。
+          //
+          //   一方、行 (囲み) のどこにあってもよいことにすると、
+          //   一番近いブロックが大きな囲みだった場合に、離れた別の行の ※ が
+          //   漏れ込んで訴求文まで注釈と判定してしまう (モックで実際に起きた)。
+          //
+          //   そこで、直前の兄弟要素の末尾だけを見る。
+          //   注釈は「※5」のすぐ後ろに本文が来るため、これで足りる。
+          const beforeText = (() => {
+            let text = '';
+            let node: Node | null = element.previousSibling;
+            while (node !== null && text.length < 80) {
+              // HTML コメントは画面に出ないので数えない。
+              //   コメントの中に ※ が書かれていると、訴求文まで
+              //   注釈と判定してしまう (モックで実際に起きた)。
+              if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) {
+                text = `${node.textContent ?? ''}${text}`;
+              }
+              node = node.previousSibling;
+            }
+            // 自分のテキストのうち、語より前の部分も見る
+            const first = words
+              .map((word) => own.indexOf(word))
+              .filter((index) => index >= 0)
+              .sort((a, b) => a - b)[0];
+            const ownPrefix = first === undefined ? '' : own.slice(0, first);
+            return `${text}${ownPrefix}`.slice(-40);
+          })();
+          const markerBeforeKeyword = marks.some((mark) => mark !== '' && beforeText.includes(mark));
+          const hasMarker = markerInOwn || markerBeforeKeyword;
           const tag = element.tagName.toLowerCase();
           const inHeading = element.closest('h1, h2, h3, h4, h5') !== null;
           const inTable = element.closest('table') !== null;
@@ -125,12 +176,17 @@ export async function observeAnshinOccurrences(
             // あり、大きさだけで決めると正しい注釈まで違反にしてしまうため。
             // 表の中かどうかは記録するだけにして判定には使わない。
             // 実物のデータを見る前にルールを増やすと誤検知を作る。
-            allowed: hasMarker && fontPx <= bodyFontPx && !inHeading,
+            negated,
+            // 注釈として許す条件:
+            //   ・否定表現 (安心パックなし = 付かない場合) … 訴求の正反対なので可
+            //   または
+            //   ・その行に注釈の目印 (※) があり、本文より大きくなく、見出しでない
+            allowed: negated || (hasMarker && fontPx <= bodyFontPx && !inHeading),
           });
         }
         return results;
       },
-      { words: keywords, marks: markers },
+      { words: keywords, marks: markers, nots: negations },
     )
     .catch(() => []);
 }
@@ -144,5 +200,6 @@ export function describeOccurrence(entry: AnshinOccurrence): string {
   ]
     .filter((part) => part !== '')
     .join(' / ');
-  return `「${entry.text}」 ${entry.fontPx}px (本文 ${entry.bodyFontPx}px) ${entry.hasMarker ? '※あり' : '※なし'} ${place}`;
+  const why = entry.negated ? '否定表現 (なし)' : entry.hasMarker ? '※あり' : '※なし';
+  return `「${entry.text}」 ${entry.fontPx}px (本文 ${entry.bodyFontPx}px) ${why} ${place}`;
 }
