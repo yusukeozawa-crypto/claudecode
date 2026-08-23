@@ -218,6 +218,57 @@ await check('途中の結果と確定した結果を区別できる', () => {
   assert.ok(html.includes('実行中の途中結果'), '途中の結果だと画面に出すこと');
 });
 
+await check('中断 (スリープ) があったら結果を信用しないよう伝える', () => {
+  // スリープのあとは正常なサイトでもタイムアウトが大量に出る。
+  // 「異常なし」でも結果自体が信用できないことを先に伝える必要がある。
+  const withGap = slimSummary({
+    tests: {}, findings: {},
+    interruptions: [{ at: '2026-08-23T07:00:00.000Z', minutes: 42 }],
+  });
+  assert.equal(withGap.interruptions.length, 1, '中断を画面に伝えること');
+  assert.deepEqual(slimSummary({ tests: {}, findings: {} }).interruptions, [], '無ければ空にすること');
+
+  const html = fs.readFileSync(path.join(root, 'scripts', 'ui', 'index.html'), 'utf8');
+  assert.ok(html.includes('interrupt-notice'), '中断の警告を出す場所があること');
+  assert.ok(html.includes('この結果は信用できません'), '結果を信用しないよう書くこと');
+  // 判定より前に出す (先に目に入らないと意味がない)
+  assert.ok(
+    html.indexOf('interrupt-notice') < html.indexOf('id="verdict"'),
+    '判定より前に出すこと',
+  );
+});
+
+await check('全件のときだけスリープの注意とコマンドを出す', () => {
+  // 電源設定はツールでは変更しない。システム設定を書き換えると
+  // ツールが落ちたときに戻せず、スリープしないパソコンが残る。
+  const html = fs.readFileSync(path.join(root, 'scripts', 'ui', 'index.html'), 'utf8');
+  assert.ok(html.includes('sleep-notice'), 'スリープの注意を出す場所があること');
+  assert.ok(html.includes('powercfg /change standby-timeout-ac 0'), '止める側のコマンドを出すこと');
+  assert.ok(html.includes('powercfg /change standby-timeout-ac 30'), '戻す側のコマンドも出すこと');
+  assert.ok(html.includes("sizeSelect.value !== 'all'"), '全件のときだけ出すこと');
+  // ツール自身が powercfg を実行してはいけない
+  const server = fs.readFileSync(path.join(root, 'scripts', 'ui-server.mjs'), 'utf8');
+  assert.ok(!/powercfg/.test(server), 'ツールが電源設定を変更しないこと');
+});
+
+await check('CSV の書き出しは固定リストの操作として実行する', () => {
+  const server = fs.readFileSync(path.join(root, 'scripts', 'ui-server.mjs'), 'utf8');
+  assert.ok(/export: \{ label: .+script: 'export' \}/.test(server), 'export が固定リストにあること');
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(pkg.scripts.export, 'node scripts/export-csv.mjs', 'npm script があること');
+  const html = fs.readFileSync(path.join(root, 'scripts', 'ui', 'index.html'), 'utf8');
+  assert.ok(html.includes('data-action="export"'), '画面にボタンがあること');
+});
+
+await check('CSV は Excel で開いても日本語が壊れない', () => {
+  // BOM が無いと Excel が文字化けする。CSV の意味が無くなる。
+  const script = fs.readFileSync(path.join(root, 'scripts', 'export-csv.mjs'), 'utf8');
+  assert.ok(script.includes('\ufeff'), 'BOM を付けること');
+  assert.ok(/\\r\\n/.test(script), '改行を CRLF にすること');
+  // = で始まる値を数式として実行させない
+  assert.ok(/\[=\+\\-@\]/.test(script), '数式として解釈される値を打ち消すこと');
+});
+
 await check('チェックリストをレポートから受け取れる', () => {
   // 計算はレポート側 (utils/checklist.ts) が行う。
   // 画面は結果を渡すだけなので、壊れた・古いレポートで落ちないことを確認する。

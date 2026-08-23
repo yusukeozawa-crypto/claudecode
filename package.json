@@ -41,7 +41,8 @@
     "selftest:ui": "node scripts/check-ui.mjs",
     "ui": "node scripts/ui-server.mjs",
     "update": "node scripts/update.mjs",
-    "update:screenshots": "node scripts/update-baselines.mjs"
+    "update:screenshots": "node scripts/update-baselines.mjs",
+    "export": "node scripts/export-csv.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

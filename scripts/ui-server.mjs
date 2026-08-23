@@ -96,6 +96,8 @@ function agencyCount() {
 /** 検査以外の操作 */
 const ACTIONS = {
   update: { label: '最新版に更新', script: 'update' },
+  // 保存済みのレポートを CSV にするだけ。検査は実行しない
+  export: { label: 'CSV に書き出す', script: 'export' },
   'discover-staging': { label: '仕様調査 (ステージング)', script: 'discover:staging' },
   'discover-production': { label: '仕様調査 (本番)', script: 'discover:production' },
 };
@@ -263,6 +265,8 @@ export function slimSummary(summary) {
     // 検査中に書き出した途中の結果か。
     //   途中の結果を「確定した結果」と読ませてはいけない。
     partial: Boolean(summary.partial),
+    // 検査中の中断 (スリープ・通信断)。あればこの結果は信用できない
+    interruptions: Array.isArray(summary.interruptions) ? summary.interruptions : [],
   };
 }
 

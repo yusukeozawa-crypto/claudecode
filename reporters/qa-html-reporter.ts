@@ -36,6 +36,12 @@ const HISTORY_DIR = path.join(REPORT_DIR, 'history');
  *   毎テストごとに書くと無駄が大きいので間隔を空ける。
  */
 const SNAPSHOT_INTERVAL_MS = 10_000;
+/**
+ * 「中断があった」とみなす時間の飛び (ミリ秒)。
+ *   1 テストは長くても数分で終わる。それを大きく超える空白は
+ *   スリープ・ネットワーク断など手元の環境の問題を示す。
+ */
+const INTERRUPTION_THRESHOLD_MS = 5 * 60 * 1000;
 
 /**
  * テストを人が分かる単位にまとめる。
@@ -91,6 +97,16 @@ export default class QaHtmlReporter implements Reporter {
   private completed = 0;
   /** 途中結果を最後に書いた時刻 (書きすぎないよう間隔を空ける) */
   private lastSnapshotAt = 0;
+  /** 直前のテストが終わった時刻 (検査中の中断を見つけるため) */
+  private lastTestEndAt = 0;
+  /**
+   * 検査中に起きた中断。
+   *   パソコンがスリープすると処理が止まり、復帰時に待ち時間が
+   *   一気に消化されてタイムアウトが大量発火する。
+   *   「サイトが壊れている」ように見えるが原因は手元の環境。
+   *   後から見分けられるように、時間の飛びを記録する。
+   */
+  private readonly interruptions: Array<{ at: string; minutes: number }> = [];
   private readonly groupProgress = new Map<string, { done: number; total: number }>();
   private currentLabel = '';
 
@@ -214,6 +230,16 @@ export default class QaHtmlReporter implements Reporter {
     this.currentLabel = groupLabel(testCase);
     const group = this.groupProgress.get(this.currentLabel);
     if (group) group.done += 1;
+    // 前のテストからの時間の飛びを見る (スリープ・通信断の検知)
+    const now = Date.now();
+    if (this.lastTestEndAt > 0 && now - this.lastTestEndAt > INTERRUPTION_THRESHOLD_MS) {
+      this.interruptions.push({
+        at: new Date(this.lastTestEndAt).toISOString(),
+        minutes: Math.round((now - this.lastTestEndAt) / 60000),
+      });
+    }
+    this.lastTestEndAt = now;
+
     this.writeProgress(true);
     // 途中で止まっても結果が残るように書き出す
     this.writeSnapshot();
@@ -240,7 +266,7 @@ export default class QaHtmlReporter implements Reporter {
     };
 
     // 端末をまたいだ食い違いは、両方の記録がそろってはじめて分かる
-    const records = [...this.records, ...compareAcrossDevices(this.records)];
+    const records = [...this.records, ...compareAcrossDevices(this.records), ...this.interruptionRecord()];
     const counts = countBySeverity(records.flatMap((record) => record.findings));
 
     const summary = {
@@ -271,6 +297,14 @@ export default class QaHtmlReporter implements Reporter {
       failOnSeverities: this.failOnSeverities,
       gateFailed: this.failOnSeverities.some((severity) => (counts[severity] ?? 0) > 0),
       /**
+       * 検査中に起きた中断 (スリープ・通信断)。
+       *   ここに何か入っていたら、その結果は信用してはいけない。
+       *   判定 (合否) は変えない。原因はサイトではなく手元の環境なので、
+       *   CI を失敗にすると「サイトの不具合」と読み違える。
+       *   代わりに画面のいちばん上に出す。
+       */
+      interruptions: [...this.interruptions],
+      /**
        * 途中の結果かどうか。
        *   全件の検査は 1 時間を超える。最後にまとめて書き出す作りだと、
        *   途中で止まった時点で結果が 1 件も残らない (実際に問題になった)。
@@ -280,6 +314,52 @@ export default class QaHtmlReporter implements Reporter {
     };
 
     return { summary, records };
+  }
+
+  /**
+   * 検査中の中断を検知結果として残す。
+   *
+   *   判定を変えないよう Medium にする (サイトの不具合ではない)。
+   *   ただし黙って通すと「異常なし」を信じてしまうため、
+   *   summary.interruptions にも入れて画面の目立つ位置に出す。
+   */
+  private interruptionRecord(): QaRecord[] {
+    if (this.interruptions.length === 0) return [];
+    const total = this.interruptions.reduce((sum, entry) => sum + entry.minutes, 0);
+    const first = this.records[0];
+    return [
+      {
+        testId: 'run-interruption',
+        testTitle: '検査中の中断',
+        suite: '実行環境',
+        environment: first?.environment ?? '',
+        environmentLabel: first?.environmentLabel ?? '',
+        baseUrl: first?.baseUrl ?? '',
+        browserId: 'report',
+        deviceId: 'pc, sp',
+        deviceLabel: 'PC / SP',
+        status: 'passed',
+        durationMs: 0,
+        startedAt: new Date().toISOString(),
+        findings: [
+          {
+            category: 'timeout',
+            severity: 'medium',
+            title: `検査中に ${this.interruptions.length} 回の中断がありました (合計 ${total} 分)`,
+            expected: '検査中に中断がないこと (パソコンがスリープしないこと)',
+            actual: this.interruptions
+              .map((entry) => `${new Date(entry.at).toLocaleString('ja-JP')} から ${entry.minutes} 分`)
+              .join(' / '),
+            url: '',
+            deviceId: 'pc, sp',
+            detail:
+              'パソコンがスリープしたか、通信が切れた可能性があります。復帰時に待ち時間が'
+              + '一気に消化され、正常なサイトでもタイムアウトが大量に出ます。'
+              + 'この実行の結果は信用せず、電源設定を変えてから回し直してください。',
+          },
+        ],
+      },
+    ];
   }
 
   /**
@@ -466,6 +546,8 @@ interface ReportSummary {
   gateFailed: boolean;
   /** 検査中に書き出した途中の結果か (全件の検査は 1 時間を超えるため) */
   partial?: boolean;
+  /** 検査中に起きた中断 (スリープ・通信断)。あればこの結果は信用できない */
+  interruptions?: Array<{ at: string; minutes: number }>;
 }
 
 /**

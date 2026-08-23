@@ -198,6 +198,15 @@
     border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px; font-size: 13px; line-height: 1.8;
   }
   .notice code { background: #fdf1d5; padding: 1px 6px; border-radius: 4px; }
+  .notice.danger { background: #fdf0ee; border-color: #f0c2bd; color: #9c2f24; }
+  .notice.danger code { background: #fbe4e1; }
+  .notice .cmd {
+    display: flex; gap: 10px; align-items: flex-start; margin: 10px 0;
+  }
+  .notice .cmd code {
+    flex: 1; white-space: pre; font-size: 12px; padding: 10px 12px; border-radius: 8px;
+    background: #fff; border: 1px solid #f0dcb0; overflow-x: auto;
+  }
 
   /* ---- チェックリスト ---- */
   /*  端末ごとに 1 枚のカードにする。
@@ -313,6 +322,13 @@
   <button class="header-action" data-action="update">最新版に更新</button>
 </header>
 <main>
+  <!--
+    検査中に中断 (スリープ・通信断) があった場合の警告。
+    「異常なし」と出ていてもその結果は信用できないため、
+    判定より前、画面のいちばん上に出す。
+  -->
+  <div class="notice danger" id="interrupt-notice" hidden></div>
+
   <div class="notice" id="restart-notice" hidden>
     <strong>ツールを更新しました。開き直してください。</strong><br>
     この画面を動かしている黒いウィンドウを閉じて、<code>run-qa.cmd</code> をもう一度開いてください。
@@ -328,6 +344,8 @@
     <div class="actions">
       <button class="small stop" id="stop" hidden>実行を止める</button>
       <button class="small" id="open-report" hidden>証跡を別画面で開く</button>
+      <!-- 保存済みのレポートを CSV にするだけ (検査は実行しない) -->
+      <button class="small" id="export-csv" data-action="export" hidden>CSV に書き出す</button>
     </div>
     <details class="log" id="log-details">
       <summary>実行ログ (うまくいかないときに開く)</summary>
@@ -343,6 +361,29 @@
       </label>
       <span class="muted" id="size-note">まずは最小で動作を確認し、問題がなくなってから増やしてください。</span>
     </div>
+
+    <!--
+      全件は 1 時間を超える。途中でパソコンがスリープすると、復帰時に
+      待ち時間が一気に消化されてタイムアウトが大量発火し、
+      正常なサイトが不具合として並ぶ (実際に起きた)。
+      電源設定はこのツールでは変更しない。システム設定を勝手に書き換えると、
+      ツールが落ちたときに戻せず、スリープしないパソコンが残る。
+      コマンドだけ用意して、実行は人が行う。
+    -->
+    <div class="notice" id="sleep-notice" hidden>
+      <strong>全件は 1 時間以上かかります。</strong><br>
+      途中でスリープすると、復帰後にタイムアウトが大量に出て
+      <strong>正常なサイトが不具合として並びます</strong>。
+      実行前に黒い画面で下を実行してください (電源につないだ状態で、蓋は開けたまま)。
+      <div class="cmd"><code id="sleep-on-cmd">powercfg /change standby-timeout-ac 0
+powercfg /change monitor-timeout-ac 0</code>
+        <button class="small" data-copy="sleep-on-cmd">コピー</button></div>
+      検査が終わったら元に戻してください。
+      <div class="cmd"><code id="sleep-off-cmd">powercfg /change standby-timeout-ac 30
+powercfg /change monitor-timeout-ac 10</code>
+        <button class="small" data-copy="sleep-off-cmd">コピー</button></div>
+    </div>
+
     <div class="targets" id="targets"></div>
 
     <!-- 検査ではない道具は畳んでおく。
@@ -516,6 +557,34 @@
     });
   }
 
+  /**
+   * 検査中に中断があったことを知らせる。
+   *
+   * スリープや通信断のあとは、正常なサイトでもタイムアウトが大量に出る。
+   * 「異常なし」でも「問題あり」でも、その結果自体が信用できない。
+   * 判定より上に出して、先に目に入るようにする。
+   */
+  function renderInterruptions(state) {
+    var box = document.getElementById('interrupt-notice');
+    var list = (state.summary && state.summary.interruptions) || [];
+    if (list.length === 0) {
+      box.hidden = true;
+      return;
+    }
+    var total = list.reduce(function (sum, entry) { return sum + (entry.minutes || 0); }, 0);
+    box.hidden = false;
+    box.innerHTML =
+      '<strong>この結果は信用できません。検査中に ' + list.length + ' 回の中断がありました (合計 ' +
+      total + ' 分)。</strong><br>' +
+      'パソコンがスリープしたか、通信が切れた可能性があります。復帰時に待ち時間が一気に消化され、' +
+      '正常なサイトでもタイムアウトが大量に出ます。' +
+      '<div class="muted" style="margin-top:6px">' +
+      list.map(function (entry) {
+        return text(formatTime(entry.at)) + ' から ' + text(entry.minutes) + ' 分';
+      }).join(' / ') +
+      '</div>';
+  }
+
   function renderVerdict(state) {
     var box = document.getElementById('verdict');
     var big = document.getElementById('verdict-big');
@@ -528,6 +597,8 @@
 
     stop.hidden = !state.running;
     document.getElementById('open-report').hidden = !state.hasReport;
+    // 結果が無いときに押せると「何も出ない」ので隠す
+    document.getElementById('export-csv').hidden = !state.hasReport || state.running;
 
     if (state.running) {
       var done = progress ? progress.completed : 0;
@@ -829,6 +900,9 @@
             return '<option value="' + text(size.key) + '">' + text(size.label) + '</option>';
           }).join('');
         }
+        // 全件を選んだときだけスリープの注意を出す (毎回出すと読まれなくなる)
+        document.getElementById('sleep-notice').hidden = sizeSelect.value !== 'all';
+
         var needsRestart = state.restartRequired === true || (state.sizes || []).length === 0;
         document.getElementById('restart-notice').hidden = !needsRestart;
         // URL が 1 つも登録されていない = まず設定が必要なので開いておく
@@ -838,6 +912,7 @@
         var settings = document.getElementById('settings-details');
         if (!anyConfigured && !settings.dataset.touched) settings.open = true;
         settings.addEventListener('toggle', function () { settings.dataset.touched = '1'; });
+        renderInterruptions(state);
         renderVerdict(state);
         renderTargets(state);
         if (document.activeElement === document.body) renderEnvForm();
@@ -928,6 +1003,30 @@
 
   document.getElementById('open-report-2').addEventListener('click', function () {
     window.open('/reports/qa-report.html', '_blank');
+  });
+
+  // コマンドのコピー。実行はしない (ツールは電源設定を変更しない)
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (button) {
+    button.addEventListener('click', function () {
+      var target = document.getElementById(button.getAttribute('data-copy'));
+      if (!target) return;
+      var text = target.textContent;
+      var done = function () {
+        var label = button.textContent;
+        button.textContent = 'コピーしました';
+        setTimeout(function () { button.textContent = label; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { alert(text); });
+      } else {
+        alert(text);
+      }
+    });
+  });
+
+  // 件数を変えたらすぐ注意の出し方を切り替える (次の更新を待たせない)
+  document.getElementById('size').addEventListener('change', function () {
+    document.getElementById('sleep-notice').hidden = this.value !== 'all';
   });
 
   document.getElementById('stop').addEventListener('click', function () { post('/api/stop'); });
