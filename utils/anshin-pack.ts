@@ -178,10 +178,20 @@ export async function observeAnshinOccurrences(
             // 実物のデータを見る前にルールを増やすと誤検知を作る。
             negated,
             // 注釈として許す条件:
-            //   ・否定表現 (安心パックなし = 付かない場合) … 訴求の正反対なので可
+            //   ・否定表現 (安心パックなし = 付かない場合) … 訴求の正反対なので常に可
             //   または
-            //   ・その行に注釈の目印 (※) があり、本文より大きくなく、見出しでない
-            allowed: negated || (hasMarker && fontPx <= bodyFontPx && !inHeading),
+            //   ・本文より小さい文字で、見出しの中でない … 注釈・免責文
+            //
+            // ※ の有無は判定に使わない (記録には残す)。
+            //   ※ の位置はサイトの作りに左右されて不安定で、
+            //   実際に 3 通りの取り違えを起こした:
+            //     ・目印と本文が別要素に分かれている (注釈を違反と誤判定)
+            //     ・見出しの末尾に ※ があり、次の段落に漏れ込む (訴求を許可)
+            //     ・HTML コメントの中の ※ を数える (訴求を許可)
+            //   さらに ※ が近くにあるだけで通るため、同じ要素が
+            //   端末によって違反 / 許可に分かれていた。
+            //   文字の大きさは客観的で、訴求は必ず本文以上の大きさになる。
+            allowed: negated || (fontPx < bodyFontPx && !inHeading),
           });
         }
         return results;
@@ -200,6 +210,11 @@ export function describeOccurrence(entry: AnshinOccurrence): string {
   ]
     .filter((part) => part !== '')
     .join(' / ');
-  const why = entry.negated ? '否定表現 (なし)' : entry.hasMarker ? '※あり' : '※なし';
+  // 判定の理由を出す。※ は判定に使わないが、記録として併記する
+  const why = entry.negated
+    ? '否定表現 (なし)'
+    : entry.fontPx < entry.bodyFontPx
+      ? `本文より小さい${entry.hasMarker ? ' / ※あり' : ''}`
+      : `本文より小さくない${entry.hasMarker ? ' / ※あり' : ''}`;
   return `「${entry.text}」 ${entry.fontPx}px (本文 ${entry.bodyFontPx}px) ${why} ${place}`;
 }

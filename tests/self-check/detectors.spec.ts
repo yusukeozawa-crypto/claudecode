@@ -1766,11 +1766,24 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(annotation?.fontPx, 'フォントサイズを記録すること').toBeLessThan(annotation?.bodyFontPx ?? 0);
 
     // 許すもの: 目印と本文が別の要素に分かれた注釈 (実サイトと同じ形)。
-    //   「安心パック」がある span 自身には ※ が無い。
-    //   要素自身だけを見ていた頃は、正しい注釈を違反として報告していた。
+    //   本文より小さい文字なので許す (※ の位置は判定に使わない)。
     const splitAnnotation = find('所定の特約を付帯');
     expect(splitAnnotation, '別要素に分かれた注釈も拾うこと').toBeDefined();
-    expect(splitAnnotation?.allowed, '同じ行に ※ があれば注釈として許すこと').toBe(true);
+    expect(splitAnnotation?.allowed, '本文より小さい文字は注釈として許すこと').toBe(true);
+
+    // 許さないもの: 見出しの直後の訴求文 (実サイトと同じ形)。
+    //   直前の見出しの末尾に ※ があるため、※ を判定に使っていた頃は
+    //   この訴求文を注釈として通していた (端末によって結果が変わっていた)。
+    const afterHeading = find('万が一のトラブルにも備えられます');
+    expect(afterHeading, '見出しの直後の訴求文を拾うこと').toBeDefined();
+    expect(afterHeading?.allowed, '本文と同じ大きさなら許さないこと').toBe(false);
+
+    // 許さないもの: 目印付きのラベル (実サイトの「安心パック ※5」)。
+    //   自分のテキストに ※ があるため、※ を判定に使っていた頃は通していた。
+    const label = find('安心パック ※5');
+    expect(label, '目印付きのラベルを拾うこと').toBeDefined();
+    expect(label?.hasMarker, '※ があることは記録すること').toBe(true);
+    expect(label?.allowed, '※ があっても本文と同じ大きさなら許さないこと').toBe(false);
 
     // 許すもの: 否定表現 (安心パックなし = 付かない場合)。
     //   ※ が同じ行に無くても訴求ではない。実サイトの保険料の注釈がこの形。
@@ -1781,13 +1794,12 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(negation?.hasMarker, '同じ行に ※ が無いこと (前提条件)').toBe(false);
     expect(negation?.allowed, '否定表現は ※ が無くても許すこと').toBe(true);
 
-    // 許さないもの: ※ が無い訴求
+    // 許さないもの: 本文と同じ大きさの訴求
     const plain = find('もあわせてご検討');
-    expect(plain?.allowed, '※ の無い訴求は許さないこと').toBe(false);
-    expect(plain?.hasMarker, '※ が無いことを記録すること').toBe(false);
+    expect(plain?.allowed, '本文と同じ大きさの訴求は許さないこと').toBe(false);
 
-    // 許さないもの: 見出し (※ が付いていても訴求)
-    const heading = find('でさらに安心');
+    // 許さないもの: 見出し (小さい文字でも訴求)
+    const heading = find('でさらに安心！');
     expect(heading?.allowed, '見出しは ※ が付いていても許さないこと').toBe(false);
     expect(heading?.inHeading, '見出しの中だと記録すること').toBe(true);
 
@@ -1809,7 +1821,11 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     // 判定の根拠が結果に出ること (人が間違いを見つけられるように)
     const line = describeOccurrence(plain!);
     expect(line, 'フォントサイズを出すこと').toContain('px');
-    expect(line, '※ の有無を出すこと').toContain('※なし');
+    expect(line, 'なぜ許さなかったのかを出すこと').toContain('本文より小さくない');
+    expect(
+      describeOccurrence(splitAnnotation!),
+      'なぜ許したのかを出すこと',
+    ).toContain('本文より小さい');
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

@@ -1033,7 +1033,7 @@ export async function verifyDisplayRules(
         title: found
           ? `${label}: 安心パックの訴求が資格外の代理店に表示されています`
           : `[確認OK] ${label}: 安心パックの訴求なし${allowedNote}`,
-        expected: '注釈 (※・本文より小さい文字) 以外の文脈で 安心パック / みらいの約束 が出ないこと',
+        expected: '本文より小さい文字 (注釈・免責文) 以外の文脈で 安心パック / みらいの約束 が出ないこと',
         actual: found
           ? `違反 ${violations.length} 件${allowedNote}: ${violations.map(describeOccurrence).join(' / ')}`
           : `訴求なし${allowedNote}`,
