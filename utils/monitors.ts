@@ -48,11 +48,18 @@ export class PageMonitor {
 
   /** 安全装置で遮断した回数 (サイトの不具合ではないためまとめて 1 件にする) */
   private selfBlockedCount = 0;
+  /**
+   * 読み込んだリクエストのホスト。
+   *   「検査したときサイトで何が動いていたか」(計測タグ・A/B テスト) を
+   *   記録するために使う。件数ではなく種類を持つ。
+   */
+  private readonly requestHostSet = new Set<string>();
   private detached = false;
   private readonly onConsole: (message: ConsoleMessage) => void;
   private readonly onPageError: (error: Error) => void;
   private readonly onResponse: (response: Response) => void;
   private readonly onRequestFailed: (request: Request) => void;
+  private readonly onRequest: (request: Request) => void;
 
   constructor(
     private readonly page: Page,
@@ -135,10 +142,24 @@ export class PageMonitor {
       });
     };
 
+    this.onRequest = (request) => {
+      try {
+        this.requestHostSet.add(new URL(request.url()).host);
+      } catch {
+        /* 解釈できない URL は無視する */
+      }
+    };
+
     page.on('console', this.onConsole);
     page.on('pageerror', this.onPageError);
     page.on('response', this.onResponse);
     page.on('requestfailed', this.onRequestFailed);
+    page.on('request', this.onRequest);
+  }
+
+  /** 読み込んだリクエストのホスト一覧 */
+  get requestHosts(): string[] {
+    return [...this.requestHostSet];
   }
 
   /** 同じ内容のエラーをまとめる上限 (種類の数) */
@@ -232,6 +253,7 @@ export class PageMonitor {
     this.page.off('pageerror', this.onPageError);
     this.page.off('response', this.onResponse);
     this.page.off('requestfailed', this.onRequestFailed);
+    this.page.off('request', this.onRequest);
   }
 
   /** これまでに記録した内容を消す (ページ単位で集計したい場合に使用) */

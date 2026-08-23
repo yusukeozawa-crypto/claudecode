@@ -389,9 +389,21 @@ export async function installRequestGuards(
       return;
     }
 
-    if (readOnly && !READ_ONLY_METHODS.has(method)) {
+    // 読み取り専用環境で止めるのは「検査対象サイト自身への書き込み」だけ。
+    //
+    //   以前は GET 以外をすべて止めていた。しかしそれでは
+    //   計測タグ・A/B テスト (Zoho PageSense、GTM、Clarity など) の送信も
+    //   止まり、サイトが実際に動いている状態とは違う画面を検査していた。
+    //   このツールの目的は「いま動いているものが動いている状態で
+    //   表示とコードが正しいか」を見ることなので、他社ドメイン宛は通す。
+    //
+    //   自社ドメイン (LP・申込サイト) への GET 以外は引き続き止める。
+    //   申込完了やデータ送信を絶対に起こさないため。
+    if (readOnly && !READ_ONLY_METHODS.has(method) && isOwnDomain(url, config)) {
       // URL に一時トークンや個人情報が含まれ得るためマスクして出力する
-      console.warn(`[qa] 読み取り専用環境のため ${method} リクエストを遮断しました: ${maskUrl(url, config)}`);
+      console.warn(
+        `[qa] 読み取り専用環境のため検査対象サイトへの ${method} を遮断しました: ${maskUrl(url, config)}`,
+      );
       await route.abort('blockedbyclient');
       return;
     }
@@ -402,6 +414,34 @@ export async function installRequestGuards(
 
 /** 読み取り専用環境で許可する HTTP メソッド */
 export const READ_ONLY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/**
+ * 検査対象サイト自身 (LP ドメイン・申込ドメイン) 宛かどうか。
+ *
+ * 計測タグや A/B テストの配信元 (他社ドメイン) と区別するために使う。
+ * 他社ドメイン宛の送信まで止めると、サイトが実際に動いている状態と
+ * 違う画面を検査してしまう。
+ */
+export function isOwnDomain(url: string, config: QaConfig): boolean {
+  let host: string;
+  try {
+    host = new URL(url).host;
+  } catch {
+    // 解釈できない URL は安全側 (自社宛とみなして止める)
+    return true;
+  }
+  const own = [config.environment.baseUrl, config.environment.applicationBaseUrl]
+    .filter((value) => value !== '')
+    .map((value) => {
+      try {
+        return new URL(value).host;
+      } catch {
+        return '';
+      }
+    })
+    .filter((value) => value !== '');
+  return own.includes(host);
+}
 
 /**
  * 新しく作った context の全ページ (既存 + 今後開かれるタブ) に安全装置を設置する。

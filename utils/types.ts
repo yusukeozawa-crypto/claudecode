@@ -163,6 +163,12 @@ export interface DeviceConfig {
 export interface DevicesFile {
   browsers: BrowserConfig[];
   devices: DeviceConfig[];
+  /**
+   * User-Agent の末尾に付ける印。
+   * 計測タグを止めずに検査するため、このツールのアクセスは
+   * 計測ツールの数字に混ざる。除外設定に使えるようにする。
+   */
+  userAgentSuffix?: string;
 }
 
 // ---------- config/runtime.yml ----------

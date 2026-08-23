@@ -24,6 +24,7 @@ import {
 } from '../../utils/agency';
 import { enterAsAgency, enterPath, enterWithFallback } from '../../utils/agency-entry';
 import { observeCodeInApplication, verifyCodeApplied } from '../../utils/handoff';
+import { describeRuntime, observeRuntime } from '../../utils/runtime-observation';
 
 const config = loadConfig();
 const specs = agencySpecs(config);
@@ -47,6 +48,17 @@ test.describe('代理店ごとの表示 @agency', () => {
       qa.addAll(await verifyAssets(page, spec.expectedAssets, label));
       qa.addAll(await verifyCtaText(page, spec, label));
       qa.addAll(await verifyNoOtherAgencyInfo(page, config, spec.code, label));
+
+      // 検査したときサイトで何が動いていたか (計測タグ・A/B テスト) を記録する。
+      //   A/B テストはバリアントごとに表示が変わるため、
+      //   どちらを見たのか分からないままでは「異常なし」を信用できない。
+      qa.addAll(
+        describeRuntime(
+          await observeRuntime(page, config, qa.monitor.requestHosts),
+          label,
+          page.url(),
+        ),
+      );
 
       // 代理店コードの付与。
       //   専用 LP へのリダイレクト後はコードが URL から消えるため、

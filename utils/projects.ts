@@ -38,15 +38,28 @@ export function browserDefaults(browserId: BrowserId): Record<string, unknown> {
  * 端末設定をブラウザに適用する。
  * isMobile / hasTouch は Firefox が非対応なので、その場合は viewport と UA のみ適用する。
  */
-export function deviceUse(browserId: BrowserId, device: DeviceConfig): Record<string, unknown> {
+export function deviceUse(
+  browserId: BrowserId,
+  device: DeviceConfig,
+  /**
+   * User-Agent の末尾に付ける印。
+   *   計測タグ・A/B テストを止めずに検査するため、このツールのアクセスは
+   *   Zoho PageSense / GA4 などの数字に混ざる。除外できるように印を付ける。
+   *   端末の UA が未設定の場合はブラウザ既定の UA に足せないため、
+   *   その場合だけ Playwright 側で解決した UA に後から足す (下の buildProjects)。
+   */
+  userAgentSuffix?: string,
+): Record<string, unknown> {
   const supportsMobileEmulation = browserId !== 'firefox';
+  const baseAgent = device.userAgent ?? (browserDefaults(browserId).userAgent as string | undefined);
+  const userAgent = baseAgent && userAgentSuffix ? `${baseAgent} ${userAgentSuffix}` : baseAgent;
   return {
     viewport: device.viewport,
     deviceScaleFactor: device.deviceScaleFactor ?? 1,
     ...(supportsMobileEmulation
       ? { isMobile: Boolean(device.isMobile), hasTouch: Boolean(device.hasTouch) }
       : {}),
-    ...(device.userAgent ? { userAgent: device.userAgent } : {}),
+    ...(userAgent ? { userAgent } : {}),
   };
 }
 
@@ -70,7 +83,7 @@ export function buildProjects(
         },
         use: {
           ...browserDefaults(browser.id),
-          ...deviceUse(browser.id, device),
+          ...deviceUse(browser.id, device, devicesFile.userAgentSuffix),
           // service worker 発のリクエストは route で遮断できないため無効化する。
           // 本番で申込完了を踏まないための安全装置を素通りさせないこと。
           serviceWorkers: 'block' as const,

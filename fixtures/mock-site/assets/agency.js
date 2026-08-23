@@ -98,6 +98,17 @@
     // 有効コードで流入した場合のみ保存する (無効コードは保存しない)
     if (activeCode && context.fromUrl) store(activeCode);
 
+    // A/B テストのツール (Zoho PageSense 等) が置く値を模す。
+    //   「検査したときサイトで何が動いていたか」の記録が本当に拾えるかを
+    //   モックで確かめるために置く。表示には影響しない。
+    try {
+      window.localStorage.setItem('zps-ft-details', 'mock-variant-a');
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'experiment_view', experiment_id: 'mock-exp-1', variant: 'A' });
+    } catch (error) {
+      /* 保存できない環境では何もしない */
+    }
+
     // 保存済みコードからの復元はサーバーが行うため、ここでは表示のみを担当する
     var visible = context.visibleSections || [];
     var hidden = context.hiddenSections || [];

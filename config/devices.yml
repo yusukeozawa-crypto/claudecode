@@ -3,6 +3,13 @@
 #   projects = 有効なブラウザ × 端末 の組み合わせで自動生成される
 #   Firefox / WebKit は enabled: true にするだけで対象に加わる
 # ============================================================
+# User-Agent の末尾に付ける印。
+#   計測タグ・A/B テストを止めずに検査するため、このツールのアクセスは
+#   Zoho PageSense / GA4 / Clarity などの数字に混ざる。
+#   除外できるように、必ず見分けが付く文字列を付けておく。
+#   各ツールの「ボットを除外」設定でこの文字列を指定する。
+userAgentSuffix: LittleFamilyQA/1.0
+
 browsers:
   - id: chromium
     enabled: true
