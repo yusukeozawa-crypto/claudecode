@@ -224,6 +224,12 @@ export interface AgencyFile {
      */
     anshinPackIgnore?: string[];
     /**
+     * 注釈の目印。
+     * 安心パックは資格の問題で、注釈として小さく併記するのは可、
+     * 訴求として出すのは不可。その区別に使う。
+     */
+    anshinPackAnnotationMarkers?: string[];
+    /**
      * 代理店名を読み取る場所。上から順に最初に見つかった要素を使う。
      * 見つからない場合はページ全体から探す (判定は甘くなる)。
      */

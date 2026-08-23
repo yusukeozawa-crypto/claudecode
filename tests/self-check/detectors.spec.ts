@@ -24,6 +24,7 @@ import {
   observeCodeInApplication, verifyCodeApplied, verifyCodeCarried,
 } from '../../utils/handoff';
 import { compareAcrossDevices } from '../../utils/cross-device';
+import { describeOccurrence, observeAnshinOccurrences } from '../../utils/anshin-pack';
 import { maskText, maskUrl } from '../../utils/secrets';
 import { buildProjects, deviceUse } from '../../utils/projects';
 import { pagesFromSitemap, resolvePages, sitemapPageId } from '../../utils/page-source';
@@ -1602,7 +1603,10 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(a003Text, '注釈があること (誤検知の再現条件)').toContain('安心パックなし');
     const anshinResult = hidden.find((finding) => finding.checkId === 'anshin-pack');
     expect(anshinResult?.observedValue, '注釈だけなら「なし」と判定すること').toBe('なし');
-    expect(anshinResult?.actual, '除外したことを併記すること (黙って無視しない)').toContain('除外');
+    // 注釈として許した件数を併記すること (黙って無視しない)。
+    //   許した箇所の全文は詳細に入る (ダッシュボードには件数だけ出す)。
+    expect(anshinResult?.actual, '注釈として許した件数を併記すること').toContain('注釈として許可');
+    expect(anshinResult?.detail, '許した箇所の全文を残すこと').toContain('安心パックなし');
   });
 
   test('申込フォームでコードが維持されているかを判定できる (方式を問わない)', async ({ page }) => {
@@ -1729,6 +1733,65 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       compareAcrossDevices([record('pc', '今すぐ申し込む')]).length,
       '片方だけでは報告しないこと',
     ).toBe(0);
+  });
+
+  // ------------------------------------------------------------------
+  // 安心パック (= みらいの約束) は文脈で判定する
+  //
+  //   安心パックは損害保険の資格が必要な商品で、少額短期保険の資格しか
+  //   持たない代理店に訴求させると法令違反になる。
+  //   注釈として小さく併記するのは可、訴求として出すのは不可。
+  //   「文字があるか」だけを見ていた頃は、
+  //   「月額＋180円〜でさらに安心！」のような訴求が
+  //   「安心パック」の語を含まなければ通ってしまっていた。
+  // ------------------------------------------------------------------
+  test('安心パックは注釈なら許し、訴求なら検知する', async ({ page }) => {
+    const config = loadConfig();
+    const keywords = config.agency.agencyNameTexts?.anshinPack ?? [];
+    const markers = config.agency.agencyNameTexts?.anshinPackAnnotationMarkers ?? ['※'];
+    expect(keywords, 'みらいの約束も同じ扱いにすること (= 安心パック)').toContain('みらいの約束');
+
+    // 許してよい注釈と、許してはいけない訴求を並べた再現ページ
+    await page.goto(`${config.environment.baseUrl}/broken/anshin-promo.html`);
+    await page.waitForLoadState('load');
+    const occurrences = await observeAnshinOccurrences(page, keywords, markers);
+    const find = (part: string) => occurrences.find((entry) => entry.text.includes(part));
+
+    // 許すもの: ※ 付き・本文より小さい文字
+    const annotation = find('安心パックなし');
+    expect(annotation, '注釈を見つけること').toBeDefined();
+    expect(annotation?.allowed, '※ 付きで本文より小さい注釈は許すこと').toBe(true);
+    expect(annotation?.fontPx, 'フォントサイズを記録すること').toBeLessThan(annotation?.bodyFontPx ?? 0);
+
+    // 許さないもの: ※ が無い訴求
+    const plain = find('もあわせてご検討');
+    expect(plain?.allowed, '※ の無い訴求は許さないこと').toBe(false);
+    expect(plain?.hasMarker, '※ が無いことを記録すること').toBe(false);
+
+    // 許さないもの: 見出し (※ が付いていても訴求)
+    const heading = find('でさらに安心');
+    expect(heading?.allowed, '見出しは ※ が付いていても許さないこと').toBe(false);
+    expect(heading?.inHeading, '見出しの中だと記録すること').toBe(true);
+
+    // 許さないもの: 本文より大きい文字 (※ が付いていても訴求)
+    const large = find('でさらに安心！');
+    expect(large?.allowed, '本文より大きい文字は ※ が付いていても許さないこと').toBe(false);
+    expect(large?.fontPx, '本文より大きいことを記録すること').toBeGreaterThan(large?.bodyFontPx ?? 0);
+
+    // 拾えないものを明示しておく。
+    //   語で探す方式なので、キーワードを含まない訴求文は拾えない。
+    //   実サイトの「月額＋180円※1〜でさらに安心！」がこれに当たる。
+    //   拾いたければ config の anshinPack に文言を足す必要がある。
+    //   ここを「拾える」と誤解したまま運用すると見逃す。
+    expect(
+      occurrences.some((entry) => entry.text.startsWith('月額＋180円')),
+      'キーワードを含まない訴求文は拾えない (限界を明示する)',
+    ).toBe(false);
+
+    // 判定の根拠が結果に出ること (人が間違いを見つけられるように)
+    const line = describeOccurrence(plain!);
+    expect(line, 'フォントサイズを出すこと').toContain('px');
+    expect(line, '※ の有無を出すこと').toContain('※なし');
   });
 
   test('文言だけの違いも「表示が違う」と判定する (切り替えの誤判定防止)', async () => {

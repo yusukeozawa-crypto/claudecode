@@ -24,6 +24,8 @@ import {
   verifyApplicationPersistence, verifyFallbackHandoff, verifyHandoffStatically,
   verifyHandoffTransport, verifyRecognition,
 } from '../../utils/handoff';
+import { describeInvalidCodeCarry, observeCodeInApplication } from '../../utils/handoff';
+import { observeInvalidCodeStorage } from '../../utils/agency';
 import { verifyUrlHygiene } from '../../utils/redirect';
 import type { AgencySpecWithApplication } from '../../utils/types';
 import { buildEntryUrl, enterAsAgency, enterWithFallback } from '../../utils/agency-entry';
@@ -168,6 +170,15 @@ test.describe('申込ページへの引き継ぎ @agency @handoff', () => {
       const expectation = config.agencies.invalidExpectation;
       if (!(await enterWithFallback(qa, expectation, invalid.code))) return;
 
+      // LP 側で、存在しないコードが保存されるかを記録する。
+      //
+      //   「申込フォームでコード保持=あり」は、サイトがその値を運んだ証拠ではあるが、
+      //   **その代理店として認識した証拠ではない**。URL の値をそのまま
+      //   保存しているだけなら、存在しないコードでも「あり」になる。
+      //   そうであれば「保持=あり」を有効性の根拠にはできない。
+      //   合否は付けず、事実だけ記録する (正解が未確定のため)。
+      qa.addAll(await observeInvalidCodeStorage(page, invalid.code, `無効コード ${invalid.code}: LP`));
+
       // 無効コードを申込ドメインへ直接渡した場合も代理店として扱われないこと
       const applicationEntry = new URL(
         expectation.application.expectedPath,
@@ -180,6 +191,12 @@ test.describe('申込ページへの引き継ぎ @agency @handoff', () => {
       qa.addAll(
         await verifyFallbackHandoff(page, config, expectation, `無効コード ${invalid.code}: 申込ページ`),
       );
+
+      // 申込ページまで運ばれたかを記録する (合否は付けない)。
+      //   ここで「運ばれた」なら、サイトは値を検証せずに通していることになる。
+      const carried = await observeCodeInApplication(page, config, invalid.code);
+      qa.addAll(describeInvalidCodeCarry(carried, invalid.code));
+
       qa.collectMonitorFindings();
     });
   }

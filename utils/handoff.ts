@@ -1260,6 +1260,37 @@ export function verifyCodeApplied(
 }
 
 /**
+ * 存在しないコードが申込ページまで運ばれたかを記録する。
+ *
+ * 運ばれるなら、サイトは値を検証せずに通していることになる。
+ * その場合「申込フォームでコード保持 = あり」は有効性の証拠にならない。
+ * 正解が未確定なので合否は付けない。
+ */
+export function describeInvalidCodeCarry(
+  observation: CodeCarryObservation,
+  code: string,
+): FindingInput[] {
+  const carried = observation.foundIn.length > 0;
+  return [
+    {
+      category: 'agency-handoff',
+      severity: 'low',
+      title: `[記録] 無効コード ${code}: 申込ページまで運ばれたか`,
+      expected: '運ばれるかを記録する (正解が未確定のため合否は判定しない)',
+      actual: carried
+        ? `運ばれました — 見つかった場所: ${observation.foundIn.join(', ')}`
+        : '運ばれませんでした',
+      url: observation.url,
+      detail: carried
+        ? '存在しないコードでも運ばれるため、「申込フォームでコード保持 = あり」は'
+          + 'その代理店として認識された証拠にはなりません。'
+        : '存在しないコードは運ばれません。「申込フォームでコード保持 = あり」は'
+          + 'そのコードが登録されている証拠になります。',
+    },
+  ];
+}
+
+/**
  * 申込フォームに遷移しても代理店コードが維持されているかを検証する。
  *
  * 維持されていない = その申込が代理店に帰属しない (売上に直結) ため Critical。

@@ -6,6 +6,7 @@
  */
 import type { BrowserContext, Page } from '@playwright/test';
 import { pageUrl, resolveSelector } from './config';
+import { describeOccurrence, observeAnshinOccurrences } from './anshin-pack';
 import type {
   AgencySpec, CheckId, FallbackExpectation, FindingInput, QaConfig,
 } from './types';
@@ -583,6 +584,68 @@ function fillTemplate(template: string, company: string): string {
  * どちらが正解かは未確定なので合否判定はしない (expectedValue: null)。
  * 表に「Cookie」「LS」「両方」「なし」を出して実態を見えるようにする。
  */
+/**
+ * 存在しないコードが保存されるかを記録する。
+ *
+ * 「申込フォームでコード保持 = あり」は、サイトがその値を運んだ証拠ではあるが、
+ * **その代理店として認識した証拠ではない**。URL の値をそのまま保存している
+ * だけなら、存在しないコードでも「あり」になる。
+ *
+ * そうであれば「保持 = あり」を有効性の根拠にはできず、
+ * 「代理店名が出ない」原因が「表示の不具合」なのか「未登録」なのかを
+ * 保持の有無からは判断できないことになる。
+ *
+ * 正解が未確定なので合否は付けず、事実だけ記録する。
+ */
+export async function observeInvalidCodeStorage(
+  page: Page,
+  code: string,
+  label: string,
+): Promise<FindingInput[]> {
+  const cookies = await page.context().cookies().catch(() => []);
+  const cookieHit = cookies.filter((cookie) => cookie.value.includes(code)).map((cookie) => cookie.name);
+  const webStorage = await page
+    .evaluate((target: string) => {
+      const scan = (storage: Storage | null): string[] => {
+        if (!storage) return [];
+        const keys: string[] = [];
+        for (let index = 0; index < storage.length; index += 1) {
+          const key = storage.key(index);
+          if (key === null) continue;
+          if ((storage.getItem(key) ?? '').includes(target)) keys.push(key);
+        }
+        return keys;
+      };
+      return { local: scan(window.localStorage), session: scan(window.sessionStorage) };
+    }, code)
+    .catch(() => ({ local: [] as string[], session: [] as string[] }));
+
+  const places = [
+    cookieHit.length > 0 ? `Cookie: ${cookieHit.join(', ')}` : '',
+    webStorage.local.length > 0 ? `localStorage: ${webStorage.local.join(', ')}` : '',
+    webStorage.session.length > 0 ? `sessionStorage: ${webStorage.session.join(', ')}` : '',
+  ].filter((part) => part !== '');
+
+  const stored = places.length > 0;
+  return [
+    {
+      category: 'agency-persistence',
+      severity: 'low',
+      title: `[記録] ${label}: 存在しないコードが保存されたか`,
+      expected: '保存されるかを記録する (正解が未確定のため合否は判定しない)',
+      actual: stored ? `保存されました — ${places.join(' / ')}` : '保存されませんでした',
+      url: page.url(),
+      detail: stored
+        ? 'サイトは値を検証せずに保存しています。したがって「申込フォームでコード保持 = あり」は'
+          + 'その代理店として認識された証拠にはなりません。'
+          + '「代理店名が出ない」原因が表示の不具合か未登録かは、保持の有無からは判断できません。'
+        : 'サイトは値を検証しています。したがって「申込フォームでコード保持 = あり」は'
+          + 'そのコードが登録されている証拠になります。'
+          + '「代理店名が出ない」代理店は、コードは認識されており表示だけが出ていないことになります。',
+    },
+  ];
+}
+
 export async function observeStorageLocation(
   page: Page,
   code: string,
@@ -918,50 +981,74 @@ export async function verifyDisplayRules(
   // ---- あんしんパック ----
   const mode = spec.anshinPack ?? 'ignore';
   if (mode !== 'ignore') {
-    const variants = texts.anshinPack ?? [];
+    const keywords = texts.anshinPack ?? [];
+    const markers = texts.anshinPackAnnotationMarkers ?? ['※'];
+    const occurrences = await observeAnshinOccurrences(page, keywords, markers);
+    const violations = occurrences.filter((entry) => !entry.allowed);
+    const allowed = occurrences.filter((entry) => entry.allowed);
 
-    // 判定の前に「安心パックなし」のような表記を取り除く。
-    //   これは保険料の前提条件として注釈に出るもので、商品の案内ではない。
-    //   「安心パックなし」の「安心パック」を数えると、
-    //   みらやく掲載不可の代理店が毎回 Critical になる (実サイトで発生)。
-    //   取り除いた件数は結果に併記し、黙って無視はしない。
-    const ignored: string[] = [];
-    let judged = body;
-    for (const phrase of texts.anshinPackIgnore ?? []) {
-      if (phrase === '') continue;
-      const count = judged.split(phrase).length - 1;
-      if (count > 0) {
-        ignored.push(`${phrase} × ${count}`);
-        judged = judged.split(phrase).join('');
-      }
-    }
-    const excluded = ignored.length > 0 ? ` (注釈として除外: ${ignored.join(', ')})` : '';
+    // 許可した注釈も件数と全文を残す。
+    //   黙って無視すると、判定が間違っていても気づけない。
+    //   ダッシュボードには件数だけ出し、全文は証跡と CSV に入る。
+    const allowedNote = allowed.length > 0
+      ? ` (注釈として許可 ${allowed.length} 件)`
+      : '';
+    const allowedDetail = allowed.length > 0
+      ? `注釈として許可したもの: ${allowed.map(describeOccurrence).join(' / ')}`
+      : '';
 
-    const found = variants.filter((variant) => judged.includes(variant));
     if (mode === 'present') {
+      // 掲載可の代理店では、訴求が出ているのが正しい。
+      // 注釈だけでは「案内が出ている」とは言えないため、違反扱いの箇所を数える。
       findings.push(
-        found.length > 0
-          ? pass('anshin-pack', '「あんしんパック」の表示がある', `「${found.join('」「')}」を確認${excluded}`, 'あり')
+        violations.length > 0
+          ? pass(
+            'anshin-pack',
+            '「あんしんパック」の表示がある',
+            `${violations.length} 箇所で確認${allowedNote}: ${violations.map(describeOccurrence).join(' / ')}`,
+            'あり',
+          )
           : fail(
-              'anshin-pack',
-              '「あんしんパック」の表示がありません',
-              `${variants.join(' / ')} のいずれかが表示されること`,
-              `表示されていません${excluded}`,
-              'なし',
-            ),
+            'anshin-pack',
+            '「あんしんパック」の表示がありません',
+            `${keywords.join(' / ')} のいずれかが表示されること`,
+            allowed.length > 0
+              ? `注釈しかありません${allowedNote}`
+              : '表示されていません',
+            'なし',
+          ),
       );
     } else {
-      findings.push(
-        found.length === 0
-          ? pass('anshin-pack', '「あんしんパック」の表示が一切ない', `${variants.join(' / ')} が無いことを確認${excluded}`, 'なし')
-          : fail(
-              'anshin-pack',
-              '「あんしんパック」が表示されています (みらやく掲載不可)',
-              `${variants.join(' / ')} が表示されないこと`,
-              `「${found.join('」「')}」が表示されています${excluded}`,
-              'あり',
-            ),
-      );
+      // 掲載不可の代理店。資格外の訴求は法令違反になるため、
+      // 注釈以外の文脈で出ていたら不合格。
+      const found = violations.length > 0;
+      findings.push({
+        checkId: 'anshin-pack',
+        checkOk: !found,
+        observedValue: found ? `あり (違反 ${violations.length} 件)` : 'なし',
+        expectedValue: 'なし',
+        category: 'agency-display',
+        severity: found ? 'critical' : 'low',
+        title: found
+          ? `${label}: 安心パックの訴求が資格外の代理店に表示されています`
+          : `[確認OK] ${label}: 安心パックの訴求なし${allowedNote}`,
+        expected: '注釈 (※・本文より小さい文字) 以外の文脈で 安心パック / みらいの約束 が出ないこと',
+        actual: found
+          ? `違反 ${violations.length} 件${allowedNote}: ${violations.map(describeOccurrence).join(' / ')}`
+          : `訴求なし${allowedNote}`,
+        url: page.url(),
+        detail: [
+          found
+            ? '安心パック (= みらいの約束) は損害保険の資格が必要な商品で、'
+              + '少額短期保険の資格しか持たない代理店に訴求させると法令違反になります。'
+              + '注釈として小さく併記するのは可ですが、訴求・見出し・商品比較表に'
+              + '出してはいけません。'
+            : '',
+          allowedDetail,
+        ]
+          .filter((part) => part !== '')
+          .join(' '),
+      });
     }
   }
 
