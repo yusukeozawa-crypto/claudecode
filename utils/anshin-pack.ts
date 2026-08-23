@@ -75,10 +75,34 @@ export async function observeAnshinOccurrences(
 
           const style = getComputedStyle(element);
           const fontPx = parseFloat(style.fontSize) || bodyFontPx;
-          // 注釈の目印は **その要素自身のテキスト** の中だけを見る。
-          //   親の文章まで見ると、同じ囲みのどこかに ※ があるだけで
-          //   訴求文まで「注釈」と判定してしまう (モックで実際に起きた)。
-          const hasMarker = marks.some((mark) => mark !== '' && own.includes(mark));
+
+          // 注釈の目印を探す範囲は「その 1 行」に限る。
+          //
+          //   実サイトの注釈は目印と本文が別の要素に分かれている:
+          //     <p><span>※2</span><span>猫・0〜20歳…安心パックなし…</span></p>
+          //   「安心パック」がある span 自身には ※ が無いため、
+          //   要素自身だけを見ると注釈と分からず、正しい注釈を違反にしてしまう。
+          //
+          //   一方、親を何段も辿ると囲み全体になり、同じ囲みのどこかに ※ が
+          //   あるだけで訴求文まで注釈と判定してしまう。
+          //   そこで「一番近いブロック要素 (= その行)」だけを見る。
+          //   その行が長すぎる場合は行とみなせないので採用しない。
+          const blockDisplays = ['block', 'flex', 'grid', 'list-item', 'table', 'flow-root'];
+          const nearestBlock = (() => {
+            let current: HTMLElement | null = element;
+            for (let depth = 0; depth < 5 && current !== null; depth += 1) {
+              const display = getComputedStyle(current).display;
+              if (blockDisplays.some((name) => display.startsWith(name))) return current;
+              current = current.parentElement;
+            }
+            return null;
+          })();
+          const lineText = nearestBlock?.textContent ?? '';
+          const lineIsShortEnough = lineText.length <= 600;
+          const markerInOwn = marks.some((mark) => mark !== '' && own.includes(mark));
+          const markerInLine = lineIsShortEnough
+            && marks.some((mark) => mark !== '' && lineText.includes(mark));
+          const hasMarker = markerInOwn || markerInLine;
           const tag = element.tagName.toLowerCase();
           const inHeading = element.closest('h1, h2, h3, h4, h5') !== null;
           const inTable = element.closest('table') !== null;

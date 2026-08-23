@@ -1763,6 +1763,13 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(annotation?.allowed, '※ 付きで本文より小さい注釈は許すこと').toBe(true);
     expect(annotation?.fontPx, 'フォントサイズを記録すること').toBeLessThan(annotation?.bodyFontPx ?? 0);
 
+    // 許すもの: 目印と本文が別の要素に分かれた注釈 (実サイトと同じ形)。
+    //   「安心パック」がある span 自身には ※ が無い。
+    //   要素自身だけを見ていた頃は、正しい注釈を違反として報告していた。
+    const splitAnnotation = find('所定の特約を付帯');
+    expect(splitAnnotation, '別要素に分かれた注釈も拾うこと').toBeDefined();
+    expect(splitAnnotation?.allowed, '同じ行に ※ があれば注釈として許すこと').toBe(true);
+
     // 許さないもの: ※ が無い訴求
     const plain = find('もあわせてご検討');
     expect(plain?.allowed, '※ の無い訴求は許さないこと').toBe(false);
