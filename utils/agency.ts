@@ -984,7 +984,8 @@ export async function verifyDisplayRules(
     const keywords = texts.anshinPack ?? [];
     const markers = texts.anshinPackAnnotationMarkers ?? ['※'];
     const negations = texts.anshinPackNegations ?? ['なし', '無し'];
-    const occurrences = await observeAnshinOccurrences(page, keywords, markers, negations);
+    const forbidden = (texts.anshinPackAlwaysForbidden ?? []).map((entry) => entry.text);
+    const occurrences = await observeAnshinOccurrences(page, keywords, markers, negations, forbidden);
     const violations = occurrences.filter((entry) => !entry.allowed);
     const allowed = occurrences.filter((entry) => entry.allowed);
 

@@ -1750,13 +1750,16 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     const keywords = config.agency.agencyNameTexts?.anshinPack ?? [];
     const markers = config.agency.agencyNameTexts?.anshinPackAnnotationMarkers ?? ['※'];
     const negations = config.agency.agencyNameTexts?.anshinPackNegations ?? [];
+    const forbidden = (config.agency.agencyNameTexts?.anshinPackAlwaysForbidden ?? [])
+      .map((entry) => entry.text);
+    expect(forbidden, '名指しの禁止文言を設定に持つこと').toContain('安心パック ※5');
     expect(negations, '否定表現を設定に持つこと').toContain('なし');
     expect(keywords, 'みらいの約束も同じ扱いにすること (= 安心パック)').toContain('みらいの約束');
 
     // 許してよい注釈と、許してはいけない訴求を並べた再現ページ
     await page.goto(`${config.environment.baseUrl}/broken/anshin-promo.html`);
     await page.waitForLoadState('load');
-    const occurrences = await observeAnshinOccurrences(page, keywords, markers, negations);
+    const occurrences = await observeAnshinOccurrences(page, keywords, markers, negations, forbidden);
     const find = (part: string) => occurrences.find((entry) => entry.text.includes(part));
 
     // 許すもの: ※ 付き・本文より小さい文字
@@ -1778,12 +1781,17 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(afterHeading, '見出しの直後の訴求文を拾うこと').toBeDefined();
     expect(afterHeading?.allowed, '本文と同じ大きさなら許さないこと').toBe(false);
 
-    // 許さないもの: 目印付きのラベル (実サイトの「安心パック ※5」)。
-    //   自分のテキストに ※ があるため、※ を判定に使っていた頃は通していた。
+    // 許さないもの: 商品仕様のテーブルの項目 (実サイトの「安心パック ※5」)。
+    //   実サイトは HTML の table ではなく div で組まれており、構造では
+    //   判定できない。設定で名指しして常に違反とする。
+    //   端末で文字サイズが変わっても判定がぶれないことが目的。
     const label = find('安心パック ※5');
-    expect(label, '目印付きのラベルを拾うこと').toBeDefined();
-    expect(label?.hasMarker, '※ があることは記録すること').toBe(true);
-    expect(label?.allowed, '※ があっても本文と同じ大きさなら許さないこと').toBe(false);
+    expect(label, '名指しした文言を拾うこと').toBeDefined();
+    expect(label?.explicitlyForbidden, '名指しされていると分かること').toBe(true);
+    expect(label?.fontPx, '本文より小さい文字であること (前提条件)')
+      .toBeLessThan(label?.bodyFontPx ?? 0);
+    expect(label?.allowed, '小さい文字でも名指しなら許さないこと').toBe(false);
+    expect(describeOccurrence(label!), '理由を出すこと').toContain('設定で指定');
 
     // 許すもの: 否定表現 (安心パックなし = 付かない場合)。
     //   ※ が同じ行に無くても訴求ではない。実サイトの保険料の注釈がこの形。

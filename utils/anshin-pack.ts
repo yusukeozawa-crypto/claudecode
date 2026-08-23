@@ -26,6 +26,8 @@ export interface AnshinOccurrence {
   hasMarker: boolean;
   /** 否定表現 (安心パックなし = 付かない場合) か。訴求ではない */
   negated: boolean;
+  /** 名指しで禁止された文言か (商品仕様のテーブルなど、構造で判定できない場所) */
+  explicitlyForbidden: boolean;
   /** 要素のタグ (h2 / p / td など) */
   tag: string;
   /** 見出しの中か */
@@ -46,11 +48,19 @@ export async function observeAnshinOccurrences(
   keywords: string[],
   markers: string[],
   negations: string[] = [],
+  /**
+   * 文字の大きさに関係なく違反とする文言。
+   *   商品仕様・商品比較のテーブルのように、構造では判定できない場所に
+   *   ある訴求を、運用側の判断で名指しで禁止するために使う。
+   */
+  alwaysForbidden: string[] = [],
 ): Promise<AnshinOccurrence[]> {
   if (keywords.length === 0) return [];
   return page
     .evaluate(
-      ({ words, marks, nots }: { words: string[]; marks: string[]; nots: string[] }) => {
+      ({ words, marks, nots, forbidden }: {
+        words: string[]; marks: string[]; nots: string[]; forbidden: string[];
+      }) => {
         const bodyFontPx = parseFloat(getComputedStyle(document.body).fontSize) || 16;
         const results: Array<{
           keyword: string;
@@ -59,6 +69,7 @@ export async function observeAnshinOccurrences(
           bodyFontPx: number;
           hasMarker: boolean;
           negated: boolean;
+          explicitlyForbidden: boolean;
           tag: string;
           inHeading: boolean;
           inTable: boolean;
@@ -117,6 +128,20 @@ export async function observeAnshinOccurrences(
             }
             return true;
           })();
+
+          /**
+           * 名指しで禁止された文言か。
+           *
+           *   商品仕様のテーブルのように、HTML の <table> ではなく div で
+           *   組まれている場所は構造から判定できない。
+           *   実物を見て「掲載不可では出てはいけない」と判断したものは、
+           *   文字の大きさに関係なく違反とする。
+           *   端末で文字サイズが変わっても判定がぶれない。
+           */
+          const normalized = own.replace(/\s+/g, ' ').trim();
+          const explicitlyForbidden = forbidden.some(
+            (phrase) => phrase !== '' && normalized.startsWith(phrase.replace(/\s+/g, ' ').trim()),
+          );
 
           const markerInOwn = marks.some((mark) => mark !== '' && own.includes(mark));
 
@@ -177,6 +202,7 @@ export async function observeAnshinOccurrences(
             // 表の中かどうかは記録するだけにして判定には使わない。
             // 実物のデータを見る前にルールを増やすと誤検知を作る。
             negated,
+            explicitlyForbidden,
             // 注釈として許す条件:
             //   ・否定表現 (安心パックなし = 付かない場合) … 訴求の正反対なので常に可
             //   または
@@ -191,12 +217,13 @@ export async function observeAnshinOccurrences(
             //   さらに ※ が近くにあるだけで通るため、同じ要素が
             //   端末によって違反 / 許可に分かれていた。
             //   文字の大きさは客観的で、訴求は必ず本文以上の大きさになる。
-            allowed: negated || (fontPx < bodyFontPx && !inHeading),
+            //   名指しで禁止された文言は、他の条件より先に違反とする
+            allowed: !explicitlyForbidden && (negated || (fontPx < bodyFontPx && !inHeading)),
           });
         }
         return results;
       },
-      { words: keywords, marks: markers, nots: negations },
+      { words: keywords, marks: markers, nots: negations, forbidden: alwaysForbidden },
     )
     .catch(() => []);
 }
@@ -211,10 +238,12 @@ export function describeOccurrence(entry: AnshinOccurrence): string {
     .filter((part) => part !== '')
     .join(' / ');
   // 判定の理由を出す。※ は判定に使わないが、記録として併記する
-  const why = entry.negated
-    ? '否定表現 (なし)'
-    : entry.fontPx < entry.bodyFontPx
-      ? `本文より小さい${entry.hasMarker ? ' / ※あり' : ''}`
-      : `本文より小さくない${entry.hasMarker ? ' / ※あり' : ''}`;
+  const why = entry.explicitlyForbidden
+    ? '掲載不可では出せない文言 (設定で指定)'
+    : entry.negated
+      ? '否定表現 (なし)'
+      : entry.fontPx < entry.bodyFontPx
+        ? `本文より小さい${entry.hasMarker ? ' / ※あり' : ''}`
+        : `本文より小さくない${entry.hasMarker ? ' / ※あり' : ''}`;
   return `「${entry.text}」 ${entry.fontPx}px (本文 ${entry.bodyFontPx}px) ${why} ${place}`;
 }

@@ -236,6 +236,15 @@ export interface AgencyFile {
      */
     anshinPackNegations?: string[];
     /**
+     * 文字の大きさに関係なく違反とする文言。
+     *
+     * 商品仕様・商品比較のテーブルのように、HTML の table ではなく
+     * div で組まれている場所は構造から判定できない。
+     * 実物を見て「掲載不可では出てはいけない」と判断したものを名指しで書く。
+     * 端末で文字サイズが変わっても判定がぶれない。
+     */
+    anshinPackAlwaysForbidden?: Array<{ text: string; reason?: string }>;
+    /**
      * 代理店名を読み取る場所。上から順に最初に見つかった要素を使う。
      * 見つからない場合はページ全体から探す (判定は甘くなる)。
      */
