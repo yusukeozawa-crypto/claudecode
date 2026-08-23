@@ -20,6 +20,7 @@ scope:
   always:
     - littlefamily01
     - littlefamily03
+    - littlefamily55
 patternOrder:
   - ダイレクト
   - ダイレクト (みらやく×)
