@@ -9,6 +9,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import type {
   FullConfig, FullResult, Reporter, Suite, TestCase, TestResult,
 } from '@playwright/test/reporter';
@@ -394,6 +395,10 @@ export default class QaHtmlReporter implements Reporter {
     this.writeProgress(false);
     this.saveHistory(summary);
     fs.writeFileSync(HTML_PATH, renderHtml(summary, records), 'utf8');
+    // Excel で開ける形 (CSV) も毎回作る。
+    //   JSON は機械が読む形なので、そのままでは表計算で開けない。
+    //   毎回作っておけば「あとで書き出す」手間が要らない。
+    const csv = exportCsv();
 
     const relativeHtml = path.relative(PROJECT_ROOT, HTML_PATH);
     console.log('');
@@ -415,6 +420,7 @@ export default class QaHtmlReporter implements Reporter {
     }
     console.log(`HTML レポート : ${relativeHtml}`);
     console.log(`JSON          : ${path.relative(PROJECT_ROOT, JSON_PATH)}`);
+    console.log(`CSV (Excel用) : ${csv}`);
     console.log(
       `判定基準      : ${this.failOnSeverities.map((severity) => severity.toUpperCase()).join(' / ')} を 1 件でも検知したら失敗`,
     );
@@ -617,6 +623,27 @@ function allPatternLabels(): string[] {
     return [...labels];
   } catch {
     return [];
+  }
+}
+
+/**
+ * CSV (Excel で開ける形) を作る。
+ *
+ *   書き出しの処理は scripts/export-csv.mjs にある。
+ *   同じ処理を 2 か所に持つと必ず片方が古くなるため、
+ *   ここでは別プロセスとして呼ぶだけにする。
+ *   失敗しても検査結果は残っているので、警告だけ出して続ける。
+ */
+function exportCsv(): string {
+  try {
+    const script = path.join(PROJECT_ROOT, 'scripts', 'export-csv.mjs');
+    const result = spawnSync(process.execPath, [script], { cwd: PROJECT_ROOT, encoding: 'utf8' });
+    if (result.status !== 0) {
+      return `作成できませんでした (${(result.stderr ?? '').trim().split('\n')[0] || '原因不明'})`;
+    }
+    return 'reports/export/checklist.csv, reports/export/findings.csv';
+  } catch (error) {
+    return `作成できませんでした (${error instanceof Error ? error.message : String(error)})`;
   }
 }
 

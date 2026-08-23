@@ -269,6 +269,16 @@ await check('CSV は Excel で開いても日本語が壊れない', () => {
   assert.ok(/\[=\+\\-@\]/.test(script), '数式として解釈される値を打ち消すこと');
 });
 
+await check('検査が終わると CSV も自動で作られる', () => {
+  // JSON は機械が読む形なので、そのままでは表計算で開けない。
+  // 毎回 CSV も作っておかないと「あとで書き出す」手間が残る。
+  const reporter = fs.readFileSync(path.join(root, 'reporters', 'qa-html-reporter.ts'), 'utf8');
+  assert.ok(reporter.includes('export-csv.mjs'), 'レポート生成時に CSV も作ること');
+  assert.ok(reporter.includes('CSV (Excel用)'), '作った場所を画面に出すこと');
+  // 同じ処理を 2 か所に持たない (片方が必ず古くなる)
+  assert.ok(!/anshinPack|checklist\.csv.*headers/.test(reporter), 'CSV の組み立てを二重に持たないこと');
+});
+
 await check('チェックリストをレポートから受け取れる', () => {
   // 計算はレポート側 (utils/checklist.ts) が行う。
   // 画面は結果を渡すだけなので、壊れた・古いレポートで落ちないことを確認する。
