@@ -251,6 +251,11 @@ test.describe('表示の一貫性 @agency @consistency', () => {
           checkOk: false,
           observedValue: '効いていない',
           expectedValue: '効いている',
+          // 表に併記する行 (何を見た結果なのかを短く出す)
+          observedDetail: [
+            'コードなしと完全一致',
+            `文言 ${baseline.textLines.length} 行`,
+          ],
           category: 'agency-display',
           severity: 'critical',
           title: `${spec.label}: 代理店コードが表示に効いていません (コードなしと同じ表示)`,
@@ -272,6 +277,14 @@ test.describe('表示の一貫性 @agency @consistency', () => {
           checkOk: true,
           observedValue: '効いている',
           expectedValue: '効いている',
+          observedDetail: [
+            difference.blocksDiffer
+              ? `ブロック +${difference.onlyInB.length} / -${difference.onlyInA.length}`
+              : 'ブロックは同一',
+            difference.textDiffers
+              ? `文言 +${difference.textOnlyInB.length} / -${difference.textOnlyInA.length} 行`
+              : '文言は同一',
+          ],
           category: 'agency-display',
           severity: 'low',
           title: `[確認OK] ${spec.label}: 代理店コードが表示に効いています`,
