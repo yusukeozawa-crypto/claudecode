@@ -71,6 +71,17 @@ function checkRows(root, ctx) {
   const texts = agency.agencyNameTexts ?? {};
   const rows = [];
   const known = {
+    'code-effective': {
+      observe:
+        'コードを付けずに開いたページと、コードを付けて開いたページの'
+        + '「表示ブロック」と「文言」を丸ごと比べる。',
+      pass:
+        '代理店名が出るはず (agencyName: shown)、または安心パックが消えるはず '
+        + '(anshinPack: absent) の代理店で、コードなしと差分があること。'
+        + '自社コード (コードを無効化してオリジナルを表示するもの) は対象外。',
+      severity: 'コードなしと完全一致: Critical',
+      source: 'config/agency-profiles.yml (agencyName / anshinPack)',
+    },
     redirect: {
       observe:
         'ページを開いたときの request / response イベントをすべて記録し、'
@@ -488,6 +499,15 @@ function limitsTab(ctx) {
         + '文言を変えたときは config/agency.yml の設定も直す必要があります。',
     });
   }
+  items.push({
+    title: '「コードが効いている」は差分が出たことしか意味しません',
+    detail:
+      'コードなしの表示と比べて差分があれば「効いている」と判定します。'
+      + 'A/B テストの割り当てが違うだけでも差分は出るため、'
+      + '本当はコードが効いていないのに「効いている」と読む場合があります '
+      + '(逆に、効いているものを効いていないと誤判定することはありません)。'
+      + '代理店名が正しいか・安心パックが消えているかは、それぞれの項目で別に見ています。',
+  });
   items.push({
     title: '中断された実行の結果は信用しないでください',
     detail:

@@ -9,13 +9,16 @@
  *      一致しなければ、その代理店だけ扱いが違う (誤設定・データ不整合)
  *   2. 表示が異なるべきパターン同士 (みらやく ○ と ×) は相違があるはず
  *      同じなら切り替えそのものが効いていない
+ *   3. 代理店コードを付けたら、コードなしと表示が変わるはず
+ *      同じなら、そのコードは表示に何も効いていない
+ *      (未登録コード・適用漏れ。ここが効いていないと以降の項目は無意味)
  *
  * セクション名を config に列挙する方式と併用できる。
  * こちらは「列挙漏れ」を埋めるための検査。
  */
 import { test } from '../qa-fixtures';
 import { loadConfig } from '../../utils/config';
-import { agencySpecs } from '../../utils/agency';
+import { agencySpecs, expectsDisplayChange } from '../../utils/agency';
 import { buildEntryUrl } from '../../utils/agency-entry';
 import {
   capturePageSignatureStable, compareVisibleBlocks, diffTextLines, evaluateDisplayDifference,
@@ -183,7 +186,116 @@ test.describe('表示の一貫性 @agency @consistency', () => {
     });
   }
   // ------------------------------------------------------------------
-  // 3. コードなしと同じ表示になるはずのパターン
+  // 3. 代理店コードが表示に効いているか (コードなしと比べる)
+  //
+  //   実サイトで「代理店名も出ない・みらやくの切り替えも効かない」代理店が
+  //   見つかった。個別の項目 (代理店名・安心パック) が別々に Critical に
+  //   なるため、原因が 1 つ (コードが効いていない) だと読み取れなかった。
+  //
+  //   コードなしの表示と一致したら、そのコードは何も効いていない。
+  //   A/B テストが動いていても、この判定は安全側に働く
+  //   (割り当てが違えば差分が出るので「効いている」と読むだけ)。
+  // ------------------------------------------------------------------
+  /** コードなしの表示。同じワーカーの中では取り直さない (実行時間のため) */
+  const noCodeBaselines = new Map<string, PageSignature>();
+
+  async function noCodeBaseline(
+    qa: QaSession,
+    page: Parameters<typeof capturePageSignatureStable>[0],
+    entryPath: string,
+  ): Promise<PageSignature | null> {
+    const cached = noCodeBaselines.get(entryPath);
+    if (cached) return cached;
+    const url = buildEntryUrl(config, entryPath, null);
+    // コードなしを先に開く (コード付きを先に開くと保存された
+    // コードが残り、コードなしの表示が汚れる)
+    if (!(await qa.goto({ url, agencyCode: null }))) return null;
+    const signature = await capturePageSignatureStable(page);
+    // 取れなかった場合は覚えない (次のテストでもう一度試す)
+    if (!signature) return null;
+    noCodeBaselines.set(entryPath, signature);
+    return signature;
+  }
+
+  /**
+   * コードなしと表示が変わるはずの代理店。
+   *
+   * 判定は設定から導く (新しい設定項目を増やさない):
+   *   代理店名が出る       … コードなしには出ないので必ず変わる
+   *   安心パックが消える   … コードなしには出ているので必ず変わる
+   * どちらでもない (自社コード = オリジナル表示) は対象外。
+   */
+  const mustChange = specs.filter(
+    (spec) => expectsDisplayChange(spec, config.agencies.sameAsNoCodeProfiles ?? []),
+  );
+
+  for (const spec of mustChange) {
+    test(`${spec.code}: 代理店コードが表示に効いている`, async ({ qa, page }) => {
+      test.slow();
+      const baseline = await noCodeBaseline(qa, page, spec.entryPath);
+      if (!baseline) return;
+      const signature = await captureFor(qa, page, spec);
+      if (!signature) return;
+
+      const difference = evaluateDisplayDifference(baseline, signature, ignoreKeys);
+      const expectedChanges = [
+        spec.agencyName === 'shown' ? '代理店名が出る' : '',
+        spec.anshinPack === 'absent' ? '安心パックの記載が消える' : '',
+      ]
+        .filter((part) => part !== '')
+        .join(' / ');
+
+      if (!difference.differs) {
+        qa.add({
+          checkId: 'code-effective',
+          checkOk: false,
+          observedValue: '効いていない',
+          expectedValue: '効いている',
+          category: 'agency-display',
+          severity: 'critical',
+          title: `${spec.label}: 代理店コードが表示に効いていません (コードなしと同じ表示)`,
+          expected: `コードを付けると ${expectedChanges} こと`,
+          actual:
+            `表示ブロック (${difference.sharedBlocks.length} 件) と文言 (${baseline.textLines.length} 行) が` +
+            'コードなしと完全に一致',
+          url: signature.url,
+          agencyCode: spec.code,
+          detail:
+            'このコードが未登録か、コードの適用そのものが効いていない可能性があります。' +
+            'この状態では代理店名も みらやく掲載可否も反映されないため、' +
+            'ほかの項目の検知はすべてこの 1 つが原因です。' +
+            `比較したのはコードなしの ${buildEntryUrl(config, spec.entryPath, null)} です。`,
+        });
+      } else {
+        qa.add({
+          checkId: 'code-effective',
+          checkOk: true,
+          observedValue: '効いている',
+          expectedValue: '効いている',
+          category: 'agency-display',
+          severity: 'low',
+          title: `[確認OK] ${spec.label}: 代理店コードが表示に効いています`,
+          expected: `コードを付けると ${expectedChanges} こと`,
+          actual:
+            (difference.blocksDiffer
+              ? `ブロック — コードなしだけ: ${describeKeys(difference.onlyInA)} / ` +
+                `${spec.code} だけ: ${describeKeys(difference.onlyInB)}`
+              : 'ブロックの構成は同一') +
+            ' | ' +
+            (difference.textDiffers
+              ? `文言 — コードなしだけ: ${describeLines(difference.textOnlyInA)} / ` +
+                `${spec.code} だけ: ${describeLines(difference.textOnlyInB)}`
+              : '文言は同一'),
+          url: signature.url,
+          agencyCode: spec.code,
+        });
+      }
+      qa.collectMonitorFindings();
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // 4. コードなしと同じ表示になるはずのパターン
   //    支店コードのように「コードを付けても何も変わらない」ものを検査する。
   //    差分が出た場合、仕様変更 (支店コードが有効になった) か
   //    不具合のどちらとも断定できないため Medium で報告する。

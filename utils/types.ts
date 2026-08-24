@@ -29,6 +29,7 @@ export type FindingCategory =
  * ダッシュボードのチェックリスト (代理店 × 項目) を作るために使う。
  */
 export type CheckId =
+  | 'code-effective' // 代理店コードで表示が変わる (コードが効いているか)
   | 'redirect'      // 専用 LP へのリダイレクト
   | 'header-name'   // ヘッダーの代理店名
   | 'footer-name'   // フッターの「募集代理店：<会社名>」

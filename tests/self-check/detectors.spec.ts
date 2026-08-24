@@ -18,7 +18,7 @@ import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
-import { agencyPairs, agencySpecs, resolvePerProfile, verifyNoOtherAgencyInfo, verifyDisplayRules, verifySections, verifyTexts } from '../../utils/agency';
+import { agencyPairs, agencySpecs, expectsDisplayChange, resolvePerProfile, verifyNoOtherAgencyInfo, verifyDisplayRules, verifySections, verifyTexts } from '../../utils/agency';
 import {
   describeApplicationLinks, installRequestGuards, observeApplicationLinks,
   observeCodeInApplication, verifyCodeApplied, verifyCodeCarried,
@@ -34,7 +34,7 @@ import { applyKnownIssue } from '../../utils/known-issues';
 import { startClean } from '../../utils/agency-entry';
 import { buildAgencyRows } from '../../reporters/qa-html-reporter';
 import { CHECK_COLUMNS, buildChecklist } from '../../utils/checklist';
-import type { CheckId, FindingCategory, KnownIssuesFile, QaRecord, RedirectTrace, Severity } from '../../utils/types';
+import type { AgencySpec, CheckId, FindingCategory, KnownIssuesFile, QaRecord, RedirectTrace, Severity } from '../../utils/types';
 
 const config = loadConfig();
 const SP_VIEWPORT = { width: 390, height: 844 };
@@ -871,6 +871,44 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       [...difference.onlyInB, ...difference.textOnlyInB].join(' '),
       '何が変わったか分かること',
     ).toContain('fallback-notice');
+  });
+
+  // ------------------------------------------------------------------
+  // どの代理店で「コードなしと表示が変わる」はずか
+  //
+  //   実サイトで、代理店名も出ず みらやくの切り替えも効かない代理店が
+  //   見つかった。個別の項目が別々に Critical になるため、
+  //   原因が 1 つ (コードが効いていない) だと読み取れなかった。
+  //   コードなしと比べる検査を足したが、その対象の選び方を間違えると
+  //   ・自社コード (変わらないのが正しい) を毎回 Critical にする
+  //   ・本当に効いていない代理店を対象外にする
+  //   のどちらかになるため、選び方だけを固定しておく。
+  // ------------------------------------------------------------------
+  test('コードなしと表示が変わるはずの代理店を、期待結果から選べる', () => {
+    const spec = (extra: Partial<AgencySpec>): AgencySpec => ({
+      code: 'X001',
+      label: 'X001',
+      entryPath: '/lp/',
+      ...extra,
+    } as AgencySpec);
+
+    expect(
+      expectsDisplayChange(spec({ agencyName: 'shown', anshinPack: 'present' })),
+      '代理店名が出るなら必ず変わる',
+    ).toBe(true);
+    expect(
+      expectsDisplayChange(spec({ agencyName: 'hidden', anshinPack: 'absent' })),
+      '安心パックが消えるなら必ず変わる (名前が出なくても)',
+    ).toBe(true);
+    expect(
+      expectsDisplayChange(spec({ agencyName: 'hidden', anshinPack: 'present' })),
+      '自社コード (オリジナル表示) は変わらないので対象外',
+    ).toBe(false);
+    expect(
+      expectsDisplayChange(spec({ agencyName: 'shown', profile: 'branch' }), ['branch']),
+      'コードなしと同じになる分類は対象外',
+    ).toBe(false);
+    expect(expectsDisplayChange(spec({})), '期待結果が無いものは対象外').toBe(false);
   });
 
   test('除外指定はパターンでも書ける (月ごとに id が変わる要素を除外する)', async () => {

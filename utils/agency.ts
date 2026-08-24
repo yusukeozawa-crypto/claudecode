@@ -91,6 +91,23 @@ export function resolvePerProfile(configured: number): number {
   return value;
 }
 
+/**
+ * その代理店は「コードなしと表示が変わる」はずか。
+ *
+ * 代理店コードが表示に効いているかを検査するために使う。
+ * 新しい設定項目を増やさず、いまある期待結果から導く:
+ *   代理店名が出る     … コードなしには出ないので必ず変わる
+ *   安心パックが消える … コードなしには出ているので必ず変わる
+ * どちらでもないもの (自社コード = オリジナル表示) は変わらないので対象外。
+ */
+export function expectsDisplayChange(
+  spec: AgencySpec,
+  sameAsNoCodeProfiles: string[] = [],
+): boolean {
+  if (sameAsNoCodeProfiles.includes(spec.profile ?? '')) return false;
+  return spec.agencyName === 'shown' || spec.anshinPack === 'absent';
+}
+
 export function agencySpecs(config: QaConfig): AgencySpec[] {
   // 画面 (設定タブ) で「検査しない」と指定されたコードを外す。
   //   config/agency-profiles.yml の除外と違い、生成のやり直し

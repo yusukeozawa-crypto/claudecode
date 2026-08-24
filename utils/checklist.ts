@@ -25,6 +25,9 @@ import type { CheckId, QaRecord, Severity } from './types';
 
 /** チェックリストの列 (代理店コードで変わる仕様のみ) */
 export const CHECK_COLUMNS: Array<{ key: CheckId; label: string }> = [
+  // 最初に見る項目。ここが「効いていない」なら、
+  // 以降の項目 (代理店名・安心パック) はすべて意味を持たない。
+  { key: 'code-effective', label: 'コードが効く' },
   { key: 'redirect', label: 'リダイレクト' },
   { key: 'header-name', label: 'ヘッダーに代理店名' },
   { key: 'footer-name', label: 'フッターに代理店名' },
