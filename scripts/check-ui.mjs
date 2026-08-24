@@ -474,6 +474,10 @@ await check('ロジックの説明は設定から作る (書き写さない)', (
     assert.ok(markdown.includes(entry.text), `固定で違反にする文言が出ること: ${entry.text}`);
     assert.ok(markdown.includes(entry.reason), 'そう決めた理由も一緒に出ること');
   }
+  for (const entry of agency.agencyNameTexts.anshinPackAlwaysAllowed ?? []) {
+    assert.ok(markdown.includes(entry.text), `固定で許可する文言が出ること: ${entry.text}`);
+    assert.ok(markdown.includes(entry.reason), 'そう決めた理由も一緒に出ること');
+  }
   for (const device of devices.devices) {
     assert.ok(
       markdown.includes(`${device.viewport.width}×${device.viewport.height}`),

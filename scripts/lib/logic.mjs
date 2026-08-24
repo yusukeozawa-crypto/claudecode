@@ -112,7 +112,9 @@ function checkRows(root, ctx) {
         '掲載可 (○) の代理店では 1 箇所以上あること。'
         + '掲載不可 (×) の代理店では、注釈として許される形以外に出ないこと。'
         + '許される形は「本文より小さい文字」かつ「見出しの中でない」、'
-        + `または直後が否定表現 (${list(texts.anshinPackNegations)})。`,
+        + `直後が否定表現 (${list(texts.anshinPackNegations)})、`
+        + 'または設定に登録した「出てよい文言」。'
+        + '設定に登録した「出てはいけない文言」は文字の大きさに関係なく違反。',
       severity: '掲載不可で訴求あり: Critical / 掲載可で表示なし: Critical',
       source: 'config/agency.yml (anshinPack ほか) / config/agency-profiles.yml',
     },
@@ -308,6 +310,7 @@ function detailTab(ctx) {
   const { rows, gate } = checkRows(ctx.root, ctx);
   const texts = ctx.agency.agencyNameTexts ?? {};
   const forbidden = texts.anshinPackAlwaysForbidden ?? [];
+  const allowed = texts.anshinPackAlwaysAllowed ?? [];
   const blocks = [
     {
       title: '項目ごとの判定',
@@ -324,18 +327,25 @@ function detailTab(ctx) {
         + '一方で「安心パックなし」のような注釈は保険料の前提条件で、資格の問題にはあたりません。'
         + 'そのため語が出たかどうかではなく、どの文脈で出たかで判定します。',
       lines: [
-        `1. ${list(texts.anshinPack)} のいずれかを含む要素をすべて拾います。`,
-        `2. 「文字の大きさに関係なく違反」と決めた文言 (${
-          forbidden.length > 0 ? forbidden.map((entry) => `「${entry.text}」`).join(' / ') : 'なし'
-        }) で始まる場合は、その時点で違反にします。`
+        `1. ${list(texts.anshinPack)} のいずれかを含む要素をすべて拾います`
+          + ' (語を含む一番内側の要素だけを数えます)。',
+        '2. 設定に登録した「出てはいけない文言」が含まれていれば、その時点で違反にします'
+          + ' (文の途中にあっても違反。文字の大きさは見ないので PC とスマートフォンで同じ判定になります)。'
           + (forbidden.length > 0
-            ? ` 理由: ${forbidden.map((entry) => entry.reason ?? '(理由未記載)').join(' / ')}`
-            : ''),
-        `3. 語の直後が否定表現 (${list(texts.anshinPackNegations)}) なら訴求ではないので許します。`
-          + '同じ要素の中に複数回出るときは、1 つでも否定でない出現があれば否定扱いにしません。',
-        '4. 残りは文字の大きさで決めます。その要素の文字が本文より小さく、かつ見出し (h1〜h6) の中でなければ'
+            ? ` 登録済み: ${forbidden.map((entry) => `「${entry.text}」— ${entry.reason ?? '(理由未記載)'}`).join(' / ')}`
+            : ' 登録なし。'),
+        `3. 語の直後が否定表現 (${list(texts.anshinPackNegations)}) なら、`
+          + '「安心パックが付かない場合」の意味なので訴求ではありません。許します。',
+        '4. 設定に登録した「出てよい文言」で始まる出現も許します'
+          + ' (文字の大きさは見ません)。'
+          + (allowed.length > 0
+            ? ` 登録済み: ${allowed.map((entry) => `「${entry.text}」— ${entry.reason ?? '(理由未記載)'}`).join(' / ')}`
+            : ' 登録なし。'),
+        '5. 3 と 4 は「語の出現ごと」に見ます。同じ要素の中に語が複数回出るときは、'
+          + 'すべての出現に理由が必要です。訴求文の後ろに「安心パックなしの場合」と足しても許しません。',
+        '6. 残りは文字の大きさで決めます。その要素の文字が本文より小さく、かつ見出し (h1〜h6) の中でなければ'
           + '「注釈」として許し、それ以外は違反にします。',
-        `5. 許した注釈も件数と全文を証跡と CSV に残します。黙って無視すると、判定が間違っていても気づけません。`,
+        '7. 許した注釈も件数と全文を証跡と CSV に残します。黙って無視すると、判定が間違っていても気づけません。',
       ],
     },
     {
@@ -450,6 +460,17 @@ function limitsTab(ctx) {
       detail:
         '方式 (3xx / JavaScript / meta refresh / SPA) が未確定の代理店では、方式の照合をしていません。'
         + '実測値はレポートに出ているので、確定したら config/agency-profiles.yml に設定してください。',
+    });
+  }
+  if ((agency.agencyNameTexts?.anshinPackAlwaysForbidden ?? []).length > 0) {
+    items.push({
+      title: '名指しで決めた文言は、書き方が変わると外れます',
+      detail:
+        '構造から判定できない場所 (div で組まれた商品仕様のテーブルなど) は、'
+        + '実物を見て決めた文言を設定に名指しで登録しています。'
+        + 'サイト側が言い回しや記号を変えると一致しなくなり、その分は'
+        + '文字の大きさによる判定に戻ります (本文より小さければ許されます)。'
+        + '文言を変えたときは config/agency.yml の設定も直す必要があります。',
     });
   }
   items.push({

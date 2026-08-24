@@ -245,6 +245,16 @@ export interface AgencyFile {
      */
     anshinPackAlwaysForbidden?: Array<{ text: string; reason?: string }>;
     /**
+     * 文字の大きさに関係なく許可する文言。
+     *
+     * 掲載不可 (×) の代理店でも出てよいと運用側が判断したもの
+     * (「安心パックなしの場合」= 保険料の前提条件)。
+     * 否定表現の判定でも許可されるが、判定の仕組みが変わっても
+     * 許可され続けるように、運用側の判断として明示的に残す。
+     * 端末で文字サイズが変わっても判定がぶれない。
+     */
+    anshinPackAlwaysAllowed?: Array<{ text: string; reason?: string }>;
+    /**
      * 代理店名を読み取る場所。上から順に最初に見つかった要素を使う。
      * 見つからない場合はページ全体から探す (判定は甘くなる)。
      */

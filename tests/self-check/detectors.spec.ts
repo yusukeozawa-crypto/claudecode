@@ -1752,14 +1752,24 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     const negations = config.agency.agencyNameTexts?.anshinPackNegations ?? [];
     const forbidden = (config.agency.agencyNameTexts?.anshinPackAlwaysForbidden ?? [])
       .map((entry) => entry.text);
+    const permitted = (config.agency.agencyNameTexts?.anshinPackAlwaysAllowed ?? [])
+      .map((entry) => entry.text);
     expect(forbidden, '名指しの禁止文言を設定に持つこと').toContain('安心パック ※5');
+    expect(permitted, '名指しの許可文言を設定に持つこと').toContain('安心パックなし・免責金額なし');
     expect(negations, '否定表現を設定に持つこと').toContain('なし');
     expect(keywords, 'みらいの約束も同じ扱いにすること (= 安心パック)').toContain('みらいの約束');
 
     // 許してよい注釈と、許してはいけない訴求を並べた再現ページ
     await page.goto(`${config.environment.baseUrl}/broken/anshin-promo.html`);
     await page.waitForLoadState('load');
-    const occurrences = await observeAnshinOccurrences(page, keywords, markers, negations, forbidden);
+    const occurrences = await observeAnshinOccurrences(
+      page,
+      keywords,
+      markers,
+      negations,
+      forbidden,
+      permitted,
+    );
     const find = (part: string) => occurrences.find((entry) => entry.text.includes(part));
 
     // 許すもの: ※ 付き・本文より小さい文字
@@ -1792,6 +1802,56 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       .toBeLessThan(label?.bodyFontPx ?? 0);
     expect(label?.allowed, '小さい文字でも名指しなら許さないこと').toBe(false);
     expect(describeOccurrence(label!), '理由を出すこと').toContain('設定で指定');
+
+    // 許さないもの: 名指しした文言が文の途中に出てくる場合。
+    //   先頭一致で照合していた頃は、目印や別の語が前に付くと取りこぼしていた。
+    const prefixed = find('オプション: 安心パック ※5');
+    expect(prefixed, '文の途中の名指し文言も拾うこと').toBeDefined();
+    expect(prefixed?.explicitlyForbidden, '先頭でなくても名指しと判定すること').toBe(true);
+    expect(prefixed?.allowed, '文の途中でも許さないこと').toBe(false);
+
+    // 許さないもの: 名指しした紹介文 (注釈の中の商品説明)。
+    //   要素の中で改行・字下げが入っているため、空白をそろえて照合する。
+    const intro = find('ペット賠償責任特約');
+    expect(intro, '名指しした紹介文を拾うこと').toBeDefined();
+    expect(intro?.explicitlyForbidden, '改行が入っていても名指しと判定すること').toBe(true);
+    expect(intro?.fontPx, '本文より小さい文字であること (前提条件)')
+      .toBeLessThan(intro?.bodyFontPx ?? 0);
+    expect(intro?.allowed, '注釈の中でも商品説明なら許さないこと').toBe(false);
+
+    // 許すもの: 名指しで許可した文言 (保険料の前提条件)。
+    //   運用側が「掲載不可でも出てよい」と決めたもの。
+    //   本文より大きい文字でも許す。
+    const registered = find('安心パックなし・免責金額なしの保険料');
+    expect(registered, '名指しで許可した文言を拾うこと').toBeDefined();
+    expect(registered?.explicitlyAllowed, '許可されていると分かること').toBe(true);
+    expect(registered?.fontPx, '本文より大きい文字であること (前提条件)')
+      .toBeGreaterThan(registered?.bodyFontPx ?? 0);
+    expect(registered?.allowed, '大きい文字でも名指しなら許すこと').toBe(true);
+    expect(describeOccurrence(registered!), '理由を出すこと').toContain('設定で指定');
+
+    // 否定表現の判定を外しても、名指しの許可だけで許されること。
+    //   判定の仕組みを変えたときに、運用側の判断が消えないようにする。
+    const withoutNegations = await observeAnshinOccurrences(
+      page,
+      keywords,
+      markers,
+      [],
+      forbidden,
+      permitted,
+    );
+    const registeredOnly = withoutNegations
+      .find((entry) => entry.text.includes('安心パックなし・免責金額なしの保険料'));
+    expect(registeredOnly?.negated, '否定表現の判定を外した状態であること').toBe(false);
+    expect(registeredOnly?.allowed, '名指しの許可だけで許すこと').toBe(true);
+
+    // 許さないもの: 許可した文言を訴求文の後ろに足したもの。
+    //   語の出現ごとに理由が必要。後半だけを見て許すと、
+    //   訴求文に一言足すだけで検査を通せてしまう。
+    const mixed = find('安心パックを付けるとより安心です');
+    expect(mixed, '訴求 + 許可文言の文を拾うこと').toBeDefined();
+    expect(mixed?.explicitlyAllowed, '理由の無い出現があれば許可扱いにしないこと').toBe(false);
+    expect(mixed?.allowed, '訴求文に許可文言を足しても許さないこと').toBe(false);
 
     // 許すもの: 否定表現 (安心パックなし = 付かない場合)。
     //   ※ が同じ行に無くても訴求ではない。実サイトの保険料の注釈がこの形。
