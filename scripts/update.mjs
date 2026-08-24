@@ -28,6 +28,12 @@ const BRANCH = process.env.QA_UPDATE_BRANCH || 'claude/playwright-qa-tool-32f7p6
 
 /** 上書きせずに残すもの (フォルダ直下の名前で判定する) */
 const KEEP = new Set(['.env', 'node_modules', 'reports', 'screenshots', '.git']);
+/**
+ * フォルダの中で個別に残すファイル。
+ *   config/ は新しい版で置き換えるが、画面から保存した上書き設定
+ *   (config/overrides.yml) は運用側の判断なので消してはいけない。
+ */
+const KEEP_FILES = new Set(['config/overrides.yml', 'config/overrides.yml.bak']);
 
 function print(text = '') {
   process.stdout.write(`${text}\n`);
@@ -70,16 +76,20 @@ function extractedRoot(directory) {
   return path.join(directory, entries[0].name);
 }
 
-/** source の中身を target へ上書きコピーする (KEEP は触らない) */
-function copyInto(source, target, depth = 0) {
+/** source の中身を target へ上書きコピーする (KEEP / KEEP_FILES は触らない) */
+function copyInto(source, target, depth = 0, prefix = '') {
   let files = 0;
   for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
     if (depth === 0 && KEEP.has(entry.name)) continue;
+    const relative = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+    // 画面から保存した上書き設定は、新しい版に同名のファイルが
+    // あっても上書きしない (運用側の判断を消さないため)
+    if (KEEP_FILES.has(relative)) continue;
     const from = path.join(source, entry.name);
     const to = path.join(target, entry.name);
     if (entry.isDirectory()) {
       fs.mkdirSync(to, { recursive: true });
-      files += copyInto(from, to, depth + 1);
+      files += copyInto(from, to, depth + 1, relative);
     } else {
       fs.copyFileSync(from, to);
       files += 1;
@@ -97,7 +107,7 @@ async function main() {
   print('検査ツールを最新版に更新します。');
   print(`  取得元 : ${OWNER}/${REPO} (${BRANCH})`);
   print(`  更新先 : ${root}`);
-  print('  .env / reports / screenshots はそのまま残ります。');
+  print('  .env / reports / screenshots / config/overrides.yml はそのまま残ります。');
   print();
 
   print('1/3 ダウンロード中...');

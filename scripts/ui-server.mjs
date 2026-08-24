@@ -23,6 +23,14 @@ import { withBinPath } from './lib/env-path.mjs';
 import { parseOrigin, readEnvValues, writeEnvValues } from './lib/env-file.mjs';
 import { buildNotes } from './lib/notes.mjs';
 import { buildLogic } from './lib/logic.mjs';
+import {
+  PHRASE_LIST_KEYS,
+  RULE_KEYS,
+  TEXT_LIST_KEYS,
+  readOverrides,
+  validateRules,
+  writeOverrides,
+} from './lib/overrides.mjs';
 import { parse as parseYaml } from 'yaml';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -348,6 +356,108 @@ export function findingGroups(records, limit = 200, meta = {}) {
     .slice(0, limit);
 }
 
+/**
+ * 設定タブに出す内容。
+ *
+ *   ・対象サイト (.env) … URL と「認証あり/なし」だけ (値は返さない)
+ *   ・ルール          … 元の設定 / いま効いている値 / 画面で変えた分
+ *   ・そのほか        … 変更するには設定ファイルを直すもの (表示だけ)
+ *
+ * ルールは「元の値」と「いま効いている値」を両方返す。
+ * どちらか片方だけだと、画面で変えた分がどれなのか分からない。
+ */
+function settings() {
+  const agency = readConfigFile('agency');
+  const texts = agency.agencyNameTexts ?? {};
+  const overrides = readOverrides(root);
+  const devices = readConfigFile('devices');
+  const runtime = readConfigFile('runtime');
+  const errors = readConfigFile('errors');
+  const pages = readConfigFile('pages');
+  const profiles = readConfigFile('agency-profiles');
+  const agencies = readConfigFile('agencies');
+
+  const base = {
+    anshinPack: texts.anshinPack ?? [],
+    anshinPackNegations: texts.anshinPackNegations ?? [],
+    anshinPackAlwaysAllowed: texts.anshinPackAlwaysAllowed ?? [],
+    anshinPackAlwaysForbidden: texts.anshinPackAlwaysForbidden ?? [],
+    excludeAgencyCodes: [],
+  };
+  const current = {};
+  for (const key of RULE_KEYS) {
+    current[key] = Array.isArray(overrides[key]) ? overrides[key] : base[key];
+  }
+
+  return {
+    env: envStatus(),
+    entryPaths: entryPaths(),
+    rules: {
+      base,
+      current,
+      // 画面で変えたキー (元の設定に戻せるように出す)
+      overridden: RULE_KEYS.filter((key) => Array.isArray(overrides[key])),
+      textListKeys: TEXT_LIST_KEYS,
+      phraseListKeys: PHRASE_LIST_KEYS,
+    },
+    readOnly: [
+      { label: '検査する端末', value: (devices.devices ?? [])
+        .map((device) => `${device.label ?? device.id} ${device.viewport?.width}×${device.viewport?.height}`)
+        .join(' / '), source: 'config/devices.yml' },
+      { label: 'ブラウザ', value: (devices.browsers ?? [])
+        .filter((browser) => browser.enabled).map((browser) => browser.id).join(' / '), source: 'config/devices.yml' },
+      { label: '検査するページ', value: (pages.pages ?? [])
+        .map((page) => page.path).join(' / '), source: 'config/pages.yml' },
+      { label: 'URL パラメータ名', value: agency.paramName ?? '未設定', source: 'config/agency.yml' },
+      { label: '申込ページのパス', value: profiles.application?.entryPath ?? '未設定', source: 'config/agency-profiles.yml' },
+      { label: '代理店の件数', value: `設定に ${(agencies.agencies ?? []).length} 件 / 抽選はパターンごと ${profiles.scope?.perProfile ?? '?'} 件`, source: 'config/agency-profiles.yml' },
+      { label: '毎回必ず検査するコード', value: (profiles.scope?.always ?? []).join(', ') || 'なし', source: 'config/agency-profiles.yml' },
+      { label: '同時実行数', value: `${runtime.workers ?? '?'} (CI は ${runtime.workersCi ?? '?'})`, source: 'config/runtime.yml' },
+      { label: 'リクエスト間隔', value: `遷移前 ${runtime.throttle?.navigationDelayMs ?? '?'}ms / リンク検査 ${runtime.throttle?.linkCheckDelayMs ?? '?'}ms`, source: 'config/runtime.yml' },
+      { label: '失敗にする重大度', value: (runtime.failOnSeverities ?? []).join(' / '), source: 'config/runtime.yml' },
+      { label: '読み込みが遅いと判定する時間', value: `${errors.timeout?.pageLoadWarnMs ?? '?'}ms`, source: 'config/errors.yml' },
+      { label: '申込完了を止めるパターン', value: (agency.application?.forbiddenRequestPatterns ?? []).join(' / ') || '未設定', source: 'config/agency.yml' },
+      { label: 'User-Agent に付ける印', value: devices.userAgentSuffix ?? 'なし', source: 'config/devices.yml' },
+      { label: '保存先の設定', value: `${agency.storage?.type ?? 'none'} (${agency.storage?.key ?? '-'})`, source: 'config/agency.yml' },
+    ],
+  };
+}
+
+/** 設定ファイルを 1 つ読む (画面表示用。壊れていても画面は落とさない) */
+function readConfigFile(name) {
+  try {
+    const file = path.join(root, 'config', `${name}.yml`);
+    const parsed = parseYaml(fs.readFileSync(file, 'utf8'));
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/** 画面から送られたルールを保存する */
+function saveRules(body) {
+  const checked = validateRules(body);
+  if (!checked.ok) return checked;
+  const agency = readConfigFile('agency');
+  const texts = agency.agencyNameTexts ?? {};
+  const base = {
+    anshinPack: texts.anshinPack ?? [],
+    anshinPackNegations: texts.anshinPackNegations ?? [],
+    anshinPackAlwaysAllowed: texts.anshinPackAlwaysAllowed ?? [],
+    anshinPackAlwaysForbidden: texts.anshinPackAlwaysForbidden ?? [],
+    excludeAgencyCodes: [],
+  };
+  const result = writeOverrides(root, checked.value, base);
+  return {
+    ok: true,
+    changed: result.changed,
+    cleared: result.cleared,
+    empty: result.empty,
+    // 保存先を画面に出す (どこに書かれたのかを隠さない)
+    savedTo: path.relative(root, result.path),
+  };
+}
+
 function state() {
   const report = readJson(path.join(REPORT_DIR, 'qa-report.json'));
   const count = agencyCount();
@@ -504,6 +614,30 @@ export const server = http.createServer((req, res) => {
       url.searchParams.get('size') ?? 'min',
     );
     sendJson(res, result.ok ? 200 : 409, result);
+    return;
+  }
+  if (req.method === 'GET' && url.pathname === '/api/settings') {
+    sendJson(res, 200, settings());
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === '/api/rules') {
+    let raw = '';
+    req.on('data', (chunk) => {
+      raw += chunk;
+      // 想定外に大きな送信は受け付けない
+      if (raw.length > 60000) req.destroy();
+    });
+    req.on('end', () => {
+      let body;
+      try {
+        body = JSON.parse(raw || '{}');
+      } catch {
+        sendJson(res, 400, { ok: false, error: '送信内容を読み取れませんでした' });
+        return;
+      }
+      const result = saveRules(body);
+      sendJson(res, result.ok ? 200 : 400, result);
+    });
     return;
   }
   if (req.method === 'POST' && url.pathname === '/api/env') {

@@ -175,7 +175,7 @@ QA_ENV=staging npx playwright test
 | `npm run test:crawl` | 基本巡回のみ実行 |
 | `npm run test:health` | リンク切れ・エラー検知のみ実行 |
 | `npm run test:text` | 誤字脱字・表記揺れチェックのみ実行 |
-| `npm run ui` | **ブラウザの操作画面を開く** (run-qa.cmd と同じ入口。実行・進行状況・結果・設定・履歴) |
+| `npm run ui` | **ブラウザの操作画面を開く** (run-qa.cmd と同じ入口。実行・進行状況・結果・ロジックと設定・履歴) |
 | `npm run selftest:ui` | 操作画面の自己検査 (受付・公開範囲・URL 検証) |
 | `npm run update` | ツール自身を最新版に更新 (Git 不要。`.env` / `reports` / `screenshots` は残る) |
 | `npm run discover:staging` / `npm run discover:production` | 実サイトの仕様を調査して `reports/discovery/` に記録 (読み取りのみ) |
@@ -228,6 +228,27 @@ Critical または High が 1 件でもあれば、テストが失敗し終了�
 ## 4. 設定の追加方法
 
 すべての設定は `config/` 配下にあります。**設定の追加だけでページや代理店コードを増やせます。**
+
+### 画面から変えられる設定 (設定ファイルを触らない方法)
+
+`npm run ui` の「ロジックと設定」→ **設定** タブで、次を画面から変更できます。
+
+| 変えられるもの | 保存先 |
+| --- | --- |
+| 対象サイトの URL / 申込サイトの URL / ベーシック認証 | `.env` |
+| 安心パックの判定に使う語・否定表現 | `config/overrides.yml` |
+| 掲載不可でも出てよい文言 / 出せない文言 (理由つき) | `config/overrides.yml` |
+| 検査しない代理店コード | `config/overrides.yml` |
+
+`config/overrides.yml` は**元の設定に重ねて使う差分ファイル**です。
+`config/agency.yml` を画面から直接書き換えない理由は、`npm run update`
+(最新版に更新) が `config/` を新しい版で置き換えるため、
+直接書き換えると更新のたびに運用側の判断が消えてしまうからです。
+このファイルは更新時に残し、Git にも入れません。
+
+同じタブの「そのほかの設定」には、画面から変えられない設定
+(安全装置・並列実行数・タイムアウト・重大度ゲートなど) を、
+どのファイルの設定かと一緒に表示します。変更は設定ファイルを直します。
 
 ### ページを追加する
 

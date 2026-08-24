@@ -23,6 +23,7 @@ const { server, checklistOf, findingGroups, slimSummary } = await import('./ui-s
 const { buildNotes } = await import('./lib/notes.mjs');
 const { buildLogic, logicMarkdown } = await import('./lib/logic.mjs');
 const { parse: parseYaml } = await import('yaml');
+const overridesLib = await import('./lib/overrides.mjs');
 const { parseOrigin, readEnvValues } = await import('./lib/env-file.mjs');
 const os = await import('node:os');
 
@@ -514,6 +515,82 @@ await check('ロジックの説明に「分からないこと」が書いてあ�
   ]) {
     assert.ok(written.includes(phrase), `限界の説明に含まれること: ${phrase}`);
   }
+});
+
+await check('設定タブでいまの設定を見られる', async () => {
+  // 「いまどの設定で動いているのか」が画面で分からないと、
+  // 結果を見ても判断できない (毎回ファイルを開くことになる)。
+  const { body } = await json('/api/settings');
+  assert.ok(body.env, '対象サイトの設定が返ること');
+  assert.ok(body.rules && body.rules.base && body.rules.current, 'ルールの元の値といまの値が返ること');
+  assert.ok(Array.isArray(body.readOnly) && body.readOnly.length > 0, '変更できない設定も一覧で返ること');
+  for (const row of body.readOnly) {
+    assert.ok(row.label && row.source, `${row.label}: どのファイルの設定かを示すこと`);
+  }
+  const html = await (await fetch(base)).text();
+  assert.ok(html.includes('data-logic-tab="settings"') || html.includes("id: 'settings'"), '設定タブがあること');
+  assert.ok(html.includes('rules-editor'), 'ルールを編集する場所があること');
+  assert.ok(html.includes('readonly-settings'), '変更できない設定を出す場所があること');
+  // 認証情報そのものは返さない (設定済みかどうかだけ)
+  const text = JSON.stringify(body);
+  assert.ok(!text.includes('basicPass'), 'パスワードは返さないこと');
+});
+
+await check('画面から保存できるキーが検査本体と一致する', () => {
+  // 保存する側 (scripts/lib/overrides.mjs) と
+  // 反映する側 (utils/overrides.ts) でキーが食い違うと、
+  // 「保存できたのに検査に効かない」という一番気づきにくい壊れ方をする。
+  const source = fs.readFileSync(path.join(root, 'utils', 'overrides.ts'), 'utf8');
+  const block = source.match(/OVERRIDE_KEYS = \[([\s\S]*?)\]/)[1];
+  const applied = [...block.matchAll(/'([^']+)'/g)].map((match) => match[1]);
+  assert.deepEqual(
+    [...overridesLib.RULE_KEYS].sort(),
+    [...applied].sort(),
+    '保存できるキーと反映するキーが同じであること',
+  );
+});
+
+await check('壊れた内容は保存しない', () => {
+  // 画面からの保存で設定ファイルを壊せてはいけない。
+  assert.equal(overridesLib.validateRules(null).ok, false, '中身が無い送信は受け付けないこと');
+  assert.equal(
+    overridesLib.validateRules({ anshinPack: 'まとめて文字列' }).ok,
+    false,
+    '一覧でないものは受け付けないこと',
+  );
+  assert.equal(
+    overridesLib.validateRules({ anshinPack: [] }).ok,
+    false,
+    '安心パックの語を空にはできないこと (検査が黙って止まる)',
+  );
+  assert.equal(
+    overridesLib.validateRules({ anshinPackAlwaysForbidden: [{ text: '安心パック ※5' }] }).ok,
+    false,
+    '理由の無い文言は受け付けないこと (後から説明できない)',
+  );
+  const many = overridesLib.validateRules({ excludeAgencyCodes: new Array(200).fill('x') });
+  assert.equal(many.ok, false, '件数の上限を超える送信は受け付けないこと');
+  const ok = overridesLib.validateRules({
+    anshinPack: ['安心パック', '安心パック', ' みらいの約束 '],
+    excludeAgencyCodes: ['littlefamily99'],
+  });
+  assert.equal(ok.ok, true, '正しい内容は受け付けること');
+  assert.deepEqual(ok.value.anshinPack, ['安心パック', 'みらいの約束'], '重複と前後の空白は落とすこと');
+  // 知らないキーは黙って捨てる (任意の設定を書き込める口にしない)
+  const unknown = overridesLib.validateRules({ storage: { type: 'cookie' }, workers: 99 });
+  assert.deepEqual(Object.keys(unknown.value), [], '決めたキー以外は保存しないこと');
+});
+
+await check('画面から保存した設定は最新版に更新しても消えない', () => {
+  // config/agency.yml を直接書き換える作りにすると、
+  // 更新 (npm run update) のたびに運用側の判断が消える。
+  const update = fs.readFileSync(path.join(root, 'scripts', 'update.mjs'), 'utf8');
+  assert.ok(
+    update.includes("'config/overrides.yml'"),
+    '更新時に config/overrides.yml を残すこと',
+  );
+  const ignore = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
+  assert.ok(ignore.includes('config/overrides.yml'), '上書き設定を Git に入れないこと');
 });
 
 await check('npm script に OS で意味が変わる記号を入れない (Windows 対策)', () => {

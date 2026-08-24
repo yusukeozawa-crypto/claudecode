@@ -9,6 +9,7 @@ import { test, expect } from '../qa-fixtures';
 import { loadConfig, parseEnvLines, resolveSelector, validateConfig } from '../../utils/config';
 import { isForbiddenRequest } from '../../utils/handoff';
 import { waitForFinalLanding } from '../../utils/agency-entry';
+import { applyAgencyOverrides, overrideExcludedCodes } from '../../utils/overrides';
 import type { QaConfig } from '../../utils/types';
 
 const config = loadConfig();
@@ -303,6 +304,47 @@ test.describe('描画完了判定の自己検査 @selfcheck', () => {
       }),
       'readyIndicator.type が不正',
     );
+  });
+
+  // ------------------------------------------------------------------
+  // 画面 (設定タブ) から保存した上書きが検査に効くか
+  //
+  //   保存できるのに検査に効かない、という壊れ方が一番気づきにくい
+  //   (画面上は「変更あり」と出るのに、判定は前のまま)。
+  // ------------------------------------------------------------------
+  test('画面から保存した上書きが検査の設定に反映される', async ({ qa }) => {
+    const base = qa.config.agency;
+    const original = base.agencyNameTexts?.anshinPack ?? [];
+
+    // 書いてあるキーだけ差し替わること
+    const applied = applyAgencyOverrides(base, {
+      anshinPack: ['安心パック'],
+      anshinPackAlwaysAllowed: [{ text: '安心パックなしの場合', reason: '前提条件' }],
+    });
+    expect(applied.agencyNameTexts?.anshinPack, '語が差し替わること').toEqual(['安心パック']);
+    expect(
+      applied.agencyNameTexts?.anshinPackAlwaysAllowed?.[0].text,
+      '許可文言が差し替わること',
+    ).toBe('安心パックなしの場合');
+    expect(
+      applied.agencyNameTexts?.anshinPackAnnotationMarkers,
+      '書いていない項目は元のままであること',
+    ).toEqual(base.agencyNameTexts?.anshinPackAnnotationMarkers);
+    expect(base.agencyNameTexts?.anshinPack, '元の設定を書き換えないこと').toEqual(original);
+
+    // 空配列も「指定」として扱う (否定表現を使わない設定を選べるように)
+    const cleared = applyAgencyOverrides(base, { anshinPackNegations: [] });
+    expect(cleared.agencyNameTexts?.anshinPackNegations, '空も指定として扱うこと').toEqual([]);
+
+    // 上書きが無ければ元のまま
+    expect(applyAgencyOverrides(base, {}), '指定が無ければそのまま返すこと').toBe(base);
+
+    // 検査しない代理店コード
+    expect(
+      overrideExcludedCodes({ excludeAgencyCodes: [' littlefamily99 ', '', 'A0010'] }),
+      '前後の空白を落として空を捨てること',
+    ).toEqual(['littlefamily99', 'A0010']);
+    expect(overrideExcludedCodes({}), '指定が無ければ空であること').toEqual([]);
   });
 
   test('条件が現れない場合に記録される (実サイトでの設定漏れを検知する)', async ({ qa, page }) => {

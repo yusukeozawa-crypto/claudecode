@@ -5,7 +5,8 @@
  * 代理店ごとの期待結果 (表示セクション・代理店名・電話番号・バナー・CTA) を検証する。
  */
 import type { BrowserContext, Page } from '@playwright/test';
-import { pageUrl, resolveSelector } from './config';
+import { CONFIG_DIR, pageUrl, resolveSelector } from './config';
+import { overrideExcludedCodes, readOverrides } from './overrides';
 import { describeOccurrence, observeAnshinOccurrences } from './anshin-pack';
 import type {
   AgencySpec, CheckId, FallbackExpectation, FindingInput, QaConfig,
@@ -91,7 +92,13 @@ export function resolvePerProfile(configured: number): number {
 }
 
 export function agencySpecs(config: QaConfig): AgencySpec[] {
-  const all = config.agencies.agencies;
+  // 画面 (設定タブ) で「検査しない」と指定されたコードを外す。
+  //   config/agency-profiles.yml の除外と違い、生成のやり直し
+  //   (npm run agencies:build) が要らない。運用側がその場で外せるようにする。
+  const skip = new Set(overrideExcludedCodes(readOverrides(CONFIG_DIR)));
+  const all = skip.size === 0
+    ? config.agencies.agencies
+    : config.agencies.agencies.filter((spec) => !skip.has(spec.code));
   const scope = config.agencies.scope;
   const requested = process.env.QA_AGENCY_SCOPE?.trim();
 

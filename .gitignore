@@ -15,3 +15,5 @@ blob-report/
 .DS_Store
 reports/history/
 reports/progress.json
+config/overrides.yml
+config/overrides.yml.bak

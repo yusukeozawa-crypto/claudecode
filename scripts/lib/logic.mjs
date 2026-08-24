@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { RULE_KEYS, readOverrides } from './overrides.mjs';
 
 const UNSET = '未設定';
 
@@ -274,6 +275,20 @@ function simpleTab(ctx) {
         lines: samplingLines(profiles, agencies),
       },
       {
+        title: '設定をどこで持っているか',
+        lines: [
+          '検査する内容は設定ファイル (config/) が持ちます。検査コードには書きません。',
+          '画面の「設定」タブから変えられるのは、対象サイトの URL と認証 (.env)、'
+          + '安心パックの判定に使う文言、検査しない代理店コードです。'
+          + `変えた分は config/overrides.yml に保存し、元の設定に重ねます${
+            ctx.overridden.length > 0
+              ? ` (いま画面で変えているもの: ${ctx.overridden.join(', ')})`
+              : ' (いまは画面からの変更はありません)'
+          }。`,
+          'この説明も同じ設定から作っています。設定を変えれば説明も変わります。',
+        ],
+      },
+      {
         title: '合否の付け方',
         lines: [
           '重大度は Critical / High / Medium / Low の 4 段階です。',
@@ -506,6 +521,18 @@ function limitsTab(ctx) {
 }
 
 /**
+ * 画面から変えたルールを代理店の設定に重ねる。
+ * 検査本体 (utils/overrides.ts) と同じ扱いにすること。
+ */
+function withOverrides(agency, overrides) {
+  const texts = { ...(agency.agencyNameTexts ?? {}) };
+  for (const key of ['anshinPack', 'anshinPackNegations', 'anshinPackAlwaysAllowed', 'anshinPackAlwaysForbidden']) {
+    if (Array.isArray(overrides[key])) texts[key] = overrides[key];
+  }
+  return { ...agency, agencyNameTexts: texts };
+}
+
+/**
  * ロジック説明を組み立てる。
  *
  * @param root プロジェクトのルート
@@ -514,9 +541,14 @@ function limitsTab(ctx) {
 export function buildLogic(root, options = {}) {
   const configDir = path.join(root, 'config');
   const { environment = null, now = new Date() } = options;
+  // 画面 (設定タブ) から変えた分を重ねる。
+  //   重ねないと、説明だけが元の設定のまま残って嘘になる。
+  const overrides = readOverrides(root);
+  const overridden = RULE_KEYS.filter((key) => Array.isArray(overrides[key]));
   const ctx = {
+    overridden,
     root,
-    agency: readConfig(configDir, 'agency', environment),
+    agency: withOverrides(readConfig(configDir, 'agency', environment), overrides),
     agencies: readConfig(configDir, 'agencies', environment),
     profiles: readYaml(path.join(configDir, 'agency-profiles.yml')),
     pages: readConfig(configDir, 'pages', environment),

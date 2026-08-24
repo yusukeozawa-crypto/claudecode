@@ -41,8 +41,40 @@
   main { padding: 32px 32px 80px; }
   /* 文章が長いものは広すぎると読みにくいので幅を抑える。
      チェックリストは列が多いので画面幅を使い切る。 */
-  #findings-section, #notes-section, #settings-section, #report-section, #history-section { max-width: 1120px; }
+  #findings-section, #notes-section, #report-section, #history-section { max-width: 1120px; }
   #logic-section { max-width: 1120px; }
+  #settings-panel .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 18px 22px; margin-bottom: 14px;
+  }
+  #settings-panel .card > h3 { font-size: 14px; margin: 0 0 4px; }
+  #settings-panel .card > .hint { color: var(--sub); font-size: 12px; margin: 0 0 14px; line-height: 1.8; }
+  #settings-panel .group { border-top: 1px solid var(--line); padding: 14px 0 4px; }
+  #settings-panel .group:first-of-type { border-top: 0; }
+  #settings-panel .group-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  #settings-panel .group-head .name { font-size: 13px; font-weight: 700; }
+  #settings-panel .group-head .why { color: var(--sub); font-size: 12px; }
+  #settings-panel .badge {
+    font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 9px;
+    background: #f1f3f5; color: #5b6672;
+  }
+  #settings-panel .badge.changed { background: #fff4e5; color: #8a5a00; }
+  #settings-panel .rows { margin: 10px 0 0; }
+  #settings-panel .rule-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
+  #settings-panel .rule-row input {
+    font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border);
+    border-radius: 8px; background: #fff; color: var(--text);
+  }
+  #settings-panel .rule-row input.text { flex: 1 1 46%; min-width: 0; }
+  #settings-panel .rule-row input.reason { flex: 1 1 46%; min-width: 0; }
+  #settings-panel .rule-row button {
+    background: #fff; border: 1px solid var(--border); color: var(--sub);
+    border-radius: 8px; padding: 7px 10px; cursor: pointer; font-size: 12px;
+  }
+  #settings-panel .rule-row button:hover { border-color: var(--critical); color: var(--critical); }
+  #settings-panel table.readonly td:first-child { width: 34%; font-weight: 700; }
+  #settings-panel table.readonly td { white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+  #settings-panel table.readonly td .src { display: block; color: var(--faint); font-size: 10px; margin-top: 3px; }
   section { margin-bottom: 40px; }
   section:last-child { margin-bottom: 0; }
   h2 {
@@ -468,49 +500,77 @@ powercfg /change monitor-timeout-ac 10</code>
     <p class="muted">保留事項・後日確認・後日仕様変更の覚え書き。<code>config/notes.yml</code> に書けます (設定から分かるものは自動で出ます)。</p>
   </section>
 
-  <section id="logic-section" hidden>
-    <h2>ロジック <span class="muted" id="logic-note"></span></h2>
+  <section id="logic-section">
+    <h2>ロジックと設定 <span class="muted" id="logic-note"></span></h2>
     <div id="logic-tabs"></div>
     <div class="panel" id="logic-body"></div>
-    <div class="actions">
+    <div class="actions" id="logic-actions">
       <button class="small" id="export-logic" data-action="logic">ロジックを書き出す</button>
       <span class="muted">reports/export/logic.md ができます (人に渡す・AI に読ませる用)</span>
+    </div>
+
+    <div id="settings-panel" hidden>
+      <div class="card">
+        <h3>対象サイト</h3>
+        <p class="hint">
+          保存先は <code>.env</code> です。Git には入りません。
+          URL はドメインまでで保存されます (ページのパスは設定ファイル側が持ちます)。
+          パスワードは画面に表示しません (空欄なら変更しません)。
+        </p>
+        <div class="row" style="margin-bottom: 12px;">
+          <label>環境
+            <select id="env-target">
+              <option value="staging">ステージング</option>
+              <option value="production">本番</option>
+            </select>
+          </label>
+          <span class="muted" id="env-current"></span>
+        </div>
+        <div class="row">
+          <label>サイトの URL<br><input id="env-base" type="url" placeholder="https://lp.example.jp" size="34"></label>
+          <label>申込サイトの URL (任意)<br><input id="env-application" type="url" placeholder="https://days.example.jp" size="30"></label>
+        </div>
+        <div class="row" style="margin-top: 10px;">
+          <label>ベーシック認証 ユーザー名<br><input id="env-user" type="text" autocomplete="off" size="18"></label>
+          <label>パスワード<br><input id="env-pass" type="password" autocomplete="off" size="18"></label>
+          <button class="small" id="env-save">保存する</button>
+        </div>
+        <p class="muted" id="env-note" style="margin-bottom: 0;"></p>
+      </div>
+
+      <div class="card">
+        <h3>ルール</h3>
+        <p class="hint">
+          ここでの変更は <code>config/overrides.yml</code> に保存し、元の設定に重ねて使います。
+          <strong>最新版に更新しても消えません</strong>
+          (設定ファイルを直接書き換えると、更新のたびに消えるため)。
+          変更は<strong>次の実行から</strong>効きます。理由は必ず書いてください
+          (後から「なぜこの文言を登録したのか」を説明できるように)。
+        </p>
+        <div id="rules-editor"></div>
+        <div class="actions" style="margin-top: 16px;">
+          <button class="small" id="rules-save">保存する</button>
+          <button class="small" id="rules-reset">元の設定に戻す</button>
+          <span class="muted" id="rules-note"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>そのほかの設定</h3>
+        <p class="hint">
+          画面からは変えられません (安全装置・実行の重さに関わるため)。
+          変えるには設定ファイルを直します。
+        </p>
+        <div class="panel" style="box-shadow: none; margin: 0;">
+          <table class="readonly" id="readonly-settings"></table>
+        </div>
+      </div>
     </div>
   </section>
 
   <section id="history-section" hidden>
     <h2>これまでの実行</h2>
     <div class="panel"><table id="history"></table></div>
-  </section>
-
-  <section id="settings-section">
-    <details id="settings-details">
-      <summary><span class="settings-title">対象サイトの設定</span></summary>
-    <div class="panel" style="padding: 16px; margin-top: 10px;">
-      <div class="row" style="margin-bottom: 12px;">
-        <label>環境
-          <select id="env-target">
-            <option value="staging">ステージング</option>
-            <option value="production">本番</option>
-          </select>
-        </label>
-        <span class="muted" id="env-current"></span>
-      </div>
-      <div class="row">
-        <label>サイトの URL<br><input id="env-base" type="url" placeholder="https://lp.example.jp" size="34"></label>
-        <label>申込サイトの URL (任意)<br><input id="env-application" type="url" placeholder="https://days.example.jp" size="30"></label>
-      </div>
-      <div class="row" style="margin-top: 10px;">
-        <label>ベーシック認証 ユーザー名<br><input id="env-user" type="text" autocomplete="off" size="18"></label>
-        <label>パスワード<br><input id="env-pass" type="password" autocomplete="off" size="18"></label>
-        <button class="small" id="env-save">保存する</button>
-      </div>
-      <p class="muted" id="env-note" style="margin-bottom: 0;">
-        URL はドメインまでで保存されます (ページのパスは設定ファイル側が持ちます)。
-        認証情報は空欄なら変更しません。保存先は .env で、Git には入りません。
-      </p>
-    </div>
-    </details>
   </section>
 
   <section id="report-section" hidden>
@@ -843,18 +903,198 @@ powercfg /change monitor-timeout-ac 10</code>
   }
 
   function renderLogicBody() {
-    if (!logicData) return;
-    var tabs = logicData.tabs || [];
+    // 設定タブは画面に埋め込んだ入力欄を使うので、ロジックの説明とは別扱いにする
+    var tabs = ((logicData && logicData.tabs) || []).map(function (tab) {
+      return { id: tab.id, label: tab.label };
+    });
+    tabs.push({ id: 'settings', label: '設定' });
     var current = tabs.filter(function (tab) { return tab.id === logicTab; })[0] || tabs[0];
-    if (!current) return;
     document.getElementById('logic-tabs').innerHTML = tabs.map(function (tab) {
       return '<button type="button" data-logic-tab="' + text(tab.id) + '"' +
         (tab.id === current.id ? ' class="on"' : '') + '>' + text(tab.label) + '</button>';
     }).join('');
+
+    var showSettings = current.id === 'settings';
+    // hidden 属性ではなく display で切り替える。
+    //   .actions は display: flex を持つため、hidden 属性だけでは消えない
+    //   (実際にボタンが残って表示された)。
+    document.getElementById('settings-panel').style.display = showSettings ? '' : 'none';
+    document.getElementById('settings-panel').hidden = false;
+    document.getElementById('logic-body').style.display = showSettings ? 'none' : '';
+    document.getElementById('logic-actions').style.display = showSettings ? 'none' : '';
+    document.getElementById('logic-note').textContent = showSettings
+      ? '— いまの設定 (env とルール)'
+      : '— 何をどう判定しているか (設定から自動生成)';
+    if (showSettings) {
+      loadSettings();
+      return;
+    }
+    var block = ((logicData && logicData.tabs) || [])
+      .filter(function (tab) { return tab.id === current.id; })[0];
+    if (!block) return;
     document.getElementById('logic-body').innerHTML =
-      '<p class="logic-summary">' + text(current.summary) + '</p>' +
-      (current.blocks || []).map(logicBlockHtml).join('');
+      '<p class="logic-summary">' + text(block.summary) + '</p>' +
+      (block.blocks || []).map(logicBlockHtml).join('');
   }
+
+  // ---- 設定タブ ----
+  //
+  //   ルールは「元の設定」と「いま効いている値」を並べて出す。
+  //   画面で変えた分がどれなのか分からないと、
+  //   「なぜこの判定になったのか」を後から説明できない。
+  var RULE_GROUPS = [
+    {
+      key: 'anshinPack',
+      name: '安心パックの語',
+      why: 'この語を含む文を探します。空にはできません (検査が止まります)。',
+      phrase: false,
+    },
+    {
+      key: 'anshinPackNegations',
+      name: '否定表現',
+      why: '語の直後にこれが来たら「付かない場合」の意味なので訴求と見なしません。',
+      phrase: false,
+    },
+    {
+      key: 'anshinPackAlwaysAllowed',
+      name: '掲載不可でも出てよい文言',
+      why: '文字の大きさを見ません (PC とスマホで同じ判定)。',
+      phrase: true,
+    },
+    {
+      key: 'anshinPackAlwaysForbidden',
+      name: '掲載不可では出せない文言',
+      why: '含まれていたら違反。文字の大きさを見ません (PC とスマホで同じ判定)。',
+      phrase: true,
+    },
+    {
+      key: 'excludeAgencyCodes',
+      name: '検査しない代理店コード',
+      why: '期待結果が決まらない代理店をその場で外せます (生成のやり直しは不要)。',
+      phrase: false,
+    },
+  ];
+  var settingsData = null;
+  var tabTouched = false;
+
+  function ruleRowHtml(group, entry) {
+    var value = group.phrase ? (entry && entry.text) || '' : entry || '';
+    var reason = group.phrase ? (entry && entry.reason) || '' : '';
+    return '<div class="rule-row" data-key="' + text(group.key) + '">' +
+      '<input class="text" type="text" value="' + text(value).replace(/"/g, '&quot;') +
+      '" placeholder="' + (group.phrase ? '文言' : '値') + '">' +
+      (group.phrase
+        ? '<input class="reason" type="text" value="' + text(reason).replace(/"/g, '&quot;') +
+          '" placeholder="そう決めた理由 (必須)">'
+        : '') +
+      '<button type="button" data-rule-remove="1" title="削除">削除</button>' +
+      '</div>';
+  }
+
+  function renderSettings(data) {
+    settingsData = data;
+    var rules = data.rules || { base: {}, current: {}, overridden: [] };
+    document.getElementById('rules-editor').innerHTML = RULE_GROUPS.map(function (group) {
+      var items = rules.current[group.key] || [];
+      var changed = (rules.overridden || []).indexOf(group.key) >= 0;
+      return '<div class="group" data-group="' + text(group.key) + '">' +
+        '<div class="group-head">' +
+        '<span class="name">' + text(group.name) + '</span>' +
+        '<span class="badge' + (changed ? ' changed' : '') + '">' +
+        (changed ? '画面で変更あり' : '設定ファイルのまま') + '</span>' +
+        '<span class="why">' + text(group.why) + '</span>' +
+        '</div>' +
+        '<div class="rows">' +
+        (items.length === 0 ? '' : items.map(function (entry) {
+          return ruleRowHtml(group, entry);
+        }).join('')) +
+        '</div>' +
+        '<button class="small" type="button" data-rule-add="' + text(group.key) + '">追加</button>' +
+        '</div>';
+    }).join('');
+
+    document.getElementById('readonly-settings').innerHTML =
+      '<tbody>' + (data.readOnly || []).map(function (row) {
+        return '<tr><td>' + text(row.label) + '</td><td>' + text(row.value) +
+          '<span class="src">' + text(row.source) + '</span></td></tr>';
+      }).join('') + '</tbody>';
+  }
+
+  function loadSettings() {
+    fetch('/api/settings')
+      .then(function (res) { return res.json(); })
+      .then(renderSettings)
+      .catch(function () { /* 取れないときは何も出さない (画面は止めない) */ });
+  }
+
+  /** 入力欄の内容を集める (空行は捨てる) */
+  function collectRules() {
+    var payload = {};
+    RULE_GROUPS.forEach(function (group) {
+      var container = document.querySelector('[data-group="' + group.key + '"]');
+      if (!container) return;
+      var rows = Array.prototype.slice.call(container.querySelectorAll('.rule-row'));
+      payload[group.key] = rows.map(function (row) {
+        var value = row.querySelector('input.text').value.trim();
+        if (group.phrase) {
+          var reasonInput = row.querySelector('input.reason');
+          return { text: value, reason: reasonInput ? reasonInput.value.trim() : '' };
+        }
+        return value;
+      }).filter(function (entry) {
+        return group.phrase ? entry.text !== '' : entry !== '';
+      });
+    });
+    return payload;
+  }
+
+  function saveRules(payload, message) {
+    busy = true;
+    fetch('/api/rules', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (body) {
+        if (!body.ok) {
+          alert(body.error || '保存できませんでした');
+          return;
+        }
+        document.getElementById('rules-note').textContent = body.empty
+          ? '元の設定に戻しました (上書きなし)'
+          : message + ' — ' + body.savedTo + ' / 次の実行から効きます';
+        loadSettings();
+      })
+      .catch(function () { alert('保存できませんでした。黒い画面が閉じていないか確認してください。'); })
+      .then(function () { busy = false; });
+  }
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest) return;
+    var add = event.target.closest('[data-rule-add]');
+    if (add) {
+      var key = add.getAttribute('data-rule-add');
+      var group = RULE_GROUPS.filter(function (entry) { return entry.key === key; })[0];
+      var rows = document.querySelector('[data-group="' + key + '"] .rows');
+      if (group && rows) rows.insertAdjacentHTML('beforeend', ruleRowHtml(group, null));
+      return;
+    }
+    var remove = event.target.closest('[data-rule-remove]');
+    if (remove) {
+      remove.closest('.rule-row').remove();
+      return;
+    }
+    if (event.target.id === 'rules-save') {
+      saveRules(collectRules(), '保存しました');
+      return;
+    }
+    if (event.target.id === 'rules-reset') {
+      if (!settingsData) return;
+      if (!window.confirm('画面で変えた分をすべて捨てて、設定ファイルの値に戻します。よろしいですか？')) return;
+      saveRules(settingsData.rules.base, '元に戻しました');
+    }
+  });
 
   /**
    * ロジックの説明は実行中に変わらないので 1 回だけ取る。
@@ -864,23 +1104,22 @@ powercfg /change monitor-timeout-ac 10</code>
     fetch('/api/logic')
       .then(function (res) { return res.json(); })
       .then(function (body) {
-        var section = document.getElementById('logic-section');
-        if (!body.logic || !(body.logic.tabs || []).length) {
-          section.hidden = true;
-          return;
-        }
-        logicData = body.logic;
-        section.hidden = false;
-        document.getElementById('logic-note').textContent = '— 何をどう判定しているか (設定から自動生成)';
+        // 説明が作れなくても設定タブは出す (設定を見られなくなると困る)
+        logicData = body.logic && (body.logic.tabs || []).length ? body.logic : null;
+        if (!logicData) logicTab = 'settings';
         renderLogicBody();
       })
-      .catch(function () { /* 説明が出ないだけにする (画面は止めない) */ });
+      .catch(function () {
+        logicTab = 'settings';
+        renderLogicBody();
+      });
   }
 
   document.addEventListener('click', function (event) {
     var button = event.target.closest ? event.target.closest('[data-logic-tab]') : null;
     if (!button) return;
     logicTab = button.getAttribute('data-logic-tab');
+    tabTouched = true;
     renderLogicBody();
   });
 
@@ -1025,13 +1264,14 @@ powercfg /change monitor-timeout-ac 10</code>
 
         var needsRestart = state.restartRequired === true || (state.sizes || []).length === 0;
         document.getElementById('restart-notice').hidden = !needsRestart;
-        // URL が 1 つも登録されていない = まず設定が必要なので開いておく
+        // URL が 1 つも登録されていない = まず設定が必要なので設定タブを開く
         var anyConfigured = Object.keys(latestEnv).some(function (key) {
           return key !== 'local' && latestEnv[key] && latestEnv[key].configured;
         });
-        var settings = document.getElementById('settings-details');
-        if (!anyConfigured && !settings.dataset.touched) settings.open = true;
-        settings.addEventListener('toggle', function () { settings.dataset.touched = '1'; });
+        if (!anyConfigured && !tabTouched && logicTab !== 'settings') {
+          logicTab = 'settings';
+          renderLogicBody();
+        }
         renderInterruptions(state);
         renderVerdict(state);
         renderTargets(state);

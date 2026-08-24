@@ -9,9 +9,10 @@ import type {
   AgenciesFile, AgencyFile, DevicesFile, EnvironmentsFile, ErrorsFile, KnownIssuesFile, LayoutFile,
   PagesFile, QaConfig, RuntimeFile, TextRulesFile, VisualFile,
 } from './types';
+import { applyAgencyOverrides, readOverrides } from './overrides';
 
 export const PROJECT_ROOT = path.resolve(__dirname, '..');
-const CONFIG_DIR = path.join(PROJECT_ROOT, 'config');
+export const CONFIG_DIR = path.join(PROJECT_ROOT, 'config');
 
 /**
  * .env を読み込む (依存パッケージを増やさない簡易実装)。
@@ -123,7 +124,13 @@ export function loadConfig(): QaConfig {
     environments,
     devices: readYaml<DevicesFile>('devices.yml'),
     runtime: readYaml<RuntimeFile>('runtime.yml'),
-    agency: readYaml<AgencyFile>(environment.agencyFile ?? 'agency.yml'),
+    // 画面 (設定タブ) から保存された上書きを重ねる。
+    //   config/agency.yml を直接書き換えると npm run update で消えるため、
+    //   別ファイル (config/overrides.yml) に持たせている。
+    agency: applyAgencyOverrides(
+      readYaml<AgencyFile>(environment.agencyFile ?? 'agency.yml'),
+      readOverrides(CONFIG_DIR),
+    ),
     agencies: readYaml<AgenciesFile>(environment.agenciesFile ?? 'agencies.yml'),
     pages: readYaml<PagesFile>(environment.pagesFile ?? 'pages.yml'),
     layout: readYaml<LayoutFile>('layout.yml'),
