@@ -18,7 +18,8 @@
  */
 import { test } from '../qa-fixtures';
 import { loadConfig } from '../../utils/config';
-import { agencySpecs, expectsDisplayChange } from '../../utils/agency';
+import { agencySpecs, expectsDisplayChange, judgeCodeReflection } from '../../utils/agency';
+import { observeAnshinOccurrences } from '../../utils/anshin-pack';
 import { buildEntryUrl } from '../../utils/agency-entry';
 import {
   capturePageSignatureStable, compareVisibleBlocks, diffTextLines, evaluateDisplayDifference,
@@ -186,15 +187,20 @@ test.describe('表示の一貫性 @agency @consistency', () => {
     });
   }
   // ------------------------------------------------------------------
-  // 3. 代理店コードが表示に効いているか (コードなしと比べる)
+  // 3. ① コードの反映 (コードなしと比べる)
   //
   //   実サイトで「代理店名も出ない・みらやくの切り替えも効かない」代理店が
   //   見つかった。個別の項目 (代理店名・安心パック) が別々に Critical に
-  //   なるため、原因が 1 つ (コードが効いていない) だと読み取れなかった。
+  //   なるため、原因が 1 つ (コードが反映されていない) だと読み取れなかった。
   //
-  //   コードなしの表示と一致したら、そのコードは何も効いていない。
-  //   A/B テストが動いていても、この判定は安全側に働く
-  //   (割り当てが違えば差分が出るので「効いている」と読むだけ)。
+  //   これは総合判定ではなく最初に見る 1 歩目:
+  //     変化なし       … コードなしと完全に同じ。右の項目を読む意味がない
+  //     変化なしの疑い … 差分はあるが、期待した変化が 1 つも起きていない
+  //     変化あり       … 右の項目を個別に読む
+  //
+  //   「差分があれば反映された」とはしない。Zoho の A/B テストや
+  //   実行ごとに変わる文言でも差分は出るため、実サイトで 4 社を
+  //   「反映された」と読み違えた (PC だけ差分が出て、SP は完全一致だった)。
   // ------------------------------------------------------------------
   /** コードなしの表示。同じワーカーの中では取り直さない (実行時間のため) */
   const noCodeBaselines = new Map<string, PageSignature>();
@@ -225,12 +231,15 @@ test.describe('表示の一貫性 @agency @consistency', () => {
    *   安心パックが消える   … コードなしには出ているので必ず変わる
    * どちらでもない (自社コード = オリジナル表示) は対象外。
    */
-  const mustChange = specs.filter(
-    (spec) => expectsDisplayChange(spec, config.agencies.sameAsNoCodeProfiles ?? []),
-  );
+  const sameAsNoCode = config.agencies.sameAsNoCodeProfiles ?? [];
+  const mustChange = specs.filter((spec) => expectsDisplayChange(spec, sameAsNoCode));
+  const notChecked = specs.filter((spec) => !expectsDisplayChange(spec, sameAsNoCode));
+
+  /** フッターの代理店名の接頭辞 (「募集代理店：」)。会社名の表記ゆれに依存しない */
+  const namePrefix = (config.agency.agencyNameTexts?.footer ?? '').split('{company}')[0].trim();
 
   for (const spec of mustChange) {
-    test(`${spec.code}: 代理店コードが表示に効いている`, async ({ qa, page }) => {
+    test(`${spec.code}: ① コードの反映`, async ({ qa, page }) => {
       test.slow();
       const baseline = await noCodeBaseline(qa, page, spec.entryPath);
       if (!baseline) return;
@@ -238,72 +247,141 @@ test.describe('表示の一貫性 @agency @consistency', () => {
       if (!signature) return;
 
       const difference = evaluateDisplayDifference(baseline, signature, ignoreKeys);
+
+      // 期待した変化が実際に起きたかを、この場で測る。
+      //   差分の有無だけでは「反映された」と言えないため
+      //   (A/B テストの割り当てでも差分は出る)。
+      const nameShown = spec.agencyName === 'shown' && namePrefix !== ''
+        ? signature.textLines.some((line) => line.includes(namePrefix))
+        : null;
+      const texts = config.agency.agencyNameTexts;
+      const anshinCleared = spec.anshinPack === 'absent' && texts
+        ? (await observeAnshinOccurrences(
+          page,
+          texts.anshinPack ?? [],
+          texts.anshinPackAnnotationMarkers ?? ['※'],
+          texts.anshinPackNegations ?? [],
+          (texts.anshinPackAlwaysForbidden ?? []).map((entry) => entry.text),
+          (texts.anshinPackAlwaysAllowed ?? []).map((entry) => entry.text),
+        )).every((entry) => entry.allowed)
+        : null;
+
+      const verdict = judgeCodeReflection({ differs: difference.differs, nameShown, anshinCleared });
       const expectedChanges = [
         spec.agencyName === 'shown' ? '代理店名が出る' : '',
         spec.anshinPack === 'absent' ? '安心パックの記載が消える' : '',
       ]
         .filter((part) => part !== '')
         .join(' / ');
+      const observedChanges = [
+        nameShown === null ? '' : `代理店名: ${nameShown ? '出ている' : '出ていない'}`,
+        anshinCleared === null ? '' : `安心パック: ${anshinCleared ? '消えている' : '残っている'}`,
+      ]
+        .filter((part) => part !== '')
+        .join(' / ');
+      const noCodeUrl = buildEntryUrl(config, spec.entryPath, null);
 
-      if (!difference.differs) {
+      if (verdict === 'unchanged') {
         qa.add({
           checkId: 'code-effective',
           checkOk: false,
-          observedValue: '効いていない',
-          expectedValue: '効いている',
-          // 表に併記する行 (何を見た結果なのかを短く出す)
-          observedDetail: [
-            'コードなしと完全一致',
-            `文言 ${baseline.textLines.length} 行`,
-          ],
+          observedValue: '変化なし',
+          expectedValue: '変化あり',
+          observedDetail: ['コードなしと完全一致', `文言 ${baseline.textLines.length} 行`],
           category: 'agency-display',
           severity: 'critical',
-          title: `${spec.label}: 代理店コードが表示に効いていません (コードなしと同じ表示)`,
+          title: `${spec.label}: コードを付けても表示が変わりません (コードなしと完全一致)`,
           expected: `コードを付けると ${expectedChanges} こと`,
           actual:
-            `表示ブロック (${difference.sharedBlocks.length} 件) と文言 (${baseline.textLines.length} 行) が` +
-            'コードなしと完全に一致',
+            `表示ブロック (${difference.sharedBlocks.length} 件) と文言 (${baseline.textLines.length} 行) が`
+            + 'コードなしと完全に一致',
           url: signature.url,
           agencyCode: spec.code,
           detail:
-            'このコードが未登録か、コードの適用そのものが効いていない可能性があります。' +
-            'この状態では代理店名も みらやく掲載可否も反映されないため、' +
-            'ほかの項目の検知はすべてこの 1 つが原因です。' +
-            `比較したのはコードなしの ${buildEntryUrl(config, spec.entryPath, null)} です。`,
+            'このコードが未登録か、コードの適用そのものが効いていない可能性があります。'
+            + 'この状態では代理店名も みらやく掲載可否も反映されないため、'
+            + 'ほかの項目の検知はすべてこの 1 つが原因です。'
+            + `比較したのはコードなしの ${noCodeUrl} です。`,
+        });
+      } else if (verdict === 'suspect') {
+        qa.add({
+          checkId: 'code-effective',
+          checkOk: false,
+          observedValue: '変化なしの疑い',
+          expectedValue: '変化あり',
+          observedDetail: ['期待した変化が起きていない', observedChanges],
+          category: 'agency-display',
+          // 完全一致より弱い根拠なので Critical にはしない。
+          // ただし人が必ず見るように High にする (放置させない)。
+          severity: 'high',
+          title: `${spec.label}: コードを付けても期待した変化が起きていません (要目視)`,
+          expected: `コードを付けると ${expectedChanges} こと`,
+          actual:
+            `${observedChanges}。コードなしとの差分はありますが `
+            + `(ブロック +${difference.onlyInB.length} / -${difference.onlyInA.length}、`
+            + `文言 +${difference.textOnlyInB.length} / -${difference.textOnlyInA.length} 行)、`
+            + '期待した変化は 1 つも起きていません',
+          url: signature.url,
+          agencyCode: spec.code,
+          detail:
+            '差分は A/B テストの割り当てや、実行ごとに変わる文言でも出ます。'
+            + 'そのため差分があることは「コードが反映された」証拠になりません。'
+            + `実際にブラウザで開いて確認してください: ${signature.url} `
+            + `(比較したコードなし: ${noCodeUrl})`,
         });
       } else {
         qa.add({
           checkId: 'code-effective',
           checkOk: true,
-          observedValue: '効いている',
-          expectedValue: '効いている',
+          observedValue: '変化あり',
+          expectedValue: '変化あり',
           observedDetail: [
-            difference.blocksDiffer
-              ? `ブロック +${difference.onlyInB.length} / -${difference.onlyInA.length}`
-              : 'ブロックは同一',
-            difference.textDiffers
-              ? `文言 +${difference.textOnlyInB.length} / -${difference.textOnlyInA.length} 行`
-              : '文言は同一',
+            observedChanges || '差分あり',
+            `文言 +${difference.textOnlyInB.length} / -${difference.textOnlyInA.length} 行`,
           ],
           category: 'agency-display',
           severity: 'low',
-          title: `[確認OK] ${spec.label}: 代理店コードが表示に効いています`,
+          title: `[確認OK] ${spec.label}: コードを付けると表示が変わります`,
           expected: `コードを付けると ${expectedChanges} こと`,
           actual:
             (difference.blocksDiffer
-              ? `ブロック — コードなしだけ: ${describeKeys(difference.onlyInA)} / ` +
-                `${spec.code} だけ: ${describeKeys(difference.onlyInB)}`
-              : 'ブロックの構成は同一') +
-            ' | ' +
-            (difference.textDiffers
-              ? `文言 — コードなしだけ: ${describeLines(difference.textOnlyInA)} / ` +
-                `${spec.code} だけ: ${describeLines(difference.textOnlyInB)}`
-              : '文言は同一'),
+              ? `ブロック — コードなしだけ: ${describeKeys(difference.onlyInA)} / `
+                + `${spec.code} だけ: ${describeKeys(difference.onlyInB)}`
+              : 'ブロックの構成は同一')
+            + ' | '
+            + (difference.textDiffers
+              ? `文言 — コードなしだけ: ${describeLines(difference.textOnlyInA)} / `
+                + `${spec.code} だけ: ${describeLines(difference.textOnlyInB)}`
+              : '文言は同一')
+            + (observedChanges === '' ? '' : ` | ${observedChanges}`),
           url: signature.url,
           agencyCode: spec.code,
         });
       }
       qa.collectMonitorFindings();
+    });
+  }
+
+  // 検査していないのではなく「変わらないのが正しい」代理店。
+  //   表を「ー」にすると「検査漏れ」と読めてしまうため、
+  //   対象外であることを記録する (ページは開かない)。
+  if (notChecked.length > 0) {
+    test(`① コードの反映: 対象外の代理店を記録する (${notChecked.length} 件)`, async ({ qa }) => {
+      for (const spec of notChecked) {
+        qa.add({
+          checkId: 'code-effective',
+          // 正解が「変わらないこと」なので合否は付けない (表では白のまま)
+          observedValue: '対象外',
+          expectedValue: null,
+          observedDetail: ['コードを付けても変わらないのが正しい'],
+          category: 'agency-display',
+          severity: 'low',
+          title: `[対象外] ${spec.label}: コードの反映は検査しません`,
+          expected: 'コードなしと同じ表示になること (自社コードなど)',
+          actual: '期待結果が「表示は変わらない」ため、この項目は判定しません',
+          agencyCode: spec.code,
+        });
+      }
     });
   }
 

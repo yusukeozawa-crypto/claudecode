@@ -108,6 +108,39 @@ export function expectsDisplayChange(
   return spec.agencyName === 'shown' || spec.anshinPack === 'absent';
 }
 
+/**
+ * 「① コードの反映」の判定。
+ *
+ * 代理店コードを付けて開いたときに、ページが動いたかどうかだけを見る。
+ * これは最終判断ではなく、最初に見る 1 歩目:
+ *   変化なし        … 右の項目を読む意味がない (原因はここ 1 つ)
+ *   変化なしの疑い  … 差分はあるが、期待した変化が 1 つも起きていない
+ *                     (A/B テストの割り当てや動的な文言でも差分は出るため、
+ *                      差分の有無だけでは「反映された」と言えない)
+ *   変化あり        … 右の項目を個別に読む
+ *
+ * 期待した変化が「観測できなかった」ものだけを疑いにする。
+ * 判定に使わない項目 (期待が無いもの) は null で渡す。
+ */
+export type CodeReflection = 'changed' | 'unchanged' | 'suspect';
+
+export function judgeCodeReflection(input: {
+  /** コードなしの表示と差分があったか */
+  differs: boolean;
+  /** 代理店名が出ていたか (期待していない場合は null) */
+  nameShown: boolean | null;
+  /** 安心パックの訴求が消えていたか (期待していない場合は null) */
+  anshinCleared: boolean | null;
+}): CodeReflection {
+  if (!input.differs) return 'unchanged';
+  const expected = [input.nameShown, input.anshinCleared].filter(
+    (value): value is boolean => value !== null,
+  );
+  // 期待した変化が 1 つも観測できていない = 差分は別の理由 (A/B など) の可能性
+  if (expected.length > 0 && expected.every((value) => value === false)) return 'suspect';
+  return 'changed';
+}
+
 export function agencySpecs(config: QaConfig): AgencySpec[] {
   // 画面 (設定タブ) で「検査しない」と指定されたコードを外す。
   //   config/agency-profiles.yml の除外と違い、生成のやり直し
