@@ -68,9 +68,12 @@ const checklistRows = [
     ...columns.flatMap((column) => [column.label, `${column.label} (確認内容)`]),
   ],
 ];
+// 赤いセルがある行だけを集めたもの (対応が必要な代理店だけを渡すため)。
+// 列はチェックリストと同じにする。同じ見方で読めるようにするため。
+const errorRows = [checklistRows[0]];
 for (const table of checklist.tables ?? []) {
   for (const row of table.rows ?? []) {
-    checklistRows.push([
+    const cells = [
       table.deviceLabel ?? table.deviceId ?? '',
       row.pattern ?? '',
       row.effectiveFrom ?? '',
@@ -85,7 +88,12 @@ for (const table of checklist.tables ?? []) {
         const value = c.state === 'ng' ? `${c.observed} (期待: ${c.expected ?? ''})` : c.observed;
         return [value, detail];
       }),
-    ]);
+    ];
+    checklistRows.push(cells);
+    // 画面で赤くなるセル (期待と違う値) を 1 つでも持つ行だけ抜き出す
+    if (columns.some((column) => row.cells?.[column.key]?.state === 'ng')) {
+      errorRows.push(cells);
+    }
   }
 }
 
@@ -121,8 +129,10 @@ for (const { finding, record } of findings) {
 fs.mkdirSync(outDir, { recursive: true });
 const checklistPath = path.join(outDir, 'checklist.csv');
 const findingsPath = path.join(outDir, 'findings.csv');
+const errorsPath = path.join(outDir, 'errors.csv');
 fs.writeFileSync(checklistPath, toCsv(checklistRows), 'utf8');
 fs.writeFileSync(findingsPath, toCsv(findingRows), 'utf8');
+fs.writeFileSync(errorsPath, toCsv(errorRows), 'utf8');
 
 console.log('');
 console.log('==================== CSV に書き出しました ====================');
@@ -131,5 +141,6 @@ if (summary.startedAt) console.log(`実行日時      : ${new Date(summary.start
 if (summary.partial) console.log('注意          : これは検査中の途中結果です (最後まで走っていません)');
 console.log(`代理店 × 項目 : ${path.relative(root, checklistPath)}  (${checklistRows.length - 1} 行)`);
 console.log(`検知の一覧    : ${path.relative(root, findingsPath)}  (${findingRows.length - 1} 行)`);
+console.log(`赤いものだけ  : ${path.relative(root, errorsPath)}  (${errorRows.length - 1} 行)`);
 console.log('Excel でそのまま開けます (日本語が壊れないよう BOM を付けています)');
 console.log('=============================================================');

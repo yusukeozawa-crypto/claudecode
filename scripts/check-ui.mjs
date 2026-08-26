@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 process.env.QA_UI_IMPORT = '1';
 const { server, checklistOf, findingGroups, slimSummary } = await import('./ui-server.mjs');
@@ -270,6 +271,59 @@ await check('CSV は Excel で開いても日本語が壊れない', () => {
   assert.ok(/\\r\\n/.test(script), '改行を CRLF にすること');
   // = で始まる値を数式として実行させない
   assert.ok(/\[=\+\\-@\]/.test(script), '数式として解釈される値を打ち消すこと');
+});
+
+await check('赤いものだけの CSV が出る (対応が必要な代理店を渡すため)', () => {
+  // 全件の表 (数百行) を渡しても、どこを直せばよいか伝わらない。
+  // 画面で赤いセルを持つ行だけを、同じ列で抜き出す。
+  const report = {
+    summary: {
+      startedAt: new Date().toISOString(),
+      checklist: {
+        columns: [{ key: 'code-effective', label: '① コードで発火' }],
+        tables: [{
+          deviceLabel: 'PC',
+          rows: [
+            {
+              code: 'OK001',
+              company: '問題なし',
+              cells: { 'code-effective': { state: 'ok', observed: '発火', details: [] } },
+            },
+            {
+              code: 'NG001',
+              company: '不発の会社',
+              cells: {
+                'code-effective': { state: 'ng', observed: '不発', expected: '発火', details: ['コードなしと完全一致'] },
+              },
+            },
+            {
+              code: 'INFO1',
+              company: '記録だけ',
+              cells: { 'code-effective': { state: 'info', observed: '対象外', details: [] } },
+            },
+          ],
+        }],
+      },
+    },
+    records: [],
+  };
+  const dir = fs.mkdtempSync(path.join(os.default.tmpdir(), 'qa-csv-'));
+  const from = path.join(dir, 'report.json');
+  fs.writeFileSync(from, JSON.stringify(report), 'utf8');
+  const result = spawnSync(process.execPath, [path.join(root, 'scripts', 'export-csv.mjs'), `--from=${from}`], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, `書き出しが成功すること: ${result.stderr}`);
+
+  const errors = fs.readFileSync(path.join(root, 'reports', 'export', 'errors.csv'), 'utf8');
+  const lines = errors.replace(/^\ufeff/, '').trim().split('\r\n');
+  assert.equal(lines.length, 2, `見出し + 赤い行 1 件だけになること (実際: ${lines.length - 1} 行)`);
+  assert.ok(lines[0].includes('① コードで発火'), '列はチェックリストと同じであること');
+  assert.ok(lines[1].includes('NG001'), '赤い行が入ること');
+  assert.ok(!errors.includes('OK001'), '問題のない行は入れないこと');
+  assert.ok(!errors.includes('INFO1'), '記録だけの行 (対象外) は入れないこと');
+  assert.ok(lines[1].includes('期待'), '期待値も添えること (値だけでは分からない)');
 });
 
 await check('検査が終わると CSV も自動で作られる', () => {
