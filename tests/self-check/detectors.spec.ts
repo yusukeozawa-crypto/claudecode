@@ -912,7 +912,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
   });
 
   // ------------------------------------------------------------------
-  // 「① コードの反映」の 3 段階
+  // 「① コードで発火」の 3 段階
   //
   //   実サイトで、差分はあるのに代理店名も出ず安心パックも消えていない
   //   代理店を「反映された」と読み違えた (PC だけ差分が出て SP は完全一致)。
@@ -921,30 +921,30 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
   //   逆に厳しくしすぎると、期待が 1 つしかない代理店を取りこぼす。
   //   その境目を固定しておく。
   // ------------------------------------------------------------------
-  test('① コードの反映は 3 段階で判定する (見逃しと言い過ぎの境目)', () => {
+  test('① コードで発火は 3 段階で判定する (見逃しと言い過ぎの境目)', () => {
     expect(
       judgeCodeReflection({ differs: false, nameShown: false, anshinCleared: null }),
-      'コードなしと完全一致なら「変化なし」',
+      'コードなしと完全一致なら「不発」',
     ).toBe('unchanged');
     expect(
       judgeCodeReflection({ differs: false, nameShown: true, anshinCleared: null }),
-      '完全一致は、ほかが何であれ「変化なし」',
+      '完全一致は、ほかが何であれ「不発」',
     ).toBe('unchanged');
     expect(
       judgeCodeReflection({ differs: true, nameShown: false, anshinCleared: false }),
-      '差分はあるが期待した変化が 1 つも起きていなければ「疑い」',
+      '差分はあるが期待した変化が 1 つも起きていなければ「不発の疑い」',
     ).toBe('suspect');
     expect(
       judgeCodeReflection({ differs: true, nameShown: false, anshinCleared: null }),
-      '期待が 1 つだけの代理店でも、それが起きていなければ「疑い」',
+      '期待が 1 つだけの代理店でも、それが起きていなければ「不発の疑い」',
     ).toBe('suspect');
     expect(
       judgeCodeReflection({ differs: true, nameShown: true, anshinCleared: false }),
-      '期待した変化が 1 つでも起きていれば「変化あり」(残りは各項目で見る)',
+      '期待した変化が 1 つでも起きていれば「発火」(残りは各項目で見る)',
     ).toBe('changed');
     expect(
       judgeCodeReflection({ differs: true, nameShown: null, anshinCleared: null }),
-      '期待が無い場合は差分だけで「変化あり」',
+      '期待が無い場合は差分だけで「発火」',
     ).toBe('changed');
   });
 
@@ -973,7 +973,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
 
     expect(
       judgeCodeReflection({ differs: true, nameShown, anshinCleared: null }),
-      '差分があっても代理店名が出ていなければ「疑い」として拾うこと',
+      '差分があっても代理店名が出ていなければ「不発の疑い」として拾うこと',
     ).toBe('suspect');
   });
 

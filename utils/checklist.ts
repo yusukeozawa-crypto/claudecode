@@ -25,10 +25,10 @@ import type { CheckId, QaRecord, Severity } from './types';
 
 /** チェックリストの列 (代理店コードで変わる仕様のみ) */
 export const CHECK_COLUMNS: Array<{ key: CheckId; label: string }> = [
-  // 最初に見る項目。ここが「変化なし」なら、
+  // 最初に見る項目。ここが「不発」なら、
   // 以降の項目 (代理店名・安心パック) はすべて意味を持たない。
   // 総合判定ではなく「1 歩目」であることが伝わるように ① を付ける。
-  { key: 'code-effective', label: '① コードの反映' },
+  { key: 'code-effective', label: '① コードで発火' },
   { key: 'redirect', label: 'リダイレクト' },
   { key: 'header-name', label: 'ヘッダーに代理店名' },
   { key: 'footer-name', label: 'フッターに代理店名' },

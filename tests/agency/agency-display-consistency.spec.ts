@@ -187,20 +187,20 @@ test.describe('表示の一貫性 @agency @consistency', () => {
     });
   }
   // ------------------------------------------------------------------
-  // 3. ① コードの反映 (コードなしと比べる)
+  // 3. ① コードで発火 (コードなしと比べる)
   //
   //   実サイトで「代理店名も出ない・みらやくの切り替えも効かない」代理店が
   //   見つかった。個別の項目 (代理店名・安心パック) が別々に Critical に
-  //   なるため、原因が 1 つ (コードが反映されていない) だと読み取れなかった。
+  //   なるため、原因が 1 つ (コードが不発) だと読み取れなかった。
   //
   //   これは総合判定ではなく最初に見る 1 歩目:
-  //     変化なし       … コードなしと完全に同じ。右の項目を読む意味がない
-  //     変化なしの疑い … 差分はあるが、期待した変化が 1 つも起きていない
-  //     変化あり       … 右の項目を個別に読む
+  //     不発       … コードなしと完全に同じ。右の項目を読む意味がない
+  //     不発の疑い … 差分はあるが、期待した変化が 1 つも起きていない
+  //     発火       … 右の項目を個別に読む
   //
-  //   「差分があれば反映された」とはしない。Zoho の A/B テストや
+  //   「差分があれば発火」とはしない。Zoho の A/B テストや
   //   実行ごとに変わる文言でも差分は出るため、実サイトで 4 社を
-  //   「反映された」と読み違えた (PC だけ差分が出て、SP は完全一致だった)。
+  //   「発火した」と読み違えた (PC だけ差分が出て、SP は完全一致だった)。
   // ------------------------------------------------------------------
   /** コードなしの表示。同じワーカーの中では取り直さない (実行時間のため) */
   const noCodeBaselines = new Map<string, PageSignature>();
@@ -239,7 +239,7 @@ test.describe('表示の一貫性 @agency @consistency', () => {
   const namePrefix = (config.agency.agencyNameTexts?.footer ?? '').split('{company}')[0].trim();
 
   for (const spec of mustChange) {
-    test(`${spec.code}: ① コードの反映`, async ({ qa, page }) => {
+    test(`${spec.code}: ① コードで発火`, async ({ qa, page }) => {
       test.slow();
       const baseline = await noCodeBaseline(qa, page, spec.entryPath);
       if (!baseline) return;
@@ -285,12 +285,12 @@ test.describe('表示の一貫性 @agency @consistency', () => {
         qa.add({
           checkId: 'code-effective',
           checkOk: false,
-          observedValue: '変化なし',
-          expectedValue: '変化あり',
+          observedValue: '不発',
+          expectedValue: '発火',
           observedDetail: ['コードなしと完全一致', `文言 ${baseline.textLines.length} 行`],
           category: 'agency-display',
           severity: 'critical',
-          title: `${spec.label}: コードを付けても表示が変わりません (コードなしと完全一致)`,
+          title: `${spec.label}: コードが不発です (コードなしと完全に同じ表示)`,
           expected: `コードを付けると ${expectedChanges} こと`,
           actual:
             `表示ブロック (${difference.sharedBlocks.length} 件) と文言 (${baseline.textLines.length} 行) が`
@@ -307,14 +307,14 @@ test.describe('表示の一貫性 @agency @consistency', () => {
         qa.add({
           checkId: 'code-effective',
           checkOk: false,
-          observedValue: '変化なしの疑い',
-          expectedValue: '変化あり',
+          observedValue: '不発の疑い',
+          expectedValue: '発火',
           observedDetail: ['期待した変化が起きていない', observedChanges],
           category: 'agency-display',
           // 完全一致より弱い根拠なので Critical にはしない。
           // ただし人が必ず見るように High にする (放置させない)。
           severity: 'high',
-          title: `${spec.label}: コードを付けても期待した変化が起きていません (要目視)`,
+          title: `${spec.label}: コードが不発の疑い — 期待した変化が起きていません (要目視)`,
           expected: `コードを付けると ${expectedChanges} こと`,
           actual:
             `${observedChanges}。コードなしとの差分はありますが `
@@ -333,15 +333,15 @@ test.describe('表示の一貫性 @agency @consistency', () => {
         qa.add({
           checkId: 'code-effective',
           checkOk: true,
-          observedValue: '変化あり',
-          expectedValue: '変化あり',
+          observedValue: '発火',
+          expectedValue: '発火',
           observedDetail: [
             observedChanges || '差分あり',
             `文言 +${difference.textOnlyInB.length} / -${difference.textOnlyInA.length} 行`,
           ],
           category: 'agency-display',
           severity: 'low',
-          title: `[確認OK] ${spec.label}: コードを付けると表示が変わります`,
+          title: `[確認OK] ${spec.label}: コードで発火しています (表示が変わる)`,
           expected: `コードを付けると ${expectedChanges} こと`,
           actual:
             (difference.blocksDiffer
@@ -366,7 +366,7 @@ test.describe('表示の一貫性 @agency @consistency', () => {
   //   表を「ー」にすると「検査漏れ」と読めてしまうため、
   //   対象外であることを記録する (ページは開かない)。
   if (notChecked.length > 0) {
-    test(`① コードの反映: 対象外の代理店を記録する (${notChecked.length} 件)`, async ({ qa }) => {
+    test(`① コードで発火: 対象外の代理店を記録する (${notChecked.length} 件)`, async ({ qa }) => {
       for (const spec of notChecked) {
         qa.add({
           checkId: 'code-effective',
@@ -376,7 +376,7 @@ test.describe('表示の一貫性 @agency @consistency', () => {
           observedDetail: ['コードを付けても変わらないのが正しい'],
           category: 'agency-display',
           severity: 'low',
-          title: `[対象外] ${spec.label}: コードの反映は検査しません`,
+          title: `[対象外] ${spec.label}: コードの発火は検査しません`,
           expected: 'コードなしと同じ表示になること (自社コードなど)',
           actual: '期待結果が「表示は変わらない」ため、この項目は判定しません',
           agencyCode: spec.code,
