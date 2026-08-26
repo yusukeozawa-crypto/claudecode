@@ -642,7 +642,15 @@ function exportCsv(): string {
     if (result.status !== 0) {
       return `作成できませんでした (${describeCsvError(result.stderr)})`;
     }
-    return 'reports/export/checklist.csv, findings.csv, errors.csv (赤いものだけ)';
+    // 書き出したファイル名は日時つきなので、実際の行を拾って出す
+    //   (固定名を書くと、実物と違う名前を案内してしまう)
+    const written = (result.stdout ?? '')
+      .split('\n')
+      .map((line) => line.match(/reports[\\/]export[\\/]\S+\.csv/)?.[0])
+      .filter((name): name is string => name !== undefined);
+    return written.length > 0
+      ? written.join(', ')
+      : 'reports/export/ (checklist / findings / errors、ファイル名に日時)';
   } catch (error) {
     return `作成できませんでした (${error instanceof Error ? error.message : String(error)})`;
   }

@@ -180,7 +180,7 @@ QA_ENV=staging npx playwright test
 | `npm run update` | ツール自身を最新版に更新 (Git 不要。`.env` / `reports` / `screenshots` は残る) |
 | `npm run discover:staging` / `npm run discover:production` | 実サイトの仕様を調査して `reports/discovery/` に記録 (読み取りのみ) |
 | `npm run update:screenshots` | 基準画像を更新 (意図した見た目の変更時。**更新前に `npm test` で Critical / High が 0 であることを確認する** — 不具合を基準画像に焼き付けないため。CI と同じ Linux 以外では中止される) |
-| `npm run export` | 保存済みの結果を CSV にする (`reports/export/`。Excel でそのまま開ける) |
+| `npm run export` | 保存済みの結果を CSV にする (`reports/export/`。Excel でそのまま開ける。ファイル名に日時が付き、直近 10 回分を残して古いものは自動で消える) |
 | `npm run logic` | 判定ロジックの説明を `reports/export/logic.md` に書き出す (人に渡す・AI に読ませる用。内容は `config/` から自動生成) |
 | `npm run report` | 生成済みレポートをローカルで閲覧 |
 | `npm run gate` | 重大度ゲートの判定のみ実行 (CI 用) |

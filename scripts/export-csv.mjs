@@ -5,9 +5,15 @@
  *   npm run export
  *   npm run export -- --from=reports/保存/全件_20260823.json
  *
- * 出力:
- *   reports/export/checklist.csv  代理店 × 検査項目の表
- *   reports/export/findings.csv   検知の一覧
+ * 出力 (ファイル名に書き出した日時を付ける):
+ *   reports/export/checklist_2026-08-26_1530.csv  代理店 × 検査項目の表
+ *   reports/export/findings_2026-08-26_1530.csv   検知の一覧
+ *   reports/export/errors_2026-08-26_1530.csv     赤いものだけ
+ *
+ * 上書きしない理由が 2 つある:
+ *   ・Excel で開いたままだと Windows がロックして書き込めない (実際に失敗した)
+ *   ・前回と見比べられる
+ * 溜まり続けないよう、古いものは自動で消す (KEEP_SETS)。
  *
  * すでに保存されているレポートを読むだけなので、検査を回し直す必要はない。
  * Excel で開いたときに日本語が壊れないよう、UTF-8 の BOM を付ける。
@@ -23,6 +29,45 @@ const source = fromArg
   ? path.resolve(root, fromArg.slice('--from='.length))
   : path.join(root, 'reports', 'qa-report.json');
 const outDir = path.join(root, 'reports', 'export');
+/** 残しておく回数。これより古いものは書き出しのときに消す */
+const KEEP_SETS = 10;
+/** ファイル名に付ける日時 (分まで。同じ分に 2 回書いたら上書きになる) */
+const stamp = (() => {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+    + `_${pad(now.getHours())}${pad(now.getMinutes())}`;
+})();
+
+/**
+ * 古い書き出しを消す。
+ *   種類ごとに新しい順で KEEP_SETS 個を残す。
+ *   日時が名前に入っているので、名前で並べれば新しい順になる。
+ */
+function removeOldExports() {
+  if (!fs.existsSync(outDir)) return 0;
+  const byKind = new Map();
+  for (const name of fs.readdirSync(outDir)) {
+    const match = name.match(/^(checklist|findings|errors)_.+\.csv$/);
+    if (!match) continue;
+    const list = byKind.get(match[1]) ?? [];
+    list.push(name);
+    byKind.set(match[1], list);
+  }
+  let removed = 0;
+  for (const names of byKind.values()) {
+    const old = names.sort().reverse().slice(KEEP_SETS);
+    for (const name of old) {
+      try {
+        fs.rmSync(path.join(outDir, name));
+        removed += 1;
+      } catch {
+        // 消せなくても書き出しは続ける (Excel で開いている場合など)
+      }
+    }
+  }
+  return removed;
+}
 
 if (!fs.existsSync(source)) {
   console.error(`レポートがありません: ${path.relative(root, source)}`);
@@ -127,12 +172,13 @@ for (const { finding, record } of findings) {
 }
 
 fs.mkdirSync(outDir, { recursive: true });
-const checklistPath = path.join(outDir, 'checklist.csv');
-const findingsPath = path.join(outDir, 'findings.csv');
-const errorsPath = path.join(outDir, 'errors.csv');
+const checklistPath = path.join(outDir, `checklist_${stamp}.csv`);
+const findingsPath = path.join(outDir, `findings_${stamp}.csv`);
+const errorsPath = path.join(outDir, `errors_${stamp}.csv`);
 fs.writeFileSync(checklistPath, toCsv(checklistRows), 'utf8');
 fs.writeFileSync(findingsPath, toCsv(findingRows), 'utf8');
 fs.writeFileSync(errorsPath, toCsv(errorRows), 'utf8');
+const removed = removeOldExports();
 
 console.log('');
 console.log('==================== CSV に書き出しました ====================');
@@ -143,4 +189,6 @@ console.log(`代理店 × 項目 : ${path.relative(root, checklistPath)}  (${che
 console.log(`検知の一覧    : ${path.relative(root, findingsPath)}  (${findingRows.length - 1} 行)`);
 console.log(`赤いものだけ  : ${path.relative(root, errorsPath)}  (${errorRows.length - 1} 行)`);
 console.log('Excel でそのまま開けます (日本語が壊れないよう BOM を付けています)');
+console.log(`上書きしません (直近 ${KEEP_SETS} 回分を残します`
+  + `${removed > 0 ? ` / 古い ${removed} 件を消しました` : ''})`);
 console.log('=============================================================');

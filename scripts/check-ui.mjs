@@ -273,6 +273,16 @@ await check('CSV は Excel で開いても日本語が壊れない', () => {
   assert.ok(/\[=\+\\-@\]/.test(script), '数式として解釈される値を打ち消すこと');
 });
 
+await check('CSV は上書きせず、日時つきで残す (直近の分だけ)', () => {
+  // Excel で開いたまま検査すると、Windows がロックして書き込めない
+  // (実サイトの実行で「作成できませんでした」になった)。
+  // 名前を変えれば書けるうえ、前回と見比べられる。
+  const script = fs.readFileSync(path.join(root, 'scripts', 'export-csv.mjs'), 'utf8');
+  assert.ok(/checklist_\$\{stamp\}/.test(script), 'ファイル名に日時を付けること');
+  assert.ok(script.includes('KEEP_SETS'), '残す回数を決めておくこと');
+  assert.ok(script.includes('removeOldExports'), '古いものを自動で消すこと');
+});
+
 await check('赤いものだけの CSV が出る (対応が必要な代理店を渡すため)', () => {
   // 全件の表 (数百行) を渡しても、どこを直せばよいか伝わらない。
   // 画面で赤いセルを持つ行だけを、同じ列で抜き出す。
@@ -316,7 +326,15 @@ await check('赤いものだけの CSV が出る (対応が必要な代理店を
   });
   assert.equal(result.status, 0, `書き出しが成功すること: ${result.stderr}`);
 
-  const errors = fs.readFileSync(path.join(root, 'reports', 'export', 'errors.csv'), 'utf8');
+  // ファイル名に日時が付くので、一番新しいものを読む
+  const exportDir = path.join(root, 'reports', 'export');
+  const newest = fs.readdirSync(exportDir)
+    .filter((name) => /^errors_.+\.csv$/.test(name))
+    .sort()
+    .pop();
+  assert.ok(newest, '赤いものだけの CSV が書き出されること');
+  assert.ok(!fs.existsSync(path.join(exportDir, 'errors.csv')), '固定名で上書きしないこと (Excel で開いていると書けない)');
+  const errors = fs.readFileSync(path.join(exportDir, newest), 'utf8');
   const lines = errors.replace(/^\ufeff/, '').trim().split('\r\n');
   assert.equal(lines.length, 2, `見出し + 赤い行 1 件だけになること (実際: ${lines.length - 1} 行)`);
   assert.ok(lines[0].includes('① コードで発火'), '列はチェックリストと同じであること');
