@@ -65,7 +65,7 @@ await check('画面の HTML を返す', async () => {
   const response = await fetch(base);
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.ok(html.includes('自動QA'), '画面の見出しが含まれること');
+  assert.ok(html.includes('代理店コード・LP動作 自動検証ツール'), '画面の見出しが含まれること');
   assert.ok(!/<script src="http/.test(html), '外部スクリプトを読み込まないこと');
 });
 

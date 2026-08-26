@@ -36,7 +36,8 @@ export type CheckId =
   | 'anshin-pack'   // 「あんしんパック」の表示 / 非表示
   | 'code-applied'  // LP 側で代理店コードが付与されている
   | 'code-carry'    // 申込フォームでのコード保持
-  | 'storage';      // 代理店コードの保存先 (Cookie / localStorage)
+  | 'storage'       // 代理店コードの保存先 (Cookie / localStorage)
+  | 'other-issues'; // 上の項目に入らない異常 (console エラー・404・表示崩れなど)
 
 /** 1 件の不具合検知結果 */
 export interface Finding {

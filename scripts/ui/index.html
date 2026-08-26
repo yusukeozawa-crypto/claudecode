@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>公開後QA</title>
+<title>代理店コード・LP動作 自動検証ツール</title>
 <style>
   :root {
     --critical: #b3261e; --high: #b45309; --medium: #1d4ed8; --low: #6b7280;
@@ -261,7 +261,9 @@
   .board-scroll { overflow-x: auto; }
 
   /*  列が多いので、1 画面に収まるよう余白を詰める */
-  table.checklist { margin: 0; }
+  /* 列が 12 個あるので、幅が足りないときは縮めずに横スクロールさせる。
+     縮めると会社名が 1 文字ずつ折り返して読めなくなる (実際に起きた)。 */
+  table.checklist { margin: 0; min-width: 1500px; }
   table.checklist th {
     font-size: 11px; vertical-align: bottom; padding: 12px 10px; line-height: 1.4;
     background: #fcfcfd; color: var(--faint); font-weight: 700; letter-spacing: 0.02em;
@@ -386,7 +388,7 @@
 </head>
 <body>
 <header>
-  <h1>Webサイト公開後 自動QA</h1>
+  <h1>代理店コード・LP動作 自動検証ツール</h1>
   <span class="env" id="env-label"></span>
   <!-- 検査ではない操作はヘッダーへ。検査ボタンの横に置くと
        「どれが検査なのか」が読めなくなる。 -->
@@ -496,6 +498,8 @@ powercfg /change monitor-timeout-ac 10</code>
       ここが「不発」の行は、右の項目を読む前に、その代理店コードの登録状況を確認してください
       (コードが効いていないので、右の項目はすべてその 1 つが原因です)。
       「不発の疑い」は差分はあるものの期待した変化が起きていないもので、実際にブラウザで開いて確認してください。
+      「その他の異常」は、ほかの列に入らない異常 (console エラー・404・表示崩れなど) の件数です。
+      内容はカード側に出ます。
       赤いセル = 期待と違う値。— = この代理店では検査していない。「保存先」は正解が未確定のため表示のみ (赤にしません)。検査する代理店コードは実行ごとに抽選されます。
     </p>
   </section>

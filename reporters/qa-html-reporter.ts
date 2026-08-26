@@ -889,7 +889,7 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>公開後QAレポート - ${escapeHtml(summary.environmentLabel)}</title>
+<title>代理店コード・LP動作 自動検証ツール — 証跡 (${escapeHtml(summary.environmentLabel)})</title>
 <style>
   :root {
     --critical: #b3261e; --high: #d97706; --medium: #2563eb; --low: #6b7280;
@@ -956,7 +956,7 @@ function renderHtml(summary: ReportSummary, records: QaRecord[]): string {
 </head>
 <body>
 <header>
-  <h1>Webサイト公開後 自動QA — 証跡</h1>
+  <h1>代理店コード・LP動作 自動検証ツール — 証跡</h1>
   <p class="role">
     結論とチェックリストは <code>npm run ui</code> のダッシュボードで見てください。
     ここは 1 回の実行の記録 (テスト一覧・検知の全件・スクリーンショット) です。

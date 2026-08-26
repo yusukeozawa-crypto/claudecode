@@ -2,7 +2,7 @@
   "name": "web-release-qa",
   "version": "1.0.0",
   "private": true,
-  "description": "Webサイト公開後の自動QAツール (Playwright + TypeScript)",
+  "description": "代理店コード・LP動作 自動検証ツール (Playwright + TypeScript)",
   "engines": {
     "node": ">=20"
   },

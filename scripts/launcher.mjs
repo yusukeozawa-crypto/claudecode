@@ -322,7 +322,7 @@ async function promptForTarget(prompt) {
 async function main() {
   print();
   print(line);
-  print('  Webサイト公開後 自動QA (番号を選ぶ画面)');
+  print('  代理店コード・LP動作 自動検証ツール (番号を選ぶ画面)');
   print('  ブラウザの操作画面を使う場合: npm run ui');
   print(line);
   print();

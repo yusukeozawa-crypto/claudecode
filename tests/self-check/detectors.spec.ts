@@ -1391,6 +1391,83 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).toEqual(['カカクコム']);
   });
 
+  // ------------------------------------------------------------------
+  // 表に列が無い異常 (console エラー・404・表示崩れ) を見落とさない
+  //
+  //   表は「代理店コードで変わる仕様」の列しか持たないため、
+  //   console エラーはカードにしか出ず、表は白のままだった。
+  //   表だけを見る人が「High が出ているのに異常なし」と読んでしまう。
+  // ------------------------------------------------------------------
+  test('項目に入らない異常も表で赤くなる (その他の異常)', () => {
+    const record = (agencyCode: string, findings: Array<Partial<QaRecord['findings'][number]>>): QaRecord => ({
+      testId: `t-${agencyCode}`,
+      testTitle: 'self check',
+      suite: 'self check',
+      environment: 'local',
+      environmentLabel: 'ローカル',
+      baseUrl: 'http://127.0.0.1:4173',
+      browserId: 'chromium',
+      deviceId: 'pc',
+      deviceLabel: 'PC',
+      agencyCode,
+      status: 'passed',
+      durationMs: 1,
+      startedAt: new Date().toISOString(),
+      findings: findings.map((entry) => ({
+        category: 'error' as FindingCategory,
+        severity: 'high' as Severity,
+        title: 'console エラー: Uncaught TypeError',
+        expected: '',
+        actual: '',
+        url: 'http://127.0.0.1:4173/lp/',
+        agencyCode,
+        deviceId: 'pc',
+        ...entry,
+      })) as QaRecord['findings'],
+    });
+    const meta = {
+      A001: { company: '異常あり', mirayaku: '○', pattern: 'みらやく○', agency: true },
+      A002: { company: '異常なし', mirayaku: '○', pattern: 'みらやく○', agency: true },
+    };
+
+    const checklist = buildChecklist(
+      [
+        record('A001', [
+          {},
+          // Low は数えない (記録であって対応が必要なものではない)
+          { severity: 'low', title: '[記録] 検査したときサイトで動いていたもの' },
+        ]),
+        record('A002', [
+          { severity: 'low', title: '[記録] 検査したときサイトで動いていたもの' },
+          // 項目に紐づく検知は「その他」に数えない (二重に出さない)
+          { checkId: 'header-name', checkOk: true, observedValue: 'あり', expectedValue: 'あり', severity: 'low' },
+        ]),
+      ],
+      meta,
+      ['みらやく○'],
+    );
+
+    expect(
+      checklist.columns.some((column) => column.key === 'other-issues'),
+      '「その他の異常」の列があること',
+    ).toBe(true);
+
+    const rows = checklist.tables[0].rows;
+    const ng = rows.find((row) => row.code === 'A001');
+    const ok = rows.find((row) => row.code === 'A002');
+
+    expect(ng?.cells['other-issues'].state, 'High があれば赤にすること').toBe('ng');
+    expect(ng?.cells['other-issues'].observed, '件数を出すこと (Low は数えない)').toBe('1 件');
+    expect(
+      (ng?.cells['other-issues'].details ?? []).join(' '),
+      '何が起きたかを併記すること (件数だけでは分からない)',
+    ).toContain('console エラー');
+    expect(ng?.failed, '行全体を赤い扱いにすること').toBe(true);
+
+    expect(ok?.cells['other-issues'].state, '異常が無ければ赤にしないこと').toBe('ok');
+    expect(ok?.cells['other-issues'].observed, '「ー」ではなく「なし」と出すこと').toBe('なし');
+  });
+
   test('安全装置による遮断を不具合として報告しない (自作自演の防止)', async ({ page }) => {
     // 読み取り専用の環境では、このツールが GET 以外のリクエストを止める。
     // ブラウザはそれを「読み込み失敗」としてコンソールに出すが、

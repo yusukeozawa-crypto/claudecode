@@ -35,6 +35,11 @@ export const CHECK_COLUMNS: Array<{ key: CheckId; label: string }> = [
   { key: 'anshin-pack', label: 'あんしんパック' },
   { key: 'code-carry', label: '申込フォームでコード保持' },
   { key: 'storage', label: '保存先' },
+  // 上の項目に入らない異常。
+  //   表は「代理店コードで変わる仕様」の列しか持たないため、
+  //   console エラー・404・表示崩れは置く列が無く、カードにしか出ていなかった。
+  //   「High が出ているのに表は白」だと表だけ見た人が見落とす。
+  { key: 'other-issues', label: 'その他の異常' },
 ];
 
 /** セル 1 つの状態 */
@@ -190,10 +195,27 @@ export function buildChecklist(
     return created;
   };
 
+  // 「その他の異常」= 上の項目に入らない Critical / High。
+  //   代理店ごと・端末ごとに件数を数え、1 件でもあれば赤にする。
+  //   件数だけでは何が起きたか分からないため、最初の 1 件の題名も添える。
+  const otherIssues = new Map<string, { count: number; titles: string[] }>();
+
   for (const record of records) {
     for (const finding of record.findings) {
       const checkId = finding.checkId;
-      if (!checkId) continue;
+      if (!checkId) {
+        if (finding.severity !== 'critical' && finding.severity !== 'high') continue;
+        const code = finding.agencyCode ?? record.agencyCode;
+        if (!code || code === 'none') continue;
+        if (meta[code]?.agency === false) continue;
+        const deviceId = finding.deviceId ?? record.deviceId ?? 'pc';
+        const key = `${deviceId}\u0000${code}`;
+        const entry = otherIssues.get(key) ?? { count: 0, titles: [] };
+        entry.count += 1;
+        if (entry.titles.length < 2) entry.titles.push(finding.title);
+        otherIssues.set(key, entry);
+        continue;
+      }
       if (!CHECK_COLUMNS.some((column) => column.key === checkId)) continue;
       const code = finding.agencyCode ?? record.agencyCode;
       if (!code || code === 'none') continue;
@@ -239,6 +261,32 @@ export function buildChecklist(
       cell.note = finding.actual ?? '';
       cell.details = details;
       if (!ok) cell.severity = worseOf(cell.severity, finding.severity);
+    }
+  }
+
+  // 数えた「その他の異常」を表に入れる。
+  //   その代理店の行がまだ無い場合も作る (異常だけが出ている代理店を落とさない)。
+  for (const [key, entry] of otherIssues) {
+    const [deviceId, code] = key.split('\u0000');
+    const cell = ensure(deviceId, code).cells['other-issues'];
+    cell.state = 'ng';
+    cell.observed = `${entry.count} 件`;
+    cell.expected = 'なし';
+    cell.note = entry.titles.join(' / ');
+    cell.details = entry.titles.map(clip);
+    cell.severity = 'high';
+  }
+
+  // 異常が無かった行は「なし」と出す。
+  //   「ー」のままだと「検査していない」と読めてしまう。
+  //   この項目は検査した代理店すべてで見ているので、無ければ「なし」が正しい。
+  for (const byCode of tables.values()) {
+    for (const row of byCode.values()) {
+      const cell = row.cells['other-issues'];
+      if (cell.state !== 'none') continue;
+      cell.state = 'ok';
+      cell.observed = 'なし';
+      cell.expected = 'なし';
     }
   }
 

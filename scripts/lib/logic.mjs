@@ -145,6 +145,17 @@ function checkRows(root, ctx) {
       severity: '引き継がれていない / 別コードに化けている: Critical',
       source: 'utils/handoff.ts (実測) / config/agency.yml (application)',
     },
+    'other-issues': {
+      observe:
+        'その代理店・その端末で出た検知のうち、ほかの項目に入らないもの'
+        + '(console エラー・404・表示崩れ・リンク切れなど) を数える。',
+      pass:
+        'Critical / High が 0 件であること。'
+        + '記録だけのもの (Low) は数えない。'
+        + '中身はそれぞれの検査で判定しているので、ここは「表からも気づけるようにする」ための欄。',
+      severity: '1 件以上: High',
+      source: 'config/errors.yml / config/layout.yml',
+    },
     storage: {
       observe: 'LP を開いた直後の Cookie 名と localStorage / sessionStorage のキーを記録する。',
       pass:
