@@ -22,6 +22,7 @@ import { compareAcrossDevices } from '../utils/cross-device';
 import type { AgencyMeta, Checklist } from '../utils/checklist';
 import { maskText } from '../utils/secrets';
 import type { Finding, QaConfig, QaRecord, Severity } from '../utils/types';
+import { describeCsvError } from '../utils/csv-error';
 
 const REPORT_DIR = path.join(PROJECT_ROOT, 'reports');
 const HTML_PATH = path.join(REPORT_DIR, 'qa-report.html');
@@ -639,9 +640,9 @@ function exportCsv(): string {
     const script = path.join(PROJECT_ROOT, 'scripts', 'export-csv.mjs');
     const result = spawnSync(process.execPath, [script], { cwd: PROJECT_ROOT, encoding: 'utf8' });
     if (result.status !== 0) {
-      return `作成できませんでした (${(result.stderr ?? '').trim().split('\n')[0] || '原因不明'})`;
+      return `作成できませんでした (${describeCsvError(result.stderr)})`;
     }
-    return 'reports/export/checklist.csv, reports/export/findings.csv';
+    return 'reports/export/checklist.csv, findings.csv, errors.csv (赤いものだけ)';
   } catch (error) {
     return `作成できませんでした (${error instanceof Error ? error.message : String(error)})`;
   }

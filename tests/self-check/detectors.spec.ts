@@ -34,6 +34,7 @@ import { applyKnownIssue } from '../../utils/known-issues';
 import { startClean } from '../../utils/agency-entry';
 import { buildAgencyRows } from '../../reporters/qa-html-reporter';
 import { CHECK_COLUMNS, buildChecklist } from '../../utils/checklist';
+import { describeCsvError } from '../../utils/csv-error';
 import type { AgencySpec, CheckId, FindingCategory, KnownIssuesFile, QaRecord, RedirectTrace, Severity } from '../../utils/types';
 
 const config = loadConfig();
@@ -1389,6 +1390,38 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       checklist.missingPatterns.map((entry) => entry.pattern),
       '検査されなかったパターンを示すこと (抽選漏れか代理店が無いかを判断できるように)',
     ).toEqual(['カカクコム']);
+  });
+
+  // ------------------------------------------------------------------
+  // CSV が書けなかった理由を、人が対処できる形で出す
+  //
+  //   実サイトの実行で「作成できませんでした (node:fs:2422」と出た。
+  //   Node のエラー出力の 1 行目をそのまま出していたため、
+  //   何をすればよいか分からなかった (原因は Excel で開いたままだった)。
+  // ------------------------------------------------------------------
+  test('CSV が書けない理由を対処できる文にする', () => {
+    const windowsLock = [
+      'node:fs:2422',
+      '    throw err;',
+      '    ^',
+      '',
+      "Error: EBUSY: resource busy or locked, open 'C:\\qa\\reports\\export\\checklist.csv'",
+      '    at Object.openSync (node:fs:565:18)',
+    ].join('\n');
+    const locked = describeCsvError(windowsLock);
+    expect(locked, '本当の理由を出すこと (内部の場所ではなく)').toContain('EBUSY');
+    expect(locked, '何をすればよいかを書くこと').toContain('Excel');
+    expect(locked, '内部の行番号だけを出さないこと').not.toBe('node:fs:2422');
+
+    expect(
+      describeCsvError('Error: ENOSPC: no space left on device'),
+      '空き容量不足も対処を書くこと',
+    ).toContain('空き容量');
+
+    // 想定外の出力でも、何か手がかりを返す (空文字を返さない)
+    expect(describeCsvError('なにかよく分からない出力'), '手がかりを返すこと').toContain('よく分からない');
+    expect(describeCsvError(''), '出力が空でも文を返すこと').toBe('原因不明');
+    expect(describeCsvError(null), 'null でも落ちないこと').toBe('原因不明');
   });
 
   // ------------------------------------------------------------------
