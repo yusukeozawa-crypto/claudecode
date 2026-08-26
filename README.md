@@ -175,6 +175,7 @@ QA_ENV=staging npx playwright test
 | `npm run test:crawl` | 基本巡回のみ実行 |
 | `npm run test:health` | リンク切れ・エラー検知のみ実行 |
 | `npm run test:text` | 誤字脱字・表記揺れチェックのみ実行 |
+| `npm run shortcut` | デスクトップにショートカットを作る (Windows。`make-shortcut.cmd` のダブルクリックでも同じ) |
 | `npm run ui` | **ブラウザの操作画面を開く** (run-qa.cmd と同じ入口。実行・進行状況・結果・ロジックと設定・履歴) |
 | `npm run selftest:ui` | 操作画面の自己検査 (受付・公開範囲・URL 検証) |
 | `npm run update` | ツール自身を最新版に更新 (Git 不要。`.env` / `reports` / `screenshots` は残る) |

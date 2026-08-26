@@ -699,6 +699,33 @@ await check('画面から保存した設定は最新版に更新しても消え�
   assert.ok(ignore.includes('config/overrides.yml'), '上書き設定を Git に入れないこと');
 });
 
+await check('Ctrl+C で黒い画面が閉じない入口がある', () => {
+  // バッチ (run-qa.cmd) から起動すると、Ctrl+C のあとに cmd が
+  // 「バッチ ジョブを終了しますか (Y/N)?」と聞き、Y を選ぶと窓ごと閉じる。
+  // これは Windows の仕様で止められないため、PowerShell の入口を用意する
+  // (-NoExit を付けると中断してもプロンプトに戻るだけで画面が残る)。
+  const entry = fs.readFileSync(path.join(root, 'run-qa.ps1'), 'utf8');
+  assert.ok(entry.charCodeAt(0) === 0xfeff, 'PowerShell 5.1 が日本語を読めるよう BOM を付けること');
+  assert.ok(entry.includes('ui-server.mjs'), '検査ツールの画面を開くこと');
+  assert.ok(/Set-Alias[^\n]*run-qa/.test(entry), '止めたあと入力し直せる名前を用意すること');
+
+  const maker = fs.readFileSync(path.join(root, 'scripts', 'make-shortcut.ps1'), 'utf8');
+  assert.ok(maker.includes('-NoExit'), 'ショートカットに -NoExit を付けること (これが本題)');
+  assert.ok(maker.includes('run-qa.ps1'), 'PowerShell の入口を指すこと');
+  assert.ok(maker.includes('WorkingDirectory'), 'どこから開いても動くよう作業フォルダを固定すること');
+  assert.ok(maker.includes('GetFolderPath'), 'デスクトップの場所を決め打ちしないこと');
+
+  // .cmd に日本語を入れるとコードページ次第で壊れる (既存の run-qa.cmd と同じ方針)
+  const launcher = fs.readFileSync(path.join(root, 'make-shortcut.cmd'), 'utf8');
+  assert.ok(!/[^\x00-\x7f]/.test(launcher), '.cmd は ASCII だけにすること');
+  assert.ok(launcher.includes('make-shortcut.ps1'), '中身は PowerShell 側に任せること');
+
+  // Ctrl+C を押したときに、次に何が起きるかを画面に出す
+  const server = fs.readFileSync(path.join(root, 'scripts', 'ui-server.mjs'), 'utf8');
+  assert.ok(server.includes("process.on('SIGINT'"), 'Ctrl+C を受けたら案内を出すこと');
+  assert.ok(server.includes('バッチ ジョブを終了しますか'), 'Y と N の意味を書くこと');
+});
+
 await check('npm script に OS で意味が変わる記号を入れない (Windows 対策)', () => {
   // Windows では npm script が cmd.exe 経由で動く。
   //   | & < > ^ は cmd がコマンドの区切り・リダイレクトとして解釈するため、

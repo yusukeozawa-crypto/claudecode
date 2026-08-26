@@ -22,6 +22,7 @@
     "qa": "node scripts/launcher.mjs",
     "report": "node scripts/serve-report.mjs",
     "selftest:ui": "node scripts/check-ui.mjs",
+    "shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/make-shortcut.ps1",
     "test": "playwright test",
     "test:agency": "playwright test --grep @agency",
     "test:agency:all": "node scripts/with-env.mjs QA_AGENCY_SCOPE=all -- playwright test --grep @agency",

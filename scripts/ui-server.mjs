@@ -698,6 +698,21 @@ function prepare() {
 
 // テストから読み込む場合 (QA_UI_IMPORT=1) は準備も待ち受けも行わない
 if (process.env.QA_UI_IMPORT !== '1') {
+  // Ctrl+C を押したときに、次に何が起きるかを出す。
+  //   バッチ (run-qa.cmd) から起動した場合、この直後に cmd が
+  //   「バッチ ジョブを終了しますか (Y/N)?」と聞いてくる。
+  //   Y を選ぶと黒い画面ごと閉じる。これは Windows の仕様で、
+  //   こちらからは止められない。
+  //   デスクトップのショートカット (run-qa.ps1) から開けば画面は残る。
+  process.on('SIGINT', () => {
+    process.stdout.write('\n  検査ツールの画面を止めました。\n');
+    process.stdout.write('  「バッチ ジョブを終了しますか (Y/N)?」と出たら:\n');
+    process.stdout.write('    N … この黒い画面を残す (もう一度 npm run ui で開けます)\n');
+    process.stdout.write('    Y … 黒い画面も閉じる\n');
+    process.stdout.write('  Ctrl+C で閉じたくない場合は、make-shortcut.cmd で作る\n');
+    process.stdout.write('  デスクトップのショートカットから開いてください。\n\n');
+    process.exit(0);
+  });
   prepare();
   server.listen(PORT, '127.0.0.1', () => {
     const address = `http://127.0.0.1:${PORT}`;
