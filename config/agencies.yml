@@ -7,7 +7,7 @@
 #
 #   再生成: npm run agencies:build
 #
-#   全 59 件 / マスタ 214 件
+#   全 54 件 / マスタ 214 件
 #
 #   実際に検査する代理店は実行ごとに抽選される (scope を参照)。
 #   毎回同じ代理店だけを検査すると、残りに潜む問題を見逃し続けるため。
@@ -167,32 +167,6 @@ agencies:
     expectedTexts: {}
     agencyName: shown
     anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily07
-    label: アイビーシステム — みらやく掲載可
-    company: アイビーシステム
-    mirayaku: ○
-    profile: mirayaku-visible
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく○
-    effectiveFrom: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: present
     codeApplied: false
     expectedAssets: {}
     cta: null
@@ -1393,32 +1367,6 @@ agencies:
     expectedAssets: {}
     cta: null
     application: null
-  - code: littlefamily55
-    label: クロス動物病院用 — ダイレクト扱い (みらやく掲載不可)
-    company: クロス動物病院用
-    mirayaku: ×
-    profile: direct-no-mirayaku
-    recognized: true
-    revisitRedirect: null
-    patternLabel: ダイレクト (みらやく×)
-    effectiveFrom: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: hidden
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
   - code: littlefamily56
     label: KING犬舎 — みらやく掲載可
     company: KING犬舎
@@ -1445,61 +1393,9 @@ agencies:
     expectedAssets: {}
     cta: null
     application: null
-  - code: littlefamily57
-    label: 株式会社ジャパンペットコミュニケーションズ — みらやく掲載不可
-    company: 株式会社ジャパンペットコミュニケーションズ
-    mirayaku: ×
-    profile: mirayaku-hidden
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく×
-    effectiveFrom: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
   - code: littlefamily58
     label: 株式会社 長谷工リンクス — みらやく掲載不可
     company: 株式会社 長谷工リンクス
-    mirayaku: ×
-    profile: mirayaku-hidden
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく×
-    effectiveFrom: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: absent
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
-  - code: littlefamily59
-    label: 株式会社ドコモ・フィナンシャルグループ — みらやく掲載不可
-    company: 株式会社ドコモ・フィナンシャルグループ
     mirayaku: ×
     profile: mirayaku-hidden
     recognized: true
@@ -1549,32 +1445,6 @@ agencies:
     expectedAssets: {}
     cta: null
     application: null
-  - code: littlefamily61
-    label: 株式会社エディオン — みらやく掲載可
-    company: 株式会社エディオン
-    mirayaku: ○
-    profile: mirayaku-visible
-    recognized: true
-    revisitRedirect: null
-    patternLabel: みらやく○
-    effectiveFrom: null
-    entryPath: /lp/service/
-    expectedFinalPath: /lp/service/
-    entryFinalPath: /lp/service/
-    redirected: false
-    landsAfterRevisit: false
-    redirectMechanism: none
-    expectedRedirectCount: 0
-    expectedRedirectPaths: []
-    visibleSections: []
-    hiddenSections: []
-    expectedTexts: {}
-    agencyName: shown
-    anshinPack: present
-    codeApplied: false
-    expectedAssets: {}
-    cta: null
-    application: null
 excludedAgencies:
   - code: A0010
     company: Amazon
@@ -1582,9 +1452,24 @@ excludedAgencies:
   - code: littlefamily06
     company: 保険市場
     reason: みらやく掲載可否が「エラー」のため期待結果を決められない
+  - code: littlefamily07
+    company: アイビーシステム
+    reason: マスタの稼働状況が「未稼働」のため検査しない (実募集しない)
   - code: littlefamily47
     company: 株式会社ドリームコーポレーション
     reason: みらやく掲載可否が「エラー」のため期待結果を決められない
+  - code: littlefamily55
+    company: クロス動物病院用
+    reason: マスタの稼働状況が「未稼働」のため検査しない (保留中で稼働していない)
+  - code: littlefamily57
+    company: 株式会社ジャパンペットコミュニケーションズ
+    reason: マスタの稼働状況が「未稼働」のため検査しない (パンフ訴求・notion LP のため一旦なし)
+  - code: littlefamily59
+    company: 株式会社ドコモ・フィナンシャルグループ
+    reason: マスタの稼働状況が「未稼働」のため検査しない (実募集しない)
+  - code: littlefamily61
+    company: 株式会社エディオン
+    reason: 2026-09-01 から稼働予定のため、それまでは検査しない (日付を過ぎたら自動で検査対象に戻る)
   - code: littlefamily99
     company: Amazonみらやく用（未使用）
     reason: Amazon みらやく用の未使用コードのため検査対象外

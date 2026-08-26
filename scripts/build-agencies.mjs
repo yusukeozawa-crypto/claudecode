@@ -42,6 +42,10 @@ function readMaster() {
   // handling (スプレッドシートの E 列「扱い」) は任意。
   // 「ダイレクト扱い」の代理店は自社コードと同じ挙動になるため、
   // 代理店名が出ないのが正しい。列が無い場合は空として扱う。
+  //
+  // status / startsOn も任意 (resolveMasterStatus)。
+  // 稼働していないコードを検査対象から外すための列で、
+  // 列が無ければ全件を稼働中として扱う。
   const required = ['code', 'company', 'mirayaku'];
   for (const key of required) {
     if (!header.includes(key)) throw new Error(`${MASTER_PATH}: 列 ${key} がありません`);
@@ -60,6 +64,53 @@ function readMaster() {
     rows.push(row);
   }
   return rows;
+}
+
+/** 日付を YYYY-MM-DD にそろえる (2026/9/1 のような書き方も受ける) */
+function normalizeDate(value, where) {
+  const text = String(value).trim();
+  const match = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (!match) {
+    throw new Error(
+      `${MASTER_PATH}: ${where} の日付を読めません: 「${text}」`
+      + ' (2026-09-01 の形式で書いてください)',
+    );
+  }
+  const [, year, month, day] = match;
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+/** 稼働中として扱う status の値 (空欄も稼働中) */
+const ACTIVE_STATUS = ['', '稼働', '稼働中', '運用中', 'ON', 'on', '○', '有効'];
+
+/**
+ * マスタの稼働状況で検査対象外にするか。
+ *
+ *   status   … 空欄なら稼働中。それ以外 (未稼働 / 停止 など) は検査しない
+ *   startsOn … 稼働開始日。その日までは検査しない
+ *
+ * どちらも任意の列。スプレッドシートから貼り直して列が無くても壊れないようにする
+ * (必須にすると、列を落とした瞬間に全件が除外される)。
+ *
+ * 稼働していないコードは「代理店名が出ない」「表示が切り替わらない」のが
+ * 正しい状態で、検査すると必ず不具合として出てしまう。
+ * 実サイトで 5 件がこれに当たり、原因を 1 件ずつ人に確認する手間が出た。
+ */
+function resolveMasterStatus(row, today) {
+  const status = String(row.status ?? '').trim();
+  if (!ACTIVE_STATUS.includes(status)) {
+    const note = String(row.note ?? '').trim();
+    return {
+      reason: `マスタの稼働状況が「${status}」のため検査しない${note === '' ? '' : ` (${note})`}`,
+    };
+  }
+  const startsOn = String(row.startsOn ?? '').trim();
+  if (startsOn === '') return null;
+  const from = normalizeDate(startsOn, `${row.code} の startsOn`);
+  if (today >= from) return null;
+  return {
+    reason: `${from} から稼働予定のため、それまでは検査しない (日付を過ぎたら自動で検査対象に戻る)`,
+  };
 }
 
 /**
@@ -218,6 +269,12 @@ function main() {
   const assigned = [];
 
   for (const row of master) {
+    // マスタの稼働状況が最優先。理由が一番はっきりしているため
+    const status = resolveMasterStatus(row, today);
+    if (status) {
+      skipped.push({ code: row.code, company: row.company, reason: status.reason });
+      continue;
+    }
     const exclusion = resolveExclusion(row, excludeRules, today);
     if (exclusion) {
       skipped.push({ code: row.code, company: row.company, reason: exclusion.reason });

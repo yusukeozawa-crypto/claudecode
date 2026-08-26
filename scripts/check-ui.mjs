@@ -635,6 +635,40 @@ await check('壊れた内容は保存しない', () => {
   assert.deepEqual(Object.keys(unknown.value), [], '決めたキー以外は保存しないこと');
 });
 
+await check('稼働していない代理店コードは最初から検査しない', () => {
+  // 稼働していないコードは「代理店名が出ない」「表示が切り替わらない」のが
+  // 正しい状態で、検査すると必ず不具合として出てしまう。
+  // 実サイトで 5 件がこれに当たり、1 件ずつ人に確認する手間が出た。
+  const master = fs.readFileSync(path.join(root, 'config', 'agency-master.tsv'), 'utf8');
+  const header = master.split(/\r?\n/).find((line) => line.startsWith('code'));
+  assert.ok(header.includes('status'), 'マスタに稼働状況の列があること');
+  assert.ok(header.includes('startsOn'), 'マスタに稼働開始日の列があること');
+
+  const agencies = parseYaml(fs.readFileSync(path.join(root, 'config', 'agencies.yml'), 'utf8'));
+  const codes = (agencies.agencies ?? []).map((entry) => entry.code);
+  const excluded = agencies.excludedAgencies ?? [];
+  const reasonOf = (code) => excluded.find((entry) => entry.code === code)?.reason ?? '';
+
+  for (const code of ['littlefamily07', 'littlefamily55', 'littlefamily57', 'littlefamily59']) {
+    assert.ok(!codes.includes(code), `未稼働のコードを検査対象に入れないこと: ${code}`);
+    assert.ok(reasonOf(code).includes('稼働状況'), `理由を残すこと: ${code}`);
+  }
+  // 開始日が先のコードは、その日まで検査しない
+  assert.ok(!codes.includes('littlefamily61'), '開始前のコードを検査対象に入れないこと');
+  assert.ok(reasonOf('littlefamily61').includes('稼働予定'), '開始日を理由に残すこと');
+
+  // 日付を過ぎたら検査対象に戻る。
+  //   生成ファイルは Git に入っているため、日付を過ぎると
+  //   「生成し直してください」と CI が失敗して気づける。
+  const build = (today) => spawnSync(
+    process.execPath,
+    [path.join(root, 'scripts', 'build-agencies.mjs'), '--all', '--check'],
+    { cwd: root, encoding: 'utf8', env: { ...process.env, QA_TODAY: today } },
+  ).status;
+  assert.equal(build('2026-08-26'), 0, '開始日の前は今の生成結果と一致すること');
+  assert.notEqual(build('2026-09-02'), 0, '開始日を過ぎたら生成し直しが必要だと分かること');
+});
+
 await check('画面から保存した設定は最新版に更新しても消えない', () => {
   // config/agency.yml を直接書き換える作りにすると、
   // 更新 (npm run update) のたびに運用側の判断が消える。

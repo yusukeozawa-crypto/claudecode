@@ -5,6 +5,14 @@
 #     D列 みらやく掲載可否 / E列 委託契約書 (扱い)
 #
 #   mirayaku: ○ = 掲載可 / × = 掲載不可 / エラー = 判定エラー / 要確認 = 記載が空欄
+#
+#   status / startsOn は任意の列 (列が無くても動く)。
+#     status  : 空欄なら稼働中。「未稼働」「停止」など空欄以外は検査しない。
+#               稼働していないコードは代理店名が出ないのが正しく、
+#               検査すると必ず不具合として出てしまうため。
+#     startsOn: 稼働開始日 (2026-09-01)。その日までは検査せず、
+#               日付を過ぎたら自動で検査対象に戻る (消し忘れが起きない)。
+#     どちらの理由も画面の「備考」に一覧で出る。
 #   handling: 委託契約書の区分。挙動が変わるのは次の 2 つ。
 #     ダイレクト扱い       … 自社コードと同じ。代理店名を出さない
 #     ダイレクトNOみらやく … ダイレクト扱い + みらやく掲載不可
@@ -13,218 +21,218 @@
 #   このファイルを更新して `npm run agencies:build` を実行すると
 #   config/agencies.yml が再生成される (テストコードは変更不要)。
 
-code	company	mirayaku	handling	note
-A0010	Amazon	×	旧契約	
-littlefamily01	ダイレクト	○	ダイレクト扱い	自社コード。代理店コードを無効化しオリジナル表示
-littlefamily02	PECOAD	○	ダイレクト扱い	
-littlefamily03	株式会社カカクコム・インシュアランス	○	新契約	専用LPへリダイレクト
-littlefamily04	アドバンスクリエイト株式会社	○	新契約	
-littlefamily05	エレメント	×	旧契約	
-littlefamily06	保険市場	エラー	-	
-littlefamily07	アイビーシステム	○	新契約	
-littlefamily08	楽天インシュアランスプランニング	○	新契約	
-littlefamily09	wizleap	○	新契約	
-littlefamily10	株式会社CINCA	○	新契約	
-littlefamily11	株式会社NTTドコモ	×	旧契約	
-littlefamily12	株式会社ドコモ・インシュアランス	×	旧契約	
-littlefamily13	三菱UFJ	○	ダイレクト扱い	
-littlefamily14	パワープランニング株式会社	○	新契約	
-littlefamily15	株式会社アイ・エフ・クリエイト	○	新契約	
-littlefamily16	セゾン保険サービス	○	新契約	
-littlefamily17	紹介キャンペーン	○	ダイレクト扱い	
-littlefamily18	Sasuke Financial Lab株式会社	○	新契約	
-littlefamily19	SBIインシュアランスラボ株式会社	○	新契約	
-littlefamily20	アントプロダクション株式会社	○	新契約	
-littlefamily21	オリコン	○	ダイレクト扱い	
-littlefamily22	株式会社PETOKOTO	○	新契約	
-littlefamily23	Sasuke Financial Lab株式会社（旧ライフィ）	○	新契約	
-littlefamily24	楽天広告	○	ダイレクト扱い	
-littlefamily25	アイエフクリエイト少短サイト	○	ダイレクト扱い	
-littlefamily26	ダイレクトCINCA	○	ダイレクト扱い	
-littlefamily27	ジモティ	○	ダイレクト扱い	
-littlefamily28	hotto	○	ダイレクト扱い	
-littlefamily29	ピーネストジャパン（わんちゃんホンポ・ねこちゃんホンポ）	○	ダイレクト扱い	
-littlefamily30	株式会社ＫＡＢＵ＆ほけんパートナーズ	○	新契約	
-littlefamily31	一般社団法人ファミリーアニマル支援協会	○	新契約	
-littlefamily32	DOGS-LIFE	○	新契約	
-littlefamily33	Sasuke（募集人1）	×	新契約	
-littlefamily34	Sasuke（募集人2）	×	新契約	
-littlefamily35	ペットライフサポート　ハルオフィス	○	新契約	
-littlefamily36	東京キャットガーディアン	○	新契約	
-littlefamily37	Sasuke（募集人3）	×	新契約	
-littlefamily38	Sasuke（募集人4）	×	新契約	
-littlefamily39	Sasuke（募集人5）	×	新契約	
-littlefamily40	Sasuke（募集人6）	×	新契約	
-littlefamily41	Sasuke（募集人7）	×	新契約	
-littlefamily42	Sasuke（募集人8）	×	新契約	
-littlefamily43	Sasuke（募集人9）	×	新契約	
-littlefamily44	一般社団法人はーとinはーと ZR	×	新契約	
-littlefamily45	株式会社イオレ	×	新契約	
-littlefamily46	auフィナンシャルパートナー株式会社	×	新契約	
-littlefamily47	株式会社ドリームコーポレーション	エラー	未選択	
-littlefamily48	NPO法人ニャン友ねっとわーく北海道	×	新契約	
-littlefamily49	ダイレクト（併売LP）	○	ダイレクト扱い	
-littlefamily50	セゾン保険サービス（セゾンカード会員用）	○	新契約	littlefamily16 と同一
-littlefamily51	株式会社stepdays	○	新契約	
-littlefamily52	動物病院設置用パンフレット導線	○	ダイレクト扱い	
-littlefamily53	Sasuke（募集人10）	×	新契約	
-littlefamily54	病院貼り付け窓口バナー用	○	ダイレクト扱い	
-littlefamily55	クロス動物病院用	×	ダイレクトNOみらやく	
-littlefamily56	KING犬舎	○	新契約	
-littlefamily57	株式会社ジャパンペットコミュニケーションズ	×	新契約	
-littlefamily58	株式会社 長谷工リンクス	×	新契約	
-littlefamily59	株式会社ドコモ・フィナンシャルグループ	×	新契約	
-littlefamily60	株式会社タヒチプロモーション	○	新契約	
-littlefamily61	株式会社エディオン	○	新契約	
-littlefamily99	Amazonみらやく用（未使用）	○	新契約	LIST に ○ と エラー の2通りの記載あったが ○ で確定 (2026-08 確認)
-littlefamily02br01	動物病院パスポートダイレクト用	×	ダイレクトNOみらやく	基本的に契約はでない想定
-littlefamily03br01	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br02	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br03	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br04	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br05	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br06	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br07	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br08	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br09	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br10	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br11	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br12	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br13	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br14	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br15	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br16	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br17	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br18	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br19	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br20	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br21	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br22	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br23	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br24	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br25	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br26	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br27	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br28	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br29	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br30	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br31	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br32	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br33	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br34	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br35	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br36	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br37	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br38	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br39	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br40	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br41	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br42	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br43	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br44	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br45	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br46	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br47	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br48	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br49	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily03br50	株式会社カカクコム・インシュアランス	○	新契約	支店コード
-littlefamily18br01	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br02	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br03	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br04	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br05	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br06	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br07	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br08	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br09	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br10	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br11	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br12	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br13	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br14	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br15	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br16	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br17	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br18	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br19	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br20	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br21	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br22	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br23	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br24	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br25	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br26	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br27	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br28	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br29	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily18br30	Sasuke Financial Lab株式会社	○	新契約	支店コード
-littlefamily57br01	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br02	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br03	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br04	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br05	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br06	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br07	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br08	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br09	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br10	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br11	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br12	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br13	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br14	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br15	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br16	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br17	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br18	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br19	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily57br20	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード
-littlefamily33br01	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br02	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br03	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br04	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br05	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br06	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br07	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br08	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br09	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br10	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br11	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br12	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br13	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br14	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br15	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br16	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br17	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br18	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br19	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br20	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br21	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br22	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br23	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br24	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br25	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br26	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br27	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br28	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br29	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br30	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br31	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br32	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br33	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br34	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br35	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br36	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br37	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br38	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br39	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br40	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br41	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br42	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br43	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br44	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br45	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br46	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br47	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br48	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br49	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
-littlefamily33br50	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード
+code	company	mirayaku	handling	note	status	startsOn
+A0010	Amazon	×	旧契約			
+littlefamily01	ダイレクト	○	ダイレクト扱い	自社コード。代理店コードを無効化しオリジナル表示		
+littlefamily02	PECOAD	○	ダイレクト扱い			
+littlefamily03	株式会社カカクコム・インシュアランス	○	新契約	専用LPへリダイレクト		
+littlefamily04	アドバンスクリエイト株式会社	○	新契約			
+littlefamily05	エレメント	×	旧契約			
+littlefamily06	保険市場	エラー	-			
+littlefamily07	アイビーシステム	○	新契約	実募集しない	未稼働	
+littlefamily08	楽天インシュアランスプランニング	○	新契約			
+littlefamily09	wizleap	○	新契約			
+littlefamily10	株式会社CINCA	○	新契約			
+littlefamily11	株式会社NTTドコモ	×	旧契約			
+littlefamily12	株式会社ドコモ・インシュアランス	×	旧契約			
+littlefamily13	三菱UFJ	○	ダイレクト扱い			
+littlefamily14	パワープランニング株式会社	○	新契約			
+littlefamily15	株式会社アイ・エフ・クリエイト	○	新契約			
+littlefamily16	セゾン保険サービス	○	新契約			
+littlefamily17	紹介キャンペーン	○	ダイレクト扱い			
+littlefamily18	Sasuke Financial Lab株式会社	○	新契約			
+littlefamily19	SBIインシュアランスラボ株式会社	○	新契約			
+littlefamily20	アントプロダクション株式会社	○	新契約			
+littlefamily21	オリコン	○	ダイレクト扱い			
+littlefamily22	株式会社PETOKOTO	○	新契約			
+littlefamily23	Sasuke Financial Lab株式会社（旧ライフィ）	○	新契約			
+littlefamily24	楽天広告	○	ダイレクト扱い			
+littlefamily25	アイエフクリエイト少短サイト	○	ダイレクト扱い			
+littlefamily26	ダイレクトCINCA	○	ダイレクト扱い			
+littlefamily27	ジモティ	○	ダイレクト扱い			
+littlefamily28	hotto	○	ダイレクト扱い			
+littlefamily29	ピーネストジャパン（わんちゃんホンポ・ねこちゃんホンポ）	○	ダイレクト扱い			
+littlefamily30	株式会社ＫＡＢＵ＆ほけんパートナーズ	○	新契約			
+littlefamily31	一般社団法人ファミリーアニマル支援協会	○	新契約			
+littlefamily32	DOGS-LIFE	○	新契約			
+littlefamily33	Sasuke（募集人1）	×	新契約			
+littlefamily34	Sasuke（募集人2）	×	新契約			
+littlefamily35	ペットライフサポート　ハルオフィス	○	新契約			
+littlefamily36	東京キャットガーディアン	○	新契約			
+littlefamily37	Sasuke（募集人3）	×	新契約			
+littlefamily38	Sasuke（募集人4）	×	新契約			
+littlefamily39	Sasuke（募集人5）	×	新契約			
+littlefamily40	Sasuke（募集人6）	×	新契約			
+littlefamily41	Sasuke（募集人7）	×	新契約			
+littlefamily42	Sasuke（募集人8）	×	新契約			
+littlefamily43	Sasuke（募集人9）	×	新契約			
+littlefamily44	一般社団法人はーとinはーと ZR	×	新契約			
+littlefamily45	株式会社イオレ	×	新契約			
+littlefamily46	auフィナンシャルパートナー株式会社	×	新契約			
+littlefamily47	株式会社ドリームコーポレーション	エラー	未選択			
+littlefamily48	NPO法人ニャン友ねっとわーく北海道	×	新契約			
+littlefamily49	ダイレクト（併売LP）	○	ダイレクト扱い			
+littlefamily50	セゾン保険サービス（セゾンカード会員用）	○	新契約	littlefamily16 と同一		
+littlefamily51	株式会社stepdays	○	新契約			
+littlefamily52	動物病院設置用パンフレット導線	○	ダイレクト扱い			
+littlefamily53	Sasuke（募集人10）	×	新契約			
+littlefamily54	病院貼り付け窓口バナー用	○	ダイレクト扱い			
+littlefamily55	クロス動物病院用	×	ダイレクトNOみらやく	保留中で稼働していない	未稼働	
+littlefamily56	KING犬舎	○	新契約			
+littlefamily57	株式会社ジャパンペットコミュニケーションズ	×	新契約	パンフ訴求・notion LP のため一旦なし	未稼働	
+littlefamily58	株式会社 長谷工リンクス	×	新契約			
+littlefamily59	株式会社ドコモ・フィナンシャルグループ	×	新契約	実募集しない	未稼働	
+littlefamily60	株式会社タヒチプロモーション	○	新契約			
+littlefamily61	株式会社エディオン	○	新契約			2026-09-01
+littlefamily99	Amazonみらやく用（未使用）	○	新契約	LIST に ○ と エラー の2通りの記載あったが ○ で確定 (2026-08 確認)		
+littlefamily02br01	動物病院パスポートダイレクト用	×	ダイレクトNOみらやく	基本的に契約はでない想定		
+littlefamily03br01	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br02	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br03	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br04	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br05	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br06	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br07	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br08	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br09	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br10	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br11	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br12	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br13	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br14	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br15	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br16	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br17	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br18	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br19	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br20	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br21	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br22	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br23	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br24	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br25	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br26	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br27	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br28	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br29	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br30	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br31	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br32	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br33	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br34	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br35	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br36	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br37	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br38	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br39	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br40	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br41	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br42	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br43	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br44	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br45	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br46	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br47	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br48	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br49	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily03br50	株式会社カカクコム・インシュアランス	○	新契約	支店コード		
+littlefamily18br01	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br02	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br03	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br04	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br05	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br06	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br07	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br08	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br09	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br10	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br11	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br12	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br13	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br14	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br15	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br16	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br17	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br18	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br19	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br20	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br21	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br22	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br23	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br24	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br25	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br26	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br27	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br28	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br29	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily18br30	Sasuke Financial Lab株式会社	○	新契約	支店コード		
+littlefamily57br01	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br02	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br03	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br04	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br05	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br06	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br07	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br08	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br09	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br10	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br11	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br12	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br13	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br14	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br15	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br16	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br17	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br18	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br19	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily57br20	株式会社ジャパンペットコミュニケーションズ	×	新契約	支店コード		
+littlefamily33br01	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br02	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br03	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br04	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br05	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br06	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br07	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br08	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br09	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br10	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br11	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br12	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br13	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br14	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br15	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br16	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br17	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br18	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br19	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br20	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br21	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br22	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br23	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br24	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br25	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br26	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br27	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br28	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br29	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br30	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br31	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br32	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br33	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br34	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br35	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br36	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br37	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br38	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br39	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br40	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br41	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br42	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br43	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br44	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br45	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br46	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br47	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br48	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br49	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
+littlefamily33br50	Sasuke Financial Lab株式会社（注：届出募集人対面用）	×	新契約	支店コード		
