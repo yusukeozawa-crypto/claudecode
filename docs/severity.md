@@ -39,6 +39,7 @@
 | `horizontal-scroll` | 横スクロールの発生 |
 | `broken-link` (外部) | 外部リンクの 4xx / 5xx |
 | `text-rule` (禁止表現) | 使用禁止表現 — 法務観点で必ず確認する必要があるため Low より上げる |
+| `text-rule` (ブランド・倫理) | 社内規定 (LF表記ルール) のうちブランド・マインドと倫理・配慮の語 — 2026-08-27 運用側の判断で Low より上げた |
 | `redirect-mechanism` | 仕様と異なる遷移方式 (HTTP 3xx / JS / meta refresh / SPA の違い) — 警告 |
 | `security` (一部) | URL に不要なパラメータが付加されている |
 
@@ -46,7 +47,7 @@
 
 | 種別 | 具体例 |
 |---|---|
-| `text-rule` | 誤字脱字、表記揺れ |
+| `text-rule` | 誤字脱字、社内規定 (LF表記ルール) の共通基本表記・送り仮名 |
 | `visual-diff` | 軽微な画像差分 |
 
 ## CI 判定
@@ -81,6 +82,10 @@ CI では成果物のアップロード後にゲートを評価するため、�
 ```yaml
 failOnSeverities: [critical, high, medium]
 ```
+
+### 表記ルール単位で変える
+
+`config/text-rules.yml` の各ルールに `severity` を書く (無指定なら Low)。
 
 ### 個別の検査で上書きする
 

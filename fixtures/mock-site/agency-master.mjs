@@ -20,7 +20,7 @@ export const AGENCIES = {
     redirectType: 'none',
     banner: '/assets/banner-a001.svg',
     logo: '/assets/logo-a001.svg',
-    ctaText: 'Webでお申し込み',
+    ctaText: 'Webでお申込み',
     // 申込ドメインへの引き継ぎ方式: URL クエリパラメータ
     handoffMethod: 'query',
     campaign: '初年度保険料 10% 割引キャンペーン実施中',
@@ -50,7 +50,7 @@ export const AGENCIES = {
     redirectType: 'meta',
     banner: '/assets/banner-a003.svg',
     logo: '/assets/logo-a003.svg',
-    ctaText: 'お申し込み手続きへ進む',
+    ctaText: 'お申込み手続きへ進む',
     // 申込ドメインへの引き継ぎ方式: フォームの hidden 項目 + POST 送信
     handoffMethod: 'post',
     campaign: '提携先さま向けのご案内',

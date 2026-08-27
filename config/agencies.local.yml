@@ -85,7 +85,7 @@ agencies:
 
     cta:
       testId: cta-primary
-      expectedText: Webでお申し込み
+      expectedText: Webでお申込み
 
     application:
       # 申込先ドメイン。null の場合は environments.yml の applicationBaseUrl を使用する。
@@ -241,7 +241,7 @@ agencies:
     cta:
       # POST 送信方式のため送信ボタンを CTA として扱う
       testId: cta-form-submit
-      expectedText: お申し込み手続きへ進む
+      expectedText: お申込み手続きへ進む
 
     application:
       expectedDomain: null

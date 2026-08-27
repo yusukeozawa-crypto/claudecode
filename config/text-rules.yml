@@ -1,5 +1,21 @@
 # ============================================================
-# 誤字脱字・表記揺れ検出ルール (ルールベース)
+# 文言チェックのルール
+#
+#   第1基準: 社内規定「LF表記・ブランドルール」(2025/12/11 版)
+#            → 下の unifyRules の id が lf- で始まるもの
+#   その他:  保険用語の統一・誤字候補・体裁 (このツールの既定)
+#
+#   重大度: 既定は Low。使用禁止表現は Medium。
+#          ブランド・マインドと倫理・配慮は severity: medium を明示している
+#          (2026-08-27 運用側の判断)。
+#          CI を止めるのは Critical / High のみなので、いずれも検査は止まらない。
+#
+#   検出は単純な文字列一致で行う (utils/text-rules.ts)。
+#   正しい用法まで拾ってしまう語は
+#     - exceptWhenFollowedBy … 直後の語で除外する
+#     - excludeWords         … 語ごと除外する (このファイルの末尾)
+#   のどちらかで必ず除外する。誤検知が増えると誰も見なくなるため。
+#
 #   AI による文章チェックは utils/ai-text-checker.ts のインターフェース経由で
 #   後から追加できる (既定では無効)
 # ============================================================
@@ -18,6 +34,10 @@ extract:
     - "css=.visually-hidden"
 
 # 正式名称。表記が揺れていたら Low として報告する
+#
+# 注意: ここに入っているのはモックサイトの名称。
+#       本番サイトの正式名称・普通約款名にはまだ差し替えていない
+#       (差し替えるまで、この canonical の検査は本番では動かない)。
 canonical:
   companyName: テスト保険株式会社
   productNames:
@@ -29,12 +49,241 @@ canonical:
     ペット安心保険: ペットの安心保険
     ペットの安心ほけん: ペットの安心保険
 
+# ------------------------------------------------------------
 # 表記統一ルール: preferred 以外の variants が出現したら報告する
+# ------------------------------------------------------------
 unifyRules:
-  - id: application-noun
-    preferred: お申し込み
-    variants: [お申込み, お申込, 御申し込み]
-    note: 名詞形は「お申し込み」で統一
+  # ---- LF表記ルール / ブランド・マインド (Medium) ----
+  - id: lf-brand-uchinoko
+    preferred: うちの子
+    variants: [ペット]
+    severity: medium
+    note: LF表記ルール ブランド・マインド。「ペット」は使わず「うちの子」「ちいさな家族」とする (「ペット保険」など正式名称は末尾の excludeWords で除外)
+  - id: lf-brand-kurasu
+    preferred: 暮らす
+    variants: [飼う, 飼って, 飼育]
+    severity: medium
+    note: LF表記ルール ブランド・マインド。「飼う」ではなく「暮らす」
+  - id: lf-brand-tomoni
+    preferred: ともに生きる
+    variants: [世話をする, お世話をする]
+    severity: medium
+    note: LF表記ルール ブランド・マインド。「世話をする」ではなく「ともに生きる」
+  - id: lf-brand-nijinohashi
+    preferred: 虹の橋を渡る
+    variants: [死ぬ, 死んだ, 死んで]
+    severity: medium
+    note: LF表記ルール ブランド・マインド。「死ぬ」ではなく「虹の橋を渡る」
+  - id: lf-brand-seikyo
+    preferred: 逝去される
+    variants: [死亡する, 死亡した, 死亡され]
+    severity: medium
+    note: LF表記ルール ブランド・マインド。「死亡する」ではなく「逝去される」(「死亡保険金」など約款用語は excludeWords で除外)
+
+  # ---- LF表記ルール / 共通基本表記 ----
+  - id: lf-basic-tousha
+    preferred: 当社
+    variants: [弊社]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-okyakusama
+    preferred: お客さま
+    variants: [お客様]
+    note: LF表記ルール 共通基本表記。「さま」はひらがな
+  - id: lf-basic-keiyakusha-sama
+    preferred: ご契約者さま
+    variants: [ご契約者様]
+    note: LF表記ルール 共通基本表記。「さま」はひらがな
+  - id: lf-basic-minasama
+    preferred: 皆さま
+    variants: [皆様]
+    note: LF表記ルール 共通基本表記。「さま」はひらがな
+  - id: lf-basic-itadaku
+    preferred: いただく
+    variants: [頂く, 頂き, 頂け, 頂いた, 頂いて]
+    note: LF表記ルール 共通基本表記。補助動詞はひらがな
+  - id: lf-basic-kudasai
+    preferred: ください
+    variants: [下さい, 下さる, 下され]
+    note: LF表記ルール 共通基本表記。補助動詞はひらがな
+  - id: lf-basic-itashimasu
+    preferred: いたします
+    variants: [致します, 致しました]
+    note: LF表記ルール 共通基本表記。補助動詞はひらがな (「一致します」などは excludeWords で除外)
+  - id: lf-basic-dekiru
+    preferred: できる
+    variants: [出来る, 出来ない, 出来ます, 出来ませ, 出来た, 出来れば]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-wakaru
+    preferred: わかる
+    variants: [分かる, 分かり, 分かった]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-mata
+    preferred: また
+    variants: [又]
+    note: LF表記ルール 共通基本表記。接続詞はひらがな
+  - id: lf-basic-nao
+    preferred: なお
+    variants: [尚]
+    note: LF表記ルール 共通基本表記。接続詞はひらがな
+  - id: lf-basic-awasete
+    preferred: あわせて
+    variants: [併せて]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-oyobi
+    preferred: および
+    variants: [及び]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-tadashi
+    preferred: ただし
+    variants: [但し]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-nado
+    preferred: など
+    variants: [等]
+    exceptWhenFollowedBy: [級, 分, し, 々, 価, 身, 量, 式]
+    note: LF表記ルール 共通基本表記。「等級」「等しい」などは対象外 (「均等」などは excludeWords)
+  - id: lf-basic-made
+    preferred: まで
+    variants: [迄]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-subete
+    preferred: すべて
+    variants: [全て]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-sudeni
+    preferred: すでに
+    variants: [既に]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-mattaku
+    preferred: まったく
+    variants: [全く]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-zehi
+    preferred: ぜひ
+    variants: [是非]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-arakajime
+    preferred: あらかじめ
+    variants: [予め]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-toki
+    preferred: とき
+    variants: [する時, した時, の時は, の時に, の時の]
+    exceptWhenFollowedBy: [間, 期, 点, 刻, 代, 効, 差, 給, 短, 計]
+    note: LF表記ルール 共通基本表記。形式名詞の「とき」だけが対象 (「時間」「時期」などは対象外)
+  - id: lf-basic-motozuku
+    preferred: 基づく
+    variants: [もとづく]
+    note: LF表記ルール 共通基本表記
+  - id: lf-basic-izureka
+    preferred: いずれか
+    variants: [いづれか]
+    note: LF表記ルール 共通基本表記
+  - id: lf-brand-wannyan
+    preferred: わんデイズ・にゃんデイズ
+    variants: [わんデイズにゃんデイズ, わんデイズ/にゃんデイズ, わんデイズ／にゃんデイズ, わんデイズ、にゃんデイズ]
+    note: LF表記ルール 共通基本表記。中黒 (・) が必須
+
+  # ---- LF表記ルール / 送り仮名: 名詞 (送り仮名を省く) ----
+  - id: lf-noun-moushikomi
+    preferred: 申込み
+    variants: [申し込み]
+    note: LF表記ルール 送り仮名 (名詞)。名詞は「申込み」、動詞は「申し込む」
+  - id: lf-noun-hikiuke
+    preferred: 引受け
+    variants: [引き受け]
+    note: LF表記ルール 送り仮名 (名詞)。名詞は「引受け」、動詞は「引き受ける」
+  - id: lf-noun-mitsumori
+    preferred: 見積り
+    variants: [見積もり]
+    note: LF表記ルール 送り仮名 (名詞)
+  - id: lf-noun-shiharai
+    preferred: 支払い
+    variants: [支払]
+    note: LF表記ルール 送り仮名 (名詞)。名詞は「支払い」(動詞「支払う」は excludeWords で除外)
+  - id: lf-noun-otoiawase
+    preferred: お問合せ
+    variants: [お問い合わせ, お問合わせ, お問い合せ]
+    note: LF表記ルール 送り仮名 (名詞)。名詞は「お問合せ」、動詞は「問い合わせる」
+  - id: lf-noun-azukeire
+    preferred: 預入れ
+    variants: [預け入れ]
+    note: LF表記ルール 送り仮名 (名詞)
+  - id: lf-noun-hikitori
+    preferred: 引取り
+    variants: [引き取り]
+    note: LF表記ルール 送り仮名 (名詞)
+  - id: lf-noun-hikiotoshi
+    preferred: 引落し
+    variants: [引き落とし]
+    note: LF表記ルール 送り仮名 (名詞)
+  - id: lf-noun-osumai
+    preferred: お住まい
+    variants: [お住い]
+    note: LF表記ルール 送り仮名 (名詞)
+
+  # ---- LF表記ルール / 送り仮名: 動詞 (送り仮名を付ける) ----
+  - id: lf-verb-moushikomu
+    preferred: 申し込む
+    variants: [申込む, 申込んで, 申込まれ]
+    note: LF表記ルール 送り仮名 (動詞)
+  - id: lf-verb-moushideru
+    preferred: 申し出る
+    variants: [申出る, 申出て]
+    note: LF表記ルール 送り仮名 (動詞)
+  - id: lf-verb-hikiukeru
+    preferred: 引き受ける
+    variants: [引受ける, 引受けて, 引受けら]
+    note: LF表記ルール 送り仮名 (動詞)
+  - id: lf-verb-toiawaseru
+    preferred: 問い合わせる
+    variants: [問合せる, 問合せて]
+    note: LF表記ルール 送り仮名 (動詞)
+  - id: lf-verb-azukeireru
+    preferred: 預け入れる
+    variants: [預入れる, 預入れて]
+    note: LF表記ルール 送り仮名 (動詞)
+  - id: lf-verb-hikitoru
+    preferred: 引き取る
+    variants: [引取る, 引取って]
+    note: LF表記ルール 送り仮名 (動詞)
+  - id: lf-verb-hikiotosu
+    preferred: 引き落とす
+    variants: [引落す, 引落して]
+    note: LF表記ルール 送り仮名 (動詞)
+  - id: lf-verb-sashihiku
+    preferred: 差し引く
+    variants: [相殺する, 相殺し]
+    note: LF表記ルール 送り仮名 (動詞)。「相殺する」ではなく「差し引く」
+
+  # ---- LF表記ルール / 倫理・配慮 (Medium) ----
+  - id: lf-ethics-utsu
+    preferred: うつ
+    variants: [鬱]
+    severity: medium
+    note: LF表記ルール 倫理・配慮
+  - id: lf-ethics-sanjoku
+    preferred: 産じょく
+    variants: [産褥]
+    severity: medium
+    note: LF表記ルール 倫理・配慮
+  - id: lf-ethics-kodomo
+    preferred: 子ども
+    variants: [子供]
+    severity: medium
+    note: LF表記ルール 倫理・配慮
+  - id: lf-ethics-gaikokujin
+    preferred: 外国人
+    variants: [外人]
+    severity: medium
+    note: LF表記ルール 倫理・配慮
+  - id: lf-ethics-hitorioya
+    preferred: ひとり親
+    variants: [片親]
+    severity: medium
+    note: LF表記ルール 倫理・配慮
+
+  # ---- このツールの既定 (LF表記ルールに記載のないもの) ----
   - id: hoshou
     preferred: null            # どちらが正しいか文脈依存 → 併用検出のみ
     variants: [保障, 補償]
@@ -42,10 +291,7 @@ unifyRules:
     note: 「保障」と「補償」の併用を検出 (保険種類により正解が異なるため要目視確認)
   - id: web
     preferred: Web
-    variants: [WEB, web, ウェブ]
-  - id: inquiry
-    preferred: お問い合わせ
-    variants: [お問合せ, お問い合せ, お問合わせ]
+    variants: [WEB, ウェブ]
   - id: price
     preferred: 保険料
     variants: [保険代, 保険費用]
@@ -64,7 +310,7 @@ insuranceTerms:
   - preferred: 補償割合
     variants: [補填割合]
 
-# 使用禁止表現 (景表法・薬機法・保険業法などの観点)。検出時は Low だが必ず報告する
+# 使用禁止表現 (景表法・保険業法などの観点)。検出時は Medium
 prohibited:
   - pattern: 絶対に安心
     reason: 断定的表現は使用しない
@@ -87,14 +333,78 @@ typoPatterns:
     correct: 意外と
   - wrong: 事務手続き き
     correct: 事務手続き
-  - wrong: ご利用頂けます
-    correct: ご利用いただけます
 
-# 除外語 (固有名詞・法令名など、ルールを適用しない語)
+# ------------------------------------------------------------
+# 除外語 — この語の範囲内では、どのルールも検出しない
+#
+#   固有名詞・約款用語・正しい活用形を守るために使う。
+#   ここに足す場合は「なぜ除外してよいか」をコメントに書くこと。
+# ------------------------------------------------------------
 excludeWords:
+  # 固有名詞・正式名称
   - 保健所
   - 一般社団法人日本ペット保険協会
   - WEBRTC
+  # 「ペット」を含む正式名称・一般名詞 (運用側の確認済み: ペット保険は可)
+  - ペット保険
+  - ペット賠償責任特約
+  - ペットの安心保険
+  - ペットボトル
+  # 約款用語 (「死亡」を言い換えられない語)
+  - 死亡保険金
+  - 死亡給付金
+  - 死亡保障
+  # 「等」の正しい用法 (直後の語で除けないもの)
+  - 均等
+  - 同等
+  - 平等
+  - 対等
+  - 高等
+  - 上等
+  - 初等
+  - 中等
+  - 優等
+  - 劣等
+  - 一等
+  - 等級
+  - 等分
+  - 等々
+  - 等しい
+  # 「尚」の正しい用法
+  - 時期尚早
+  - 高尚
+  # 「致します」の正しい用法 (一致・合致)
+  - 一致します
+  - 一致しました
+  - 合致します
+  - 合致しました
+  - 不一致
+  - 完全一致
+  # 動詞「支払う」(名詞「支払い」のルールで拾わないため)
+  - 支払う
+  - 支払わ
+  - 支払え
+  - 支払っ
+  - 支払お
+  # 動詞「申し込む」の活用 (名詞「申込み」のルールで拾わないため)
+  - 申し込みます
+  - 申し込みまし
+  - 申し込みません
+  - 申し込みください
+  # 動詞「引き受ける」の活用 (名詞「引受け」のルールで拾わないため)
+  - 引き受ける
+  - 引き受けら
+  - 引き受けま
+  - 引き受けて
+  - 引き受けた
+  - 引き受けな
+  # 動詞「預け入れる」「引き取る」「引き落とす」の活用
+  - 預け入れる
+  - 預け入れま
+  - 預け入れら
+  - 引き取りま
+  - 引き取りく
+  - 引き落としま
 
 # 連続スペース・全角半角の混在など、体裁上の検出
 formatting:

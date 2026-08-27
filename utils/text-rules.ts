@@ -2,7 +2,7 @@
  * 誤字脱字・表記揺れのルールベース検出。
  * ルールは config/text-rules.yml で管理し、コード側にサイト固有の語を持たない。
  */
-import type { FindingInput, QaConfig, TextRulesFile } from './types';
+import type { FindingInput, QaConfig, Severity, TextRulesFile, UnifyRule } from './types';
 
 export interface TextIssue {
   ruleId: string;
@@ -13,6 +13,8 @@ export interface TextIssue {
   /** 検出箇所の前後を含む抜粋 */
   excerpt: string;
   count: number;
+  /** ルール側で指定された重大度 (無指定なら種別ごとの既定) */
+  severity?: Severity;
 }
 
 /** 除外語の位置を求め、その範囲での検出を無視できるようにする */
@@ -94,9 +96,10 @@ export function detectTextIssues(text: string, rules: TextRulesFile): TextIssue[
       continue;
     }
 
+    const exceptions = rule.exceptWhenFollowedBy ?? [];
     for (const variant of rule.variants) {
       if (rule.preferred && variant === rule.preferred) continue;
-      // 「お申込み」が「お申し込み」の一部として誤検出されないよう、
+      // 誤表記が正しい表記の一部である場合 (「支払」と「支払い」など)、
       // 正式表記の位置と重なる検出は除外する
       const preferredPositions = rule.preferred ? findOccurrences(text, rule.preferred) : [];
       pushOccurrences(
@@ -109,12 +112,21 @@ export function detectTextIssues(text: string, rules: TextRulesFile): TextIssue[
           note: rule.note,
           excerpt,
           count,
+          severity: rule.severity,
         }),
-        (index) =>
-          preferredPositions.some(
-            (preferredIndex) =>
-              index >= preferredIndex && index + variant.length <= preferredIndex + (rule.preferred?.length ?? 0),
-          ),
+        (index) => {
+          if (
+            preferredPositions.some(
+              (preferredIndex) =>
+                index >= preferredIndex && index + variant.length <= preferredIndex + (rule.preferred?.length ?? 0),
+            )
+          ) {
+            return true;
+          }
+          // 直後の語による除外 (「時」→「とき」で「時間」を拾わないなど)
+          const following = text.slice(index + variant.length);
+          return exceptions.some((exception) => following.startsWith(exception));
+        },
       );
     }
   }
@@ -156,6 +168,7 @@ export function detectTextIssues(text: string, rules: TextRulesFile): TextIssue[
       note: entry.reason,
       excerpt,
       count,
+      severity: entry.severity,
     }));
   }
 
@@ -172,6 +185,7 @@ export function detectTextIssues(text: string, rules: TextRulesFile): TextIssue[
         note: '誤字の候補',
         excerpt,
         count,
+        severity: pattern.severity,
       }),
       (index) => {
         const following = text.slice(index + pattern.wrong.length);
@@ -216,14 +230,20 @@ export function detectTextIssues(text: string, rules: TextRulesFile): TextIssue[
   return issues;
 }
 
-/** ルール違反を Finding に変換する (重大度は Low、使用禁止表現のみ Medium) */
+/**
+ * ルール違反を Finding に変換する。
+ *
+ * 既定は Low、使用禁止表現は Medium。
+ * ルール側に severity があればそれを使う
+ * (社内規定のうちブランド・倫理に関わる語は Medium にしている)。
+ */
 export function textIssuesToFindings(
   issues: TextIssue[],
   context: { url: string; pageId?: string; pageName?: string },
 ): FindingInput[] {
   return issues.map((issue) => ({
     category: 'text-rule',
-    severity: issue.kind === 'prohibited' ? 'medium' : 'low',
+    severity: issue.severity ?? (issue.kind === 'prohibited' ? 'medium' : 'low'),
     title: `${describeKind(issue.kind)}: ${issue.found}${issue.count > 1 ? ` (${issue.count} 箇所)` : ''}`,
     expected: issue.suggestion ? `「${issue.suggestion}」に統一` : issue.note ?? '表記の確認',
     actual: `「${issue.found}」を検出`,
@@ -255,14 +275,40 @@ function describeKind(kind: TextIssue['kind']): string {
 
 /** サイト横断の表記揺れ (ページ間で表記が分かれているもの) を検出する */
 /**
- * 除外語の範囲と重ならない出現があるか。
- * ページ単位の検査と同じ扱いにするため、既存の excludedRanges を再利用する
- * (例: WEB のルールで WEBRTC を拾わない)。
+ * その語が「そのページで実際に使われている」と言えるか。
+ *
+ * ページ単位の検査とまったく同じ除外を通す。ここを揃えないと
+ * ページ単位では出ないのにページ間だけ指摘が出る (実際に起きた):
+ *   - 除外語の中の出現は数えない (例: WEB のルールで WEBRTC を拾わない)
+ *   - 正しい表記の一部である出現は数えない
+ *     (例:「支払い」があるページを「支払」も使っていると数えてしまう)
+ *   - 直後の語で除外する指定も同じように使う (例:「等級」は「等」ではない)
  */
-function hasRelevantOccurrence(text: string, term: string, excludeWords: string[]): boolean {
+function hasRelevantOccurrence(
+  text: string,
+  term: string,
+  excludeWords: string[],
+  rule?: UnifyRule,
+): boolean {
   if (!term) return false;
   const ranges = excludedRanges(text, excludeWords ?? []);
-  return findOccurrences(text, term).some((index) => !isInExcludedRange(index, term.length, ranges));
+  const preferred = rule?.preferred ?? null;
+  // 誤表記が正しい表記の一部である場合に備えて、正しい表記の位置を取る
+  const preferredPositions = preferred !== null && term !== preferred ? findOccurrences(text, preferred) : [];
+  const exceptions = rule?.exceptWhenFollowedBy ?? [];
+
+  return findOccurrences(text, term).some((index) => {
+    if (isInExcludedRange(index, term.length, ranges)) return false;
+    if (
+      preferredPositions.some(
+        (preferredIndex) => index >= preferredIndex && index + term.length <= preferredIndex + (preferred?.length ?? 0),
+      )
+    ) {
+      return false;
+    }
+    const following = text.slice(index + term.length);
+    return !exceptions.some((exception) => following.startsWith(exception));
+  });
 }
 
 export function detectCrossPageInconsistency(
@@ -280,7 +326,7 @@ export function detectCrossPageInconsistency(
       for (const page of perPageText) {
         // 除外語 (固有名詞など) の中に含まれる出現は数えない。
         // ページ単位の検査と同じ扱いにする (例: WEB のルールで WEBRTC を拾わない)
-        if (hasRelevantOccurrence(page.text, candidate, config.text.excludeWords)) {
+        if (hasRelevantOccurrence(page.text, candidate, config.text.excludeWords, rule)) {
           const pages = usage.get(candidate) ?? [];
           pages.push(page.pageId);
           usage.set(candidate, pages);
@@ -291,7 +337,7 @@ export function detectCrossPageInconsistency(
     if (usage.size > 1) {
       findings.push({
         category: 'text-rule',
-        severity: 'low',
+        severity: rule.severity ?? 'low',
         title: `ページ間で表記が分かれています (${rule.id})`,
         expected: rule.preferred ? `「${rule.preferred}」に統一` : '表記を統一',
         actual: Array.from(usage.entries())

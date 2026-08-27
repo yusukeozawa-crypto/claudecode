@@ -12,7 +12,7 @@ import { loadConfig } from '../../utils/config';
 import { runLayoutChecks, measureHorizontalScroll } from '../../utils/layout';
 import { PageMonitor } from '../../utils/monitors';
 import { checkPageLinks } from '../../utils/links';
-import { detectTextIssues } from '../../utils/text-rules';
+import { detectTextIssues, textIssuesToFindings } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
@@ -2377,5 +2377,61 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       (finding) => finding.title.includes(rule!.id),
     );
     expect(noFindings, '統一されていれば検出しないこと').toEqual([]);
+
+    // 誤表記が正しい表記の一部である場合 (「支払」と「支払い」)、
+    // 正しい表記だけを使っていてもページ間の不統一として出てはいけない。
+    // ページ単位の検査と除外の扱いが違っていて実際に誤検知した。
+    const correctOnly = [
+      { pageId: 'page-a', text: '保険料のお支払い方法をご案内します。' },
+      { pageId: 'page-b', text: '保険金のお支払いについてご案内します。等級は均等です。' },
+    ];
+    expect(
+      detectCrossPageInconsistency(correctOnly, config).map((finding) => finding.title),
+      '正しい表記だけならページ間の指摘も出ないこと',
+    ).toEqual([]);
+  });
+  test('社内規定 (LF表記ルール) の表記を検出し、正しい用法は拾わない', async () => {
+    // 規定に反する文 — どのルールが当たるべきかを id で確かめる
+    const wrong = [
+      'お客様は弊社のお問い合わせ窓口までご連絡下さい。',
+      'お申し込み手続きは出来ません。ペットを飼う子供のために。',
+    ].join('');
+    const ruleIds = new Set(detectTextIssues(wrong, config.text).map((issue) => issue.ruleId));
+    for (const id of [
+      'lf-basic-okyakusama',   // お客様 → お客さま
+      'lf-basic-tousha',       // 弊社 → 当社
+      'lf-noun-otoiawase',     // お問い合わせ → お問合せ
+      'lf-basic-kudasai',      // 下さい → ください
+      'lf-noun-moushikomi',    // お申し込み → お申込み
+      'lf-basic-dekiru',       // 出来ません → できません
+      'lf-brand-uchinoko',     // ペット → うちの子
+      'lf-brand-kurasu',       // 飼う → 暮らす
+      'lf-ethics-kodomo',      // 子供 → 子ども
+    ]) {
+      expect(ruleIds, `${id} が検出されること`).toContain(id);
+    }
+
+    // ブランド・倫理に関わる語は Medium で報告する (2026-08-27 運用側の判断)
+    const findings = textIssuesToFindings(
+      detectTextIssues('ペットを飼う子供のために。', config.text),
+      { url: 'https://example.test/' },
+    );
+    expect(
+      findings.length > 0 && findings.every((finding) => finding.severity === 'medium'),
+      `ブランド・倫理の指摘は Medium であること: ${JSON.stringify(findings.map((f) => f.severity))}`,
+    ).toBe(true);
+
+    // 規定に沿った文 / 正しい用法 — 1 件も出てはいけない
+    //   動詞「支払う」、約款用語「死亡保険金」、「等級」「均等」、「一致します」、
+    //   運用側が可とした「ペット保険」を含める (誤検知が出ると誰も見なくなるため)
+    const right = [
+      'お客さまは当社のお問合せ窓口までご連絡ください。お申込み手続きはできます。',
+      'ペット保険の保険金を支払う場合、死亡保険金もお支払いします。',
+      '等級は均等で、見積りの金額と一致します。',
+    ].join('');
+    expect(
+      detectTextIssues(right, config.text),
+      `正しい表記で指摘が出ないこと: ${JSON.stringify(detectTextIssues(right, config.text), null, 2)}`,
+    ).toEqual([]);
   });
 });

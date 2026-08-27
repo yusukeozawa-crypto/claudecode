@@ -605,6 +605,13 @@ export interface UnifyRule {
   variants: string[];
   detectOnly?: boolean;
   note?: string;
+  /**
+   * 直後にこの語が続く場合は検出しない。
+   * 例: 「時」→「とき」は形式名詞だけが対象なので「時間」「時期」を除く。
+   */
+  exceptWhenFollowedBy?: string[];
+  /** 既定 (Low) 以外にする場合の重大度。ブランド・倫理に関わる語は Medium にする */
+  severity?: Severity;
 }
 export interface TextRulesFile {
   extract: {
@@ -620,8 +627,13 @@ export interface TextRulesFile {
   };
   unifyRules: UnifyRule[];
   insuranceTerms: Array<{ preferred: string; variants: string[] }>;
-  prohibited: Array<{ pattern: string; reason: string }>;
-  typoPatterns: Array<{ wrong: string; correct: string; exceptWhenFollowedBy?: string[] }>;
+  prohibited: Array<{ pattern: string; reason: string; severity?: Severity }>;
+  typoPatterns: Array<{
+    wrong: string;
+    correct: string;
+    exceptWhenFollowedBy?: string[];
+    severity?: Severity;
+  }>;
   excludeWords: string[];
   formatting: {
     detectDoubleSpace: boolean;

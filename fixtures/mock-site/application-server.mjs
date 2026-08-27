@@ -38,9 +38,9 @@ const MAX_BODY_BYTES = 64 * 1024;
 
 /** 申込フローの画面定義 */
 const STEPS = [
-  { path: '/entry/', title: 'お申し込み (1/3) ペット情報', next: '/entry/step2/', testId: 'entry-step1' },
-  { path: '/entry/step2/', title: 'お申し込み (2/3) プラン選択', next: '/entry/confirm/', testId: 'entry-step2' },
-  { path: '/entry/confirm/', title: 'お申し込み (3/3) 内容確認', next: null, testId: 'entry-confirm' },
+  { path: '/entry/', title: 'お申込み (1/3) ペット情報', next: '/entry/step2/', testId: 'entry-step1' },
+  { path: '/entry/step2/', title: 'お申込み (2/3) プラン選択', next: '/entry/confirm/', testId: 'entry-step2' },
+  { path: '/entry/confirm/', title: 'お申込み (3/3) 内容確認', next: null, testId: 'entry-confirm' },
 ];
 
 function readCookies(req) {
@@ -129,12 +129,12 @@ function renderPage({ step, agency, agencyCode, handoffMethod }) {
         ? `<section class="panel agency-panel" data-testid="application-agency-info">
       <h2>担当代理店</h2>
       <p>代理店名：<span data-testid="application-agency-name">${escapeHtml(agency.name)}</span></p>
-      <p>お問い合わせ先：<span data-testid="application-agency-phone">${escapeHtml(agency.phone)}</span></p>
+      <p>お問合せ先：<span data-testid="application-agency-phone">${escapeHtml(agency.phone)}</span></p>
     </section>`
         : `<section class="panel default-panel" data-testid="application-default-route">
-      <h2>通常のお申し込み</h2>
+      <h2>通常のお申込み</h2>
       <p>担当代理店の指定はありません。通常の手続きへ進みます。</p>
-      <p>お問い合わせ窓口：0120-000-000</p>
+      <p>お問合せ窓口：0120-000-000</p>
     </section>`
     }
 

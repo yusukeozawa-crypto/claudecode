@@ -83,7 +83,7 @@ function readCookies(req) {
 function buildCta(code, agency) {
   if (!code || !agency) {
     return {
-      text: 'お申し込みはこちら',
+      text: 'お申込みはこちら',
       href: `${APPLICATION_ORIGIN}/entry/`,
       handoffMethod: 'none',
       agencyCode: '',

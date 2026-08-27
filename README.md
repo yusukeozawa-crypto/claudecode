@@ -447,11 +447,22 @@ project は「有効なブラウザ × 端末」で自動生成されます (`ut
 
 `config/text-rules.yml` を編集します。
 
+既定の中身は社内規定「LF表記・ブランドルール」(2025/12/11 版) を写したものです
+(`id` が `lf-` で始まるルール)。
+
 ```yaml
 unifyRules:
-  - id: application-noun
-    preferred: お申し込み            # 正式表記
-    variants: [お申込み, お申込]     # 検出する表記揺れ
+  - id: lf-noun-moushikomi
+    preferred: 申込み                # 正しい表記 (名詞は送り仮名を省く)
+    variants: [申し込み]             # 検出する表記
+  - id: lf-ethics-kodomo
+    preferred: 子ども
+    variants: [子供]
+    severity: medium                # 既定 (Low) 以外にする場合だけ書く
+  - id: lf-basic-toki
+    preferred: とき
+    variants: [する時, した時]
+    exceptWhenFollowedBy: [間, 期]   # 「時間」「時期」は対象外
   - id: hoshou
     preferred: null
     variants: [保障, 補償]
@@ -461,8 +472,13 @@ prohibited:
   - pattern: 業界No.1
     reason: 客観的根拠のない優位性表示
 
-excludeWords: [保健所]              # ルールを適用しない語
+excludeWords: [保健所, ペット保険]   # この語の範囲ではどのルールも検出しない
 ```
+
+重大度は既定 Low、使用禁止表現は Medium、ブランド・マインドと倫理・配慮は
+`severity: medium` を明示しています。
+正しい用法まで拾ってしまう語は必ず `exceptWhenFollowedBy` か `excludeWords` で
+除外してください (誤検知が増えると誰も結果を見なくなります)。
 
 ### 画像差分の許容値・マスクを変更する
 
