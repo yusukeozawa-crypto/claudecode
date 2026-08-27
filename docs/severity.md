@@ -29,6 +29,7 @@
 | `agency-redirect` (一部) | リダイレクト回数・中間 URL が仕様と異なる |
 | `layout` (一部) | 必須要素の欠落、空白画面 — 申込導線の停止に相当する |
 | `config` | 設定不備で検査が成立しない |
+| `image-error` | 画像が表示できていない (2026-08-26 運用側の判断で Medium から上げた) |
 
 ### Medium — 記録のみ (CI 継続)
 
@@ -36,7 +37,6 @@
 |---|---|
 | `layout` | 表示崩れ (viewport はみ出し、要素の重なり、極端に大きな要素) |
 | `horizontal-scroll` | 横スクロールの発生 |
-| `image-error` | 画像欠損 |
 | `broken-link` (外部) | 外部リンクの 4xx / 5xx |
 | `text-rule` (禁止表現) | 使用禁止表現 — 法務観点で必ず確認する必要があるため Low より上げる |
 | `redirect-mechanism` | 仕様と異なる遷移方式 (HTTP 3xx / JS / meta refresh / SPA の違い) — 警告 |

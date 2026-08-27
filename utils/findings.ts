@@ -41,7 +41,9 @@ export const DEFAULT_SEVERITY: Record<FindingCategory, Severity> = {
   'network-error': 'high',
   layout: 'medium',
   'horizontal-scroll': 'medium',
-  'image-error': 'medium',
+  // 画像が 1 枚でも表示できていないのは事故として扱う (運用側の判断)。
+  // 外部 CDN の一時的な不調でも落ちるが、見逃す方が痛い。
+  'image-error': 'high',
   'visual-diff': 'low',
   'text-rule': 'low',
   config: 'high',
