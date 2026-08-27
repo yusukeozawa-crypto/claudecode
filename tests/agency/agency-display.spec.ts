@@ -71,7 +71,7 @@ test.describe('代理店ごとの表示 @agency', () => {
       // 代理店コードの保存先 (Cookie / localStorage) を記録する。
       // 設定に頼らず値で探すため、キー名が未確認でも分かる。
       if (spec.recognized !== false) {
-        qa.addAll(await observeStorageLocation(page, spec.code, label));
+        qa.addAll(await observeStorageLocation(page, spec.code, label, config));
       }
 
       const stored = await readStoredCode(page, config);

@@ -83,13 +83,37 @@ agencyNameTexts:
       reason: 保険料の前提条件。同上 (2026-08-24 運用側の判断)
 
 storage:
-  # cookie | localStorage | both | none
+  # cookie | localStorage | either | both | none
+  #   cookie / localStorage … その 1 か所に保存されること
+  #   either                … どちらか 1 か所にあればよい
+  #   both                  … 両方に保存されること
+  #   none                  … 保存値を根拠にした判定を行わない
+  #
   #   [未実測] 代理店コードの保存先が未確認のため none にしている。
   #   none の間は保存値を根拠にした判定を行わない
   #   (URL のみで引き回す実装を誤検知しないため)。
   #   discover で Cookie 名 / localStorage キーが判明したら設定する。
   type: none
   key: insAgentNo
+  # 他社タグ (計測・A/B テスト) の保存キー。部分一致で判定する。
+  #
+  #   これらは訪問した URL を記録しているだけで、URL に代理店コードが
+  #   入っていると「サイトがコードを保持している」ように見えてしまう。
+  #   実際に本番で Zoho PageSense の zps- / zab_ を保存先として
+  #   並べていたため、自社の保存とは分けて数える。
+  #   未設定・空の場合は utils/agency.ts の既定パターンを使う。
+  thirdPartyKeyPatterns:
+    - zps-        # Zoho PageSense
+    - zab_        # Zoho PageSense A/B テスト
+    - _ga         # Google Analytics
+    - _gcl        # Google Ads
+    - _gid
+    - _clck       # Microsoft Clarity
+    - _clsk
+    - _fbp        # Meta
+    - _uetsid     # Microsoft Ads
+    - _uetvid
+    - _hj         # Hotjar
 
 # 全代理店に共通する判定要素 (既定で data-testid として解決される)。
 # "css=" / "text=" を先頭に付けると任意のセレクタも使用できる。

@@ -215,6 +215,47 @@ export function agencySelector(config: QaConfig, key: string): string {
 export interface StoredAgencyCode {
   cookie: string | null;
   localStorage: string | null;
+  /**
+   * localStorage を読み取れなかった。
+   *
+   * 「保存されていない」と区別する。区別しないと、遷移中に読めなかっただけで
+   * 「代理店コードが保存されていません」(Critical) を出してしまう
+   * (meta refresh のページで実際に起きた)。
+   */
+  localStorageUnknown?: boolean;
+}
+
+/**
+ * localStorage を読む。遷移中に失敗したら 1 度だけやり直す。
+ *
+ * meta refresh のように読み取り中に遷移が始まるページでは
+ * page.evaluate が「Execution context was destroyed」で失敗する。
+ * これを null (= 保存なし) として扱うと誤報になるため、
+ * 読めなかったことを呼び出し側に伝える。
+ */
+async function readLocalStorageCode(page: Page, key: string): Promise<{ value: string | null; unknown: boolean }> {
+  const read = (): Promise<string | null> =>
+    page.evaluate((storageKey: string) => {
+      try {
+        return window.localStorage.getItem(storageKey);
+      } catch {
+        // localStorage を使えない設定のブラウザ。保存なしとして扱う
+        return null;
+      }
+    }, key);
+
+  for (const attempt of [0, 1]) {
+    try {
+      if (attempt > 0) {
+        // 遷移が終わるのを待ってからやり直す
+        await page.waitForLoadState('load', { timeout: 5000 }).catch(() => undefined);
+      }
+      return { value: await read(), unknown: false };
+    } catch {
+      /* 遷移中に読めなかった。待ってもう 1 度試す */
+    }
+  }
+  return { value: null, unknown: true };
 }
 
 /** Cookie / localStorage に保存された代理店コードを読み取る (値はログに出さない) */
@@ -222,16 +263,12 @@ export async function readStoredCode(page: Page, config: QaConfig): Promise<Stor
   const key = config.agency.storage.key;
   const cookies = await page.context().cookies();
   const cookie = cookies.find((entry) => entry.name === key)?.value ?? null;
-  const fromLocalStorage = await page
-    .evaluate((storageKey: string) => {
-      try {
-        return window.localStorage.getItem(storageKey);
-      } catch {
-        return null;
-      }
-    }, key)
-    .catch(() => null);
-  return { cookie: cookie ? decodeURIComponent(cookie) : null, localStorage: fromLocalStorage };
+  const fromLocalStorage = await readLocalStorageCode(page, key);
+  return {
+    cookie: cookie ? decodeURIComponent(cookie) : null,
+    localStorage: fromLocalStorage.value,
+    localStorageUnknown: fromLocalStorage.unknown,
+  };
 }
 
 /**
@@ -278,7 +315,14 @@ export function agencyPairs(
   return pairs;
 }
 
-/** 保存先設定に応じた「保持されているコード」 */
+/**
+ * 実際に保存されていたコード (観測値)。
+ *
+ * either / both では「どちらかにあった値」を返す。
+ * 設定した条件を満たしているかの判定は storedCodeMatches で行う
+ * (観測値と合否を同じ関数で兼ねると、both のときに片方しか
+ *  保存されていない状態を見逃す)。
+ */
 export function effectiveStoredCode(stored: StoredAgencyCode, config: QaConfig): string | null {
   switch (config.agency.storage.type) {
     case 'cookie':
@@ -289,6 +333,53 @@ export function effectiveStoredCode(stored: StoredAgencyCode, config: QaConfig):
       return null;
     default:
       return stored.cookie ?? stored.localStorage;
+  }
+}
+
+/** 設定した保存先の条件を満たしているか */
+export function storedCodeMatches(stored: StoredAgencyCode, config: QaConfig, expected: string): boolean {
+  switch (config.agency.storage.type) {
+    case 'cookie':
+      return stored.cookie === expected;
+    case 'localStorage':
+      return stored.localStorage === expected;
+    // both = 両方に保存されていること
+    case 'both':
+      return stored.cookie === expected && stored.localStorage === expected;
+    // either = どちらか 1 か所にあればよい
+    default:
+      return stored.cookie === expected || stored.localStorage === expected;
+  }
+}
+
+/** 保存値の実測を「どちらに何があったか」が分かる文にする */
+export function describeStoredCode(stored: StoredAgencyCode): string {
+  return [
+    `Cookie=${stored.cookie ?? 'なし'}`,
+    `localStorage=${stored.localStorageUnknown === true ? '読み取れず' : stored.localStorage ?? 'なし'}`,
+  ].join('、');
+}
+
+/**
+ * localStorage が読めなかった状態で合否を判定してよいか。
+ *
+ * Cookie だけで結論が出る場合は判定する。
+ * 出ない場合 (localStorage / both / either で Cookie が期待と違う) は
+ * 判定を保留する — 読めなかったことを不具合として報告しないため。
+ */
+export function canJudgeStoredCode(stored: StoredAgencyCode, config: QaConfig, expected: string): boolean {
+  if (stored.localStorageUnknown !== true) return true;
+  switch (config.agency.storage.type) {
+    case 'cookie':
+      return true;
+    case 'either':
+      // Cookie に期待どおりの値があれば、localStorage を見なくても合格が決まる
+      return stored.cookie === expected;
+    case 'both':
+      // Cookie が違うなら、localStorage を見なくても不合格が決まる
+      return stored.cookie !== expected;
+    default:
+      return false;
   }
 }
 
@@ -305,10 +396,24 @@ export function storageChecksEnabled(config: QaConfig): boolean {
   return config.agency.storage.type !== 'none';
 }
 
+/**
+ * 保存先の設定を、読み違えようのない文にする。
+ *
+ * 以前は both を「Cookie / localStorage」と書いていた。
+ * 「/」が「または」に読めるうえ、実装は「どちらかにあればよい」だったため、
+ * 名前と中身と表示の 3 つが食い違っていた (実際に読み違えが起きた)。
+ */
 export function storageLabel(config: QaConfig): string {
   const { type, key } = config.agency.storage;
   if (type === 'none') return '保存先なし (URL のみで引き回す設定)';
-  const typeLabel = type === 'both' ? 'Cookie / localStorage' : type === 'cookie' ? 'Cookie' : 'localStorage';
+  const typeLabel =
+    type === 'cookie'
+      ? 'Cookie'
+      : type === 'localStorage'
+        ? 'localStorage'
+        : type === 'both'
+          ? 'Cookie と localStorage の両方'
+          : 'Cookie または localStorage のどちらか';
   return `${typeLabel} (キー: ${key})`;
 }
 
@@ -343,6 +448,18 @@ export function verifyStoredCode(
   const actual = effectiveStoredCode(stored, config);
 
   if (expectedCode === null) {
+    // 読めなかった場合、保存されていても気づけない。黙って合格にしない
+    if (actual === null && stored.localStorageUnknown === true) {
+      findings.push({
+        category: 'agency-persistence',
+        severity: 'low',
+        title: `[記録] ${context.label}: localStorage を読み取れなかったため保存の有無を確認できませんでした`,
+        expected: `${storageLabel(config)} に代理店コードが保存されていないこと`,
+        actual: describeStoredCode(stored),
+        url: context.url,
+      });
+      return findings;
+    }
     if (actual !== null) {
       findings.push({
         category: 'agency-persistence',
@@ -355,24 +472,46 @@ export function verifyStoredCode(
     return findings;
   }
 
-  if (actual !== expectedCode) {
+  if (!canJudgeStoredCode(stored, config, expectedCode)) {
+    findings.push({
+      category: 'agency-persistence',
+      severity: 'low',
+      title: `[記録] ${context.label}: localStorage を読み取れなかったため保存値の判定を保留しました`,
+      expected: `${storageLabel(config)} = ${expectedCode}`,
+      actual: describeStoredCode(stored),
+      url: context.url,
+      detail:
+        'ページ遷移中 (meta refresh など) は localStorage を読めないことがあります。'
+        + '読めなかったことを「保存されていない」として報告しないため、判定を保留しています。',
+    });
+    return findings;
+  }
+
+  if (!storedCodeMatches(stored, config, expectedCode)) {
     findings.push({
       category: 'agency-persistence',
       title: `${context.label}: 保存された代理店コードが期待と一致しません`,
       expected: `${storageLabel(config)} = ${expectedCode}`,
-      actual: actual === null ? '保存値なし (コード欠落)' : `保存値 = ${actual}`,
+      actual: actual === null ? `保存値なし (コード欠落) — ${describeStoredCode(stored)}` : describeStoredCode(stored),
       url: context.url,
     });
   }
 
-  if (config.agency.storage.type === 'both' && stored.cookie !== null && stored.localStorage !== null) {
+  // 両方に保存する設定 / どちらでもよい設定では、両方にあるときの食い違いを見る
+  const twoPlaceTypes = ['both', 'either'];
+  if (
+    twoPlaceTypes.includes(config.agency.storage.type)
+    && stored.localStorageUnknown !== true
+    && stored.cookie !== null
+    && stored.localStorage !== null
+  ) {
     if (stored.cookie !== stored.localStorage) {
       findings.push({
         category: 'agency-persistence',
         severity: 'critical',
         title: `${context.label}: Cookie と localStorage の代理店コードが一致しません`,
         expected: 'Cookie と localStorage が同一の代理店コードであること',
-        actual: `Cookie=${stored.cookie} / localStorage=${stored.localStorage}`,
+        actual: describeStoredCode(stored),
         url: context.url,
       });
     }
@@ -639,8 +778,132 @@ function fillTemplate(template: string, company: string): string {
  * キー名が分からなくても分かるように、値で探す。
  *
  * どちらが正解かは未確定なので合否判定はしない (expectedValue: null)。
- * 表に「Cookie」「LS」「両方」「なし」を出して実態を見えるようにする。
+ * 表には「Cookieのみ」「Cookie+localStorage (両方)」「なし」のように
+ * 略語を使わずに出す。他社タグの保存は別に数える。
  */
+// ---------------------------------------------------------------------------
+// 代理店コードの保存先 (実測)
+// ---------------------------------------------------------------------------
+
+/** コードが見つかったキー名 (保存領域ごと) */
+export interface StorageHits {
+  cookie: string[];
+  local: string[];
+  session: string[];
+}
+
+/** 保存先の実測をまとめたもの */
+export interface StoragePlaces {
+  /** 表に出す値 (例: 「Cookieのみ」「Cookie+localStorage (両方)」) */
+  observed: string;
+  /** 内訳 (どこに何があったか) */
+  detail: string;
+  /** 自社の保存とみなせる場所があったか */
+  hasOwnStorage: boolean;
+  /** 他社タグの中にだけ写っていた件数 */
+  thirdPartyCount: number;
+}
+
+/** 他社タグ (計測・A/B テスト) の保存キーの既定パターン */
+export const DEFAULT_THIRD_PARTY_STORAGE_KEYS = [
+  'zps-',      // Zoho PageSense
+  'zab_',      // Zoho PageSense A/B テスト
+  '_ga',       // Google Analytics
+  '_gcl',      // Google Ads
+  '_gid',
+  '_clck',     // Microsoft Clarity
+  '_clsk',
+  '_fbp',      // Meta
+  '_uetsid',   // Microsoft Ads
+  '_uetvid',
+  '_hj',       // Hotjar
+  'ajs_',      // Segment
+  'mp_',       // Mixpanel
+  'optimizely',
+  'ab_test',
+];
+
+/** そのキーは他社タグのものか (部分一致・大文字小文字を区別しない) */
+export function isThirdPartyStorageKey(key: string, patterns: string[]): boolean {
+  const target = key.toLowerCase();
+  return patterns.some((pattern) => pattern !== '' && target.includes(pattern.toLowerCase()));
+}
+
+/** キー名の一覧を読める長さにする */
+function joinKeys(keys: string[], max = 5): string {
+  const shown = keys.slice(0, max).join('、');
+  return keys.length > max ? `${shown} ほか ${keys.length - max} 件` : shown;
+}
+
+/**
+ * 保存先の実測を、表とツールチップに出せる形にする。
+ *
+ * 他社タグ (計測・A/B テスト) の保存を自社の保存と分ける。
+ * 他社タグは訪問 URL を記録しているだけで、URL に代理店コードが入っていると
+ * 「サイトがコードを保持している」ように見えてしまう
+ * (本番で Zoho PageSense の zps- / zab_ を保存先として並べていた)。
+ *
+ * 区切りに「/」を使わない。「または」に読めるため
+ * 「両方にあった」を「どちらかにあった」と読み違える。
+ */
+export function summarizeStoragePlaces(hits: StorageHits, patterns: string[]): StoragePlaces {
+  const places: Array<{ label: string; keys: string[] }> = [
+    { label: 'Cookie', keys: hits.cookie },
+    { label: 'localStorage', keys: hits.local },
+    { label: 'sessionStorage', keys: hits.session },
+  ];
+
+  const own: Array<{ label: string; keys: string[] }> = [];
+  const thirdParty: string[] = [];
+  for (const place of places) {
+    const ownKeys = place.keys.filter((key) => !isThirdPartyStorageKey(key, patterns));
+    for (const key of place.keys.filter((key) => isThirdPartyStorageKey(key, patterns))) {
+      thirdParty.push(`${place.label}「${key}」`);
+    }
+    if (ownKeys.length > 0) own.push({ label: place.label, keys: ownKeys });
+  }
+
+  const suffix = thirdParty.length === 0 ? '' : ` (他社タグに ${thirdParty.length} 件)`;
+  let observed: string;
+  if (own.length === 0) {
+    observed = thirdParty.length === 0 ? 'なし' : `自社の保存なし (他社タグに ${thirdParty.length} 件)`;
+  } else if (own.length === 1) {
+    observed = `${own[0].label}のみ${suffix}`;
+  } else {
+    const all = own.length === places.length ? 'すべて' : '両方';
+    observed = `${own.map((place) => place.label).join('+')} (${all})${suffix}`;
+  }
+
+  const sections: string[] = [];
+  if (own.length > 0) {
+    sections.push(
+      `自社の保存 ${own.length} か所: `
+      + own.map((place) => `${place.label}「${joinKeys(place.keys)}」`).join('、'),
+    );
+  } else {
+    sections.push('自社の保存: 見つかりません');
+  }
+  if (thirdParty.length > 0) {
+    sections.push(
+      `他社タグの中にも ${thirdParty.length} 件: ${joinKeys(thirdParty)}`
+      + ' (計測・A/B テストが訪問 URL を記録しているだけで、サイトがコードを保持している証拠ではありません)',
+    );
+  }
+
+  return {
+    observed,
+    detail: sections.join('。'),
+    hasOwnStorage: own.length > 0,
+    thirdPartyCount: thirdParty.length,
+  };
+}
+
+/** 設定された他社タグのキーパターン (未設定なら既定) */
+export function thirdPartyStorageKeys(config: QaConfig): string[] {
+  const configured = config.agency.storage.thirdPartyKeyPatterns;
+  return configured === undefined || configured.length === 0 ? DEFAULT_THIRD_PARTY_STORAGE_KEYS : configured;
+}
+
 /**
  * 存在しないコードが保存されるかを記録する。
  *
@@ -658,6 +921,7 @@ export async function observeInvalidCodeStorage(
   page: Page,
   code: string,
   label: string,
+  config: QaConfig,
 ): Promise<FindingInput[]> {
   const cookies = await page.context().cookies().catch(() => []);
   const cookieHit = cookies.filter((cookie) => cookie.value.includes(code)).map((cookie) => cookie.name);
@@ -677,20 +941,20 @@ export async function observeInvalidCodeStorage(
     }, code)
     .catch(() => ({ local: [] as string[], session: [] as string[] }));
 
-  const places = [
-    cookieHit.length > 0 ? `Cookie: ${cookieHit.join(', ')}` : '',
-    webStorage.local.length > 0 ? `localStorage: ${webStorage.local.join(', ')}` : '',
-    webStorage.session.length > 0 ? `sessionStorage: ${webStorage.session.join(', ')}` : '',
-  ].filter((part) => part !== '');
-
-  const stored = places.length > 0;
+  // 他社タグ (計測・A/B テスト) の中に写っているだけの場合は
+  // 「サイトが保存した」ではない。混ぜると結論が逆になる。
+  const summary = summarizeStoragePlaces(
+    { cookie: cookieHit, local: webStorage.local, session: webStorage.session },
+    thirdPartyStorageKeys(config),
+  );
+  const stored = summary.hasOwnStorage;
   return [
     {
       category: 'agency-persistence',
       severity: 'low',
       title: `[記録] ${label}: 存在しないコードが保存されたか`,
       expected: '保存されるかを記録する (正解が未確定のため合否は判定しない)',
-      actual: stored ? `保存されました — ${places.join(' / ')}` : '保存されませんでした',
+      actual: stored ? `保存されました — ${summary.detail}` : `保存されませんでした — ${summary.detail}`,
       url: page.url(),
       detail: stored
         ? 'サイトは値を検証せずに保存しています。したがって「申込フォームでコード保持 = あり」は'
@@ -707,6 +971,7 @@ export async function observeStorageLocation(
   page: Page,
   code: string,
   label: string,
+  config: QaConfig,
 ): Promise<FindingInput[]> {
   const cookies = await page.context().cookies().catch(() => []);
   const cookieHit = cookies.filter((cookie) => cookie.value.includes(code)).map((cookie) => cookie.name);
@@ -735,34 +1000,31 @@ export async function observeStorageLocation(
     }, code)
     .catch(() => ({ local: [] as string[], session: [] as string[] }));
 
-  const places: string[] = [];
-  if (cookieHit.length > 0) places.push('Cookie');
-  if (webStorage.local.length > 0) places.push('LS');
-  if (webStorage.session.length > 0) places.push('SS');
-
-  const detail = [
-    cookieHit.length > 0 ? `Cookie: ${cookieHit.join(', ')}` : '',
-    webStorage.local.length > 0 ? `localStorage: ${webStorage.local.join(', ')}` : '',
-    webStorage.session.length > 0 ? `sessionStorage: ${webStorage.session.join(', ')}` : '',
-  ]
-    .filter((part) => part !== '')
-    .join(' / ');
+  const summary = summarizeStoragePlaces(
+    { cookie: cookieHit, local: webStorage.local, session: webStorage.session },
+    thirdPartyStorageKeys(config),
+  );
 
   return [
     {
       checkId: 'storage',
       // 正解が未確定なので合否は判定しない (表では色を付けない)
       checkOk: true,
-      observedValue: places.length === 0 ? 'なし' : places.join('+'),
+      observedValue: summary.observed,
       // どこに保存するのが正しいかは未確定。赤にはしない
       expectedValue: null,
       category: 'agency-persistence',
       severity: 'low',
       title: `[確認OK] ${label}: 代理店コードの保存先`,
       expected: '保存先を記録する (正解が未確定のため合否は判定しない)',
-      actual: places.length === 0 ? '保存されていません' : detail,
+      actual: summary.hasOwnStorage || summary.thirdPartyCount > 0 ? summary.detail : '保存されていません',
       url: page.url(),
       agencyCode: code,
+      detail:
+        summary.thirdPartyCount > 0
+          ? '他社タグ (計測・A/B テスト) の保存は別に数えています。'
+            + 'これらは訪問 URL を記録しているだけで、サイトがコードを保持している証拠ではありません。'
+          : undefined,
     },
   ];
 }

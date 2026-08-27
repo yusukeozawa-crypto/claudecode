@@ -18,7 +18,7 @@ import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
-import { agencyPairs, agencySpecs, expectsDisplayChange, judgeCodeReflection, resolvePerProfile, verifyNoOtherAgencyInfo, verifyDisplayRules, verifySections, verifyTexts } from '../../utils/agency';
+import { agencyPairs, agencySpecs, canJudgeStoredCode, expectsDisplayChange, judgeCodeReflection, observeStorageLocation, readStoredCode, resolvePerProfile, storageLabel, storedCodeMatches, summarizeStoragePlaces, thirdPartyStorageKeys, verifyNoOtherAgencyInfo, verifyDisplayRules, verifySections, verifyStoredCode, verifyTexts } from '../../utils/agency';
 import {
   describeApplicationLinks, installRequestGuards, observeApplicationLinks,
   observeCodeInApplication, verifyCodeApplied, verifyCodeCarried,
@@ -2433,5 +2433,100 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       detectTextIssues(right, config.text),
       `正しい表記で指摘が出ないこと: ${JSON.stringify(detectTextIssues(right, config.text), null, 2)}`,
     ).toEqual([]);
+  });
+  test('保存先は「両方」と「どちらか」を書き分け、他社タグの保存を混ぜない', async ({ page }) => {
+    const patterns = thirdPartyStorageKeys(config);
+
+    // 自社の保存が 2 か所 + 他社タグ (Zoho PageSense) が 3 か所
+    const mixed = summarizeStoragePlaces(
+      {
+        cookie: ['IS'],
+        local: ['agency_code', 'zps-ft-details', 'zab_g_zxw05SO'],
+        session: ['zps-ft-pghitType-details'],
+      },
+      patterns,
+    );
+    expect(mixed.observed, '自社の保存だけで「両方」と書くこと').toContain('Cookie+localStorage (両方)');
+    expect(mixed.observed, '他社タグの件数は別に出すこと').toContain('他社タグに 3 件');
+    expect(mixed.thirdPartyCount).toBe(3);
+    expect(mixed.hasOwnStorage).toBe(true);
+    // 「 / 」は「または」に読めるため区切りに使わない (読み違えが起きた)
+    expect(mixed.observed, '表の値を「/」で区切らないこと').not.toContain(' / ');
+    expect(mixed.detail, '内訳を「/」で区切らないこと').not.toContain(' / ');
+    expect(mixed.detail, 'どこに何があったかが分かること').toContain('自社の保存 2 か所');
+
+    // 他社タグの中にだけ写っている状態は「サイトが保存した」ではない
+    const onlyThirdParty = summarizeStoragePlaces(
+      { cookie: [], local: ['zps-ft-details'], session: [] },
+      patterns,
+    );
+    expect(onlyThirdParty.hasOwnStorage, '他社タグだけなら自社の保存ではないこと').toBe(false);
+    expect(onlyThirdParty.observed).toContain('自社の保存なし');
+
+    // 1 か所だけのときは「のみ」と書く (略語 LS / SS を使わない)
+    const cookieOnly = summarizeStoragePlaces({ cookie: ['agency_code'], local: [], session: [] }, patterns);
+    expect(cookieOnly.observed).toBe('Cookieのみ');
+    expect(summarizeStoragePlaces({ cookie: [], local: [], session: [] }, patterns).observed).toBe('なし');
+
+    // both は「両方に保存されていること」。片方だけなら満たしていない
+    const bothConfig = { ...config, agency: { ...config.agency, storage: { ...config.agency.storage, type: 'both' as const } } };
+    expect(
+      storedCodeMatches({ cookie: 'A001', localStorage: null }, bothConfig, 'A001'),
+      'both は片方だけでは満たさないこと',
+    ).toBe(false);
+    expect(storedCodeMatches({ cookie: 'A001', localStorage: 'A001' }, bothConfig, 'A001')).toBe(true);
+
+    const eitherConfig = { ...config, agency: { ...config.agency, storage: { ...config.agency.storage, type: 'either' as const } } };
+    expect(
+      storedCodeMatches({ cookie: 'A001', localStorage: null }, eitherConfig, 'A001'),
+      'either は片方にあれば満たすこと',
+    ).toBe(true);
+
+    // 設定の説明文も「両方」「どちらか」を明示する
+    expect(storageLabel(bothConfig)).toContain('両方');
+    expect(storageLabel(eitherConfig)).toContain('どちらか');
+    expect(storageLabel(bothConfig), '説明文を「/」で区切らないこと').not.toContain(' / ');
+
+    // 実際のページでも他社タグ (モックは zab_g_mockab) を分けて数える
+    await page.goto(`/lp/?${config.agency.paramName}=A001`);
+    const findings = await observeStorageLocation(page, 'A001', '自己検査', config);
+    expect(findings[0].observedValue, `実測: ${findings[0].actual}`).toContain('他社タグに');
+    expect(findings[0].observedValue, '自社の保存は「両方」と出ること').toContain('(両方)');
+  });
+  test('localStorage を読めなかったことを「保存されていない」として報告しない', async ({ page }) => {
+    const bothConfig = {
+      ...config,
+      agency: { ...config.agency, storage: { ...config.agency.storage, type: 'both' as const } },
+    };
+
+    // 読み取りに失敗した状態 (遷移中) を作る。
+    //   Cookie は読めるが localStorage は読めない。
+    //   これを「保存なし」として扱うと Critical の誤報になる。
+    const unknown = { cookie: 'A003', localStorage: null, localStorageUnknown: true };
+    expect(canJudgeStoredCode(unknown, bothConfig, 'A003'), '両方必須では判定できないこと').toBe(false);
+    const held = verifyStoredCode(unknown, bothConfig, 'A003', { url: 'https://example.test/', label: '自己検査' });
+    expect(held.length, '記録は残すこと').toBe(1);
+    expect(held[0].severity, '不具合ではなく記録として扱うこと').toBe('low');
+    expect(held[0].title, '保留であることが分かること').toContain('保留');
+
+    // Cookie だけで結論が出る場合は判定する (保留にして見逃さない)
+    const eitherConfig = {
+      ...config,
+      agency: { ...config.agency, storage: { ...config.agency.storage, type: 'either' as const } },
+    };
+    expect(canJudgeStoredCode(unknown, eitherConfig, 'A003'), 'どちらかでよいなら Cookie で合格が決まる').toBe(true);
+    expect(
+      canJudgeStoredCode({ cookie: null, localStorage: null, localStorageUnknown: true }, bothConfig, 'A003'),
+      'Cookie が無ければ両方必須では不合格が決まる',
+    ).toBe(true);
+
+    // 実際に meta refresh のページで読み取りが失敗しても、値を捨てないこと
+    await page.goto(`/lp/?${config.agency.paramName}=A003`);
+    const stored = await readStoredCode(page, config);
+    expect(stored.cookie, 'Cookie は読めること').toBe('A003');
+    expect(
+      stored.localStorageUnknown === true || stored.localStorage === 'A003',
+      `読めたなら値が入っていること / 読めなかったなら読めなかったと分かること: ${JSON.stringify(stored)}`,
+    ).toBe(true);
   });
 });

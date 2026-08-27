@@ -71,10 +71,18 @@ agencyNameTexts:
       reason: 保険料の前提条件。同上 (2026-08-24 運用側の判断)
 
 storage:
-  # cookie | localStorage | both — サイトの実装に合わせる
+  # cookie | localStorage | either | both | none — サイトの実装に合わせる
+  #   モックは Cookie と localStorage の両方に保存する
   type: both
   # 保存キー (Cookie 名 / localStorage キー)
   key: agency_code
+  # 他社タグ (計測・A/B テスト) の保存キー。
+  # モックは zab_g_mock に訪問 URL を書き込み、本番の Zoho PageSense と
+  # 同じ状況を作る (自社の保存と混ざらないことを検査するため)。
+  thirdPartyKeyPatterns:
+    - zps-
+    - zab_
+    - _ga
 
 # 全代理店に共通する判定要素。値は既定で data-testid として解決される。
 # "css=" / "text=" を先頭に付けると任意のセレクタも使用できる。

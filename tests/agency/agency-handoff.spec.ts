@@ -177,7 +177,7 @@ test.describe('申込ページへの引き継ぎ @agency @handoff', () => {
       //   保存しているだけなら、存在しないコードでも「あり」になる。
       //   そうであれば「保持=あり」を有効性の根拠にはできない。
       //   合否は付けず、事実だけ記録する (正解が未確定のため)。
-      qa.addAll(await observeInvalidCodeStorage(page, invalid.code, `無効コード ${invalid.code}: LP`));
+      qa.addAll(await observeInvalidCodeStorage(page, invalid.code, `無効コード ${invalid.code}: LP`, config));
 
       // 無効コードを申込ドメインへ直接渡した場合も代理店として扱われないこと
       const applicationEntry = new URL(

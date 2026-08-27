@@ -21,6 +21,23 @@ import { RULE_KEYS, readOverrides } from './overrides.mjs';
 
 const UNSET = '未設定';
 
+
+/** storage.type を読み違えようのない文にする (both = 両方 / either = どちらか) */
+function storageTypeText(type) {
+  switch (type) {
+    case 'cookie':
+      return 'cookie = Cookie のみ';
+    case 'localStorage':
+      return 'localStorage = localStorage のみ';
+    case 'both':
+      return 'both = Cookie と localStorage の両方';
+    case 'either':
+      return 'either = Cookie または localStorage のどちらか';
+    default:
+      return String(type ?? 'none');
+  }
+}
+
 function readYaml(file) {
   try {
     return parseYaml(fs.readFileSync(file, 'utf8')) ?? {};
@@ -157,11 +174,16 @@ function checkRows(root, ctx) {
       source: 'config/errors.yml / config/layout.yml',
     },
     storage: {
-      observe: 'LP を開いた直後の Cookie 名と localStorage / sessionStorage のキーを記録する。',
+      observe:
+        'LP を開いた直後の Cookie・localStorage・sessionStorage を全部見て、'
+        + '代理店コードが入っている場所を記録する。'
+        + '他社タグ (計測・A/B テスト) のキーは自社の保存と分けて数える'
+        + '(他社タグは訪問 URL を記録しているだけで、保持している証拠にならない)。',
       pass:
         (agency.storage?.type ?? 'none') === 'none'
           ? '保存先が未実測 (storage.type: none) のため合否判定は行わず、実測値の記録だけを行う。'
-          : `storage.type (${agency.storage.type}) と key (${agency.storage.key ?? UNSET}) に一致する保存があること。`,
+          : `storage.type (${storageTypeText(agency.storage.type)}) と `
+            + `key (${agency.storage.key ?? UNSET}) に一致する保存があること。`,
       severity: '記録のみ: Low',
       source: 'config/agency.yml (storage)',
     },

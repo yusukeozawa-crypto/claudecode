@@ -31,6 +31,12 @@
     writeCookie(STORAGE_KEY, code);
     try {
       window.localStorage.setItem(STORAGE_KEY, code);
+      // 他社タグ (計測・A/B テスト) の模擬。
+      // 本番では Zoho PageSense が訪問 URL を localStorage に書き込むため、
+      // URL に代理店コードが入っていると「サイトがコードを保持している」
+      // ように見える。これを自社の保存と分けて数えられることを検査するため、
+      // モックでも同じ状況を作る (キーは他社タグのパターンに合わせる)。
+      window.localStorage.setItem('zab_g_mockab', JSON.stringify({ url: location.href }));
     } catch (e) {
       /* localStorage が使えない環境では Cookie のみ */
     }

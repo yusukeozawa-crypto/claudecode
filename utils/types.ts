@@ -269,7 +269,24 @@ export interface AgencyFile {
    * none = 保存しない実装 (URL のみで引き回す) / 保存方式が未確認。
    * この場合、保存値の検査は行わず「未検査」として記録する。
    */
-  storage: { type: 'cookie' | 'localStorage' | 'both' | 'none'; key: string };
+  storage: {
+    /**
+     * 代理店コードの保存先。
+     *   cookie / localStorage … その 1 か所に保存されること
+     *   either                … どちらか 1 か所にあればよい
+     *   both                  … 両方に保存されること
+     *   none                  … 保存値を根拠にした判定を行わない (保存先が未確定のとき)
+     */
+    type: 'cookie' | 'localStorage' | 'either' | 'both' | 'none';
+    key: string;
+    /**
+     * 他社タグ (計測・A/B テスト) の保存キー。
+     * これらは訪問 URL を記録しているだけで、URL に代理店コードが入っていると
+     * 「サイトがコードを保持している」ように見えてしまう。
+     * 部分一致で判定し、自社の保存とは分けて数える。
+     */
+    thirdPartyKeyPatterns?: string[];
+  };
   selectors: Record<string, string>;
   application: {
     sessionApiPattern: string;
