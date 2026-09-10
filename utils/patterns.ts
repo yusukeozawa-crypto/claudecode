@@ -56,3 +56,33 @@ export function isSameOrigin(url: string, baseUrl: string): boolean {
     return false;
   }
 }
+
+/**
+ * 代理店コードが「そのコード単体で」現れているか。
+ *
+ * 単純な部分一致では、支店コード littlefamily03br35 の中の
+ * littlefamily03 を「親コードが混入している」と数えてしまう。
+ * これで本番の申込フォームに対して Critical の誤報を出した
+ * (実測では littlefamily03br35 が 8 か所、親コード単体は 0 か所)。
+ *
+ * 代理店コードは英数字なので、前後が英数字でないことを条件にする。
+ * 逆向きの見逃しも同時に防げる:
+ *   親コードの検査でページに支店コードしか無いとき、
+ *   部分一致では「親コードが引き継がれている」と誤って合格にしていた。
+ */
+export function containsCodeStandalone(haystack: string, code: string): boolean {
+  if (haystack === '' || code === '') return false;
+  const isCodeChar = (char: string | undefined): boolean => char !== undefined && /[0-9a-z]/i.test(char);
+  for (let from = 0; from <= haystack.length - code.length; ) {
+    const index = haystack.indexOf(code, from);
+    if (index === -1) return false;
+    if (!isCodeChar(haystack[index - 1]) && !isCodeChar(haystack[index + code.length])) return true;
+    from = index + 1;
+  }
+  return false;
+}
+
+/** 複数の文字列のどれかにコードが単体で現れているか */
+export function anyContainsCodeStandalone(values: Array<string | null | undefined>, code: string): boolean {
+  return values.some((value) => typeof value === 'string' && containsCodeStandalone(value, code));
+}

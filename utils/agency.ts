@@ -8,6 +8,7 @@ import type { BrowserContext, Page } from '@playwright/test';
 import { CONFIG_DIR, pageUrl, resolveSelector } from './config';
 import { overrideExcludedCodes, readOverrides } from './overrides';
 import { describeOccurrence, observeAnshinOccurrences } from './anshin-pack';
+import { containsCodeStandalone } from './patterns';
 import type {
   AgencySpec, CheckId, FallbackExpectation, FindingInput, QaConfig,
 } from './types';
@@ -905,6 +906,61 @@ export function thirdPartyStorageKeys(config: QaConfig): string[] {
 }
 
 /**
+ * Cookie・localStorage・sessionStorage から、その代理店コードが
+ * 入っている場所 (キー名) を探す。
+ *
+ * コードは「単体で」現れていることを条件にする。
+ * 部分一致にすると、支店コード littlefamily03br35 の保存値を
+ * 親コード littlefamily03 の保存とも数えてしまう
+ * (同じ取り違えで申込フォームの検査が Critical の誤報を出した)。
+ *
+ * 2 か所で同じ走査をしていたためここにまとめた。
+ * ブラウザ側には関数を渡せないので、境界の判定は
+ * utils/patterns.ts の containsCodeStandalone と同じ内容を
+ * evaluate の中に置いている (1 か所だけ)。
+ */
+async function scanStorageForCode(page: Page, code: string): Promise<StorageHits> {
+  const cookies = await page.context().cookies().catch(() => []);
+  const cookie = cookies
+    .filter((entry) => containsCodeStandalone(entry.value, code))
+    .map((entry) => entry.name);
+
+  const webStorage = await page
+    .evaluate((target: string) => {
+      const isCodeChar = (char: string | undefined): boolean => char !== undefined && /[0-9a-z]/i.test(char);
+      const hasStandalone = (value: string): boolean => {
+        for (let from = 0; from <= value.length - target.length; ) {
+          const index = value.indexOf(target, from);
+          if (index === -1) return false;
+          if (!isCodeChar(value[index - 1]) && !isCodeChar(value[index + target.length])) return true;
+          from = index + 1;
+        }
+        return false;
+      };
+      const scan = (storage: Storage | null): string[] => {
+        const keys: string[] = [];
+        if (!storage) return keys;
+        try {
+          for (let index = 0; index < storage.length; index += 1) {
+            const key = storage.key(index);
+            if (!key) continue;
+            // キー名にコードが入る実装 (agency_littlefamily01 など) もあるため
+            // キーと値の両方を見る
+            if (hasStandalone(key) || hasStandalone(storage.getItem(key) ?? '')) keys.push(key);
+          }
+        } catch {
+          /* storage が使えない設定のブラウザでは空にする */
+        }
+        return keys;
+      };
+      return { local: scan(window.localStorage), session: scan(window.sessionStorage) };
+    }, code)
+    .catch(() => ({ local: [] as string[], session: [] as string[] }));
+
+  return { cookie, local: webStorage.local, session: webStorage.session };
+}
+
+/**
  * 存在しないコードが保存されるかを記録する。
  *
  * 「申込フォームでコード保持 = あり」は、サイトがその値を運んだ証拠ではあるが、
@@ -923,30 +979,11 @@ export async function observeInvalidCodeStorage(
   label: string,
   config: QaConfig,
 ): Promise<FindingInput[]> {
-  const cookies = await page.context().cookies().catch(() => []);
-  const cookieHit = cookies.filter((cookie) => cookie.value.includes(code)).map((cookie) => cookie.name);
-  const webStorage = await page
-    .evaluate((target: string) => {
-      const scan = (storage: Storage | null): string[] => {
-        if (!storage) return [];
-        const keys: string[] = [];
-        for (let index = 0; index < storage.length; index += 1) {
-          const key = storage.key(index);
-          if (key === null) continue;
-          if ((storage.getItem(key) ?? '').includes(target)) keys.push(key);
-        }
-        return keys;
-      };
-      return { local: scan(window.localStorage), session: scan(window.sessionStorage) };
-    }, code)
-    .catch(() => ({ local: [] as string[], session: [] as string[] }));
+  const hits = await scanStorageForCode(page, code);
 
   // 他社タグ (計測・A/B テスト) の中に写っているだけの場合は
   // 「サイトが保存した」ではない。混ぜると結論が逆になる。
-  const summary = summarizeStoragePlaces(
-    { cookie: cookieHit, local: webStorage.local, session: webStorage.session },
-    thirdPartyStorageKeys(config),
-  );
+  const summary = summarizeStoragePlaces(hits, thirdPartyStorageKeys(config));
   const stored = summary.hasOwnStorage;
   return [
     {
@@ -973,37 +1010,9 @@ export async function observeStorageLocation(
   label: string,
   config: QaConfig,
 ): Promise<FindingInput[]> {
-  const cookies = await page.context().cookies().catch(() => []);
-  const cookieHit = cookies.filter((cookie) => cookie.value.includes(code)).map((cookie) => cookie.name);
+  const hits = await scanStorageForCode(page, code);
 
-  const webStorage = await page
-    .evaluate((target: string) => {
-      const hits: { local: string[]; session: string[] } = { local: [], session: [] };
-      const scan = (storage: Storage | null): string[] => {
-        const keys: string[] = [];
-        if (!storage) return keys;
-        try {
-          for (let index = 0; index < storage.length; index += 1) {
-            const key = storage.key(index);
-            if (!key) continue;
-            const value = storage.getItem(key) ?? '';
-            if (key.includes(target) || value.includes(target)) keys.push(key);
-          }
-        } catch {
-          /* storage が使えない場合は空 */
-        }
-        return keys;
-      };
-      hits.local = scan(window.localStorage);
-      hits.session = scan(window.sessionStorage);
-      return hits;
-    }, code)
-    .catch(() => ({ local: [] as string[], session: [] as string[] }));
-
-  const summary = summarizeStoragePlaces(
-    { cookie: cookieHit, local: webStorage.local, session: webStorage.session },
-    thirdPartyStorageKeys(config),
-  );
+  const summary = summarizeStoragePlaces(hits, thirdPartyStorageKeys(config));
 
   return [
     {

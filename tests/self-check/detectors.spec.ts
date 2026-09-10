@@ -17,6 +17,7 @@ import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
 import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
+import { containsCodeStandalone } from '../../utils/patterns';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
 import { agencyPairs, agencySpecs, canJudgeStoredCode, expectsDisplayChange, judgeCodeReflection, observeStorageLocation, readStoredCode, resolvePerProfile, storageLabel, storedCodeMatches, summarizeStoragePlaces, thirdPartyStorageKeys, verifyNoOtherAgencyInfo, verifyDisplayRules, verifySections, verifyStoredCode, verifyTexts } from '../../utils/agency';
 import {
@@ -2554,5 +2555,36 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       stored.localStorageUnknown === true || stored.localStorage === 'A003',
       `読めたなら値が入っていること / 読めなかったなら読めなかったと分かること: ${JSON.stringify(stored)}`,
     ).toBe(true);
+  });
+
+  test('親コードと支店コードを取り違えない (支店コードの中の親コードを別コードとしない)', async () => {
+    // 支店コード littlefamily03br35 の中には親コード littlefamily03 が
+    // そのまま含まれている。部分一致で数えていたため、申込フォームの検査が
+    // 「別の代理店コードが混入している」(Critical) を本番で誤報した。
+    // 実測では littlefamily03br35 が 8 か所、親コード単体は 0 か所だった。
+    const form = 'https://days.example.test/solicitation/step1?insAgentNo=littlefamily03br35';
+
+    expect(
+      containsCodeStandalone(form, 'littlefamily03br35'),
+      '支店コード自身は見つかること',
+    ).toBe(true);
+    expect(
+      containsCodeStandalone(form, 'littlefamily03'),
+      '支店コードの中の親コードを「親コードがある」と数えないこと',
+    ).toBe(false);
+
+    // 逆向きの見逃しも防ぐ:
+    // 親コードの検査で、ページに支店コードしか無いのに合格にしてはいけない
+    expect(
+      containsCodeStandalone('{"insAgentNo":"littlefamily03br35"}', 'littlefamily03'),
+      '保存値でも同じ扱いにすること',
+    ).toBe(false);
+
+    // 本当に単体で入っていれば見つける (直したことで検知できなくなっていないか)
+    expect(containsCodeStandalone('?insAgentNo=littlefamily03&plan=a', 'littlefamily03')).toBe(true);
+    expect(containsCodeStandalone('{"insAgentNo":"littlefamily03"}', 'littlefamily03')).toBe(true);
+    expect(containsCodeStandalone('担当代理店コードは littlefamily03 です。', 'littlefamily03')).toBe(true);
+    // 前が英数字の場合も別の文字列の一部として扱う
+    expect(containsCodeStandalone('xxlittlefamily03', 'littlefamily03')).toBe(false);
   });
 });

@@ -24,7 +24,7 @@ import type { BrowserContext, Page, Request } from '@playwright/test';
 import { expectedApplicationHost, resolveSelector } from './config';
 import { scrollThroughPage } from './layout';
 import { maskUrl } from './secrets';
-import { matchesAnyGlob } from './patterns';
+import { containsCodeStandalone, matchesAnyGlob } from './patterns';
 import type {
   AgencySpec, AgencySpecWithApplication, FallbackExpectation, FindingInput, HandoffMethod, QaConfig, RecognitionCheck,
 } from './types';
@@ -1135,14 +1135,30 @@ export async function observeCodeInApplication(
   const foundIn: string[] = [];
 
   // 1. URL (クエリ・パス)
-  if (url.includes(code)) foundIn.push('URL');
+  //   コードは「単体で」現れていることを条件にする。
+  //   部分一致にすると、親コードの検査で支店コードしか無いときに
+  //   「親コードが引き継がれている」と誤って合格にしてしまう。
+  if (containsCodeStandalone(url, code)) foundIn.push('URL');
 
   const inPage = await page
     .evaluate(
       ({ target, param }: { target: string; param: string }) => {
         const places: string[] = [];
+        // 前後が英数字でないことを条件にする (utils/patterns.ts の
+        // containsCodeStandalone と同じ判定。ブラウザ側では関数を
+        // 渡せないため同じ内容をここに置いている)。
+        const isCodeChar = (char: string | undefined): boolean => char !== undefined && /[0-9a-z]/i.test(char);
+        const hasStandalone = (value: string): boolean => {
+          for (let from = 0; from <= value.length - target.length; ) {
+            const index = value.indexOf(target, from);
+            if (index === -1) return false;
+            if (!isCodeChar(value[index - 1]) && !isCodeChar(value[index + target.length])) return true;
+            from = index + 1;
+          }
+          return false;
+        };
         const collect = (label: string, values: Array<string | null | undefined>) => {
-          if (values.some((value) => typeof value === 'string' && value.includes(target))) places.push(label);
+          if (values.some((value) => typeof value === 'string' && hasStandalone(value))) places.push(label);
         };
 
         // 2. hidden を含む入力値
@@ -1195,7 +1211,7 @@ export async function observeCodeInApplication(
 
   // 8. Cookie (申込ドメインのもの)
   const cookies = await page.context().cookies(url).catch(() => []);
-  if (cookies.some((cookie) => cookie.value.includes(code))) foundIn.push('Cookie');
+  if (cookies.some((cookie) => containsCodeStandalone(cookie.value, code))) foundIn.push('Cookie');
 
   // 別の代理店コードが入っていないか (誤帰属の検知)
   const otherCodes: string[] = [];
@@ -1204,7 +1220,12 @@ export async function observeCodeInApplication(
     const bodyText = await page.evaluate(() => document.body?.innerText ?? '').catch(() => '');
     for (const candidate of otherCandidates) {
       if (candidate === code) continue;
-      if (haystack.includes(candidate) || bodyText.includes(candidate)) otherCodes.push(candidate);
+      // 部分一致にすると、支店コード littlefamily03br35 の中の
+      // littlefamily03 を「別代理店のコードが混入している」と数えてしまう。
+      // 本番で Critical の誤報を出したため、前後の文字境界を見る。
+      if (containsCodeStandalone(haystack, candidate) || containsCodeStandalone(bodyText, candidate)) {
+        otherCodes.push(candidate);
+      }
     }
   }
 
