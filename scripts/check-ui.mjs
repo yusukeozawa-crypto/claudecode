@@ -25,6 +25,7 @@ const { buildNotes } = await import('./lib/notes.mjs');
 const { buildLogic, logicMarkdown } = await import('./lib/logic.mjs');
 const { parse: parseYaml } = await import('yaml');
 const overridesLib = await import('./lib/overrides.mjs');
+const { resolveMasterStatus } = await import('./build-agencies.mjs');
 const { parseOrigin, readEnvValues } = await import('./lib/env-file.mjs');
 const os = await import('node:os');
 
@@ -657,34 +658,64 @@ await check('稼働していない代理店コードは最初から検査しな�
   // 稼働していないコードは「代理店名が出ない」「表示が切り替わらない」のが
   // 正しい状態で、検査すると必ず不具合として出てしまう。
   // 実サイトで 5 件がこれに当たり、1 件ずつ人に確認する手間が出た。
+  //
+  // この検査は日付に依存させない。
+  // 以前は「littlefamily61 は検査対象に入らないこと」と書いていたため、
+  // 稼働開始日 (2026-09-01) を過ぎた日に検査そのものが失敗した。
   const master = fs.readFileSync(path.join(root, 'config', 'agency-master.tsv'), 'utf8');
-  const header = master.split(/\r?\n/).find((line) => line.startsWith('code'));
+  const lines = master.split(/\r?\n/).filter((line) => line.trim() !== '');
+  const header = lines.find((line) => line.startsWith('code')).split('\t');
   assert.ok(header.includes('status'), 'マスタに稼働状況の列があること');
   assert.ok(header.includes('startsOn'), 'マスタに稼働開始日の列があること');
+  const rows = lines
+    .slice(lines.indexOf(lines.find((line) => line.startsWith('code'))) + 1)
+    .map((line) => Object.fromEntries(header.map((key, index) => [key, (line.split('\t')[index] ?? '').trim()])));
 
+  // 判定そのものを固定した日付で確かめる (今日が何日でも結果が変わらない)
+  const resolve = (row, today) => resolveMasterStatus(row, today);
+  assert.equal(resolve({ code: 'X', status: '', startsOn: '' }, '2026-09-10'), null, '空欄は稼働中として扱うこと');
+  assert.match(
+    resolve({ code: 'X', status: '未稼働', note: '保留中' }, '2026-09-10').reason,
+    /稼働状況/,
+    '未稼働は理由を付けて外すこと',
+  );
+  assert.match(
+    resolve({ code: 'X', status: '', startsOn: '2026-09-01' }, '2026-08-31').reason,
+    /稼働予定/,
+    '開始日の前は外すこと',
+  );
+  assert.equal(
+    resolve({ code: 'X', status: '', startsOn: '2026-09-01' }, '2026-09-01'),
+    null,
+    '開始日になったら検査対象に戻すこと',
+  );
+
+  // 生成結果がマスタの状態と合っていること (今日の日付で判定する)
+  const today = process.env.QA_TODAY ?? new Date().toISOString().slice(0, 10);
   const agencies = parseYaml(fs.readFileSync(path.join(root, 'config', 'agencies.yml'), 'utf8'));
-  const codes = (agencies.agencies ?? []).map((entry) => entry.code);
+  const codes = new Set((agencies.agencies ?? []).map((entry) => entry.code));
   const excluded = agencies.excludedAgencies ?? [];
   const reasonOf = (code) => excluded.find((entry) => entry.code === code)?.reason ?? '';
 
-  for (const code of ['littlefamily07', 'littlefamily55', 'littlefamily57', 'littlefamily59']) {
-    assert.ok(!codes.includes(code), `未稼働のコードを検査対象に入れないこと: ${code}`);
-    assert.ok(reasonOf(code).includes('稼働状況'), `理由を残すこと: ${code}`);
+  for (const row of rows) {
+    const state = resolve(row, today);
+    if (state === null) continue;
+    assert.ok(!codes.has(row.code), `稼働していないコードを検査対象に入れないこと: ${row.code}`);
+    assert.ok(reasonOf(row.code) !== '', `理由を残すこと: ${row.code}`);
   }
-  // 開始日が先のコードは、その日まで検査しない
-  assert.ok(!codes.includes('littlefamily61'), '開始前のコードを検査対象に入れないこと');
-  assert.ok(reasonOf('littlefamily61').includes('稼働予定'), '開始日を理由に残すこと');
+  // 開始日を過ぎたコードは検査対象に入っていること
+  for (const row of rows.filter((entry) => entry.startsOn !== '' && resolve(entry, today) === null)) {
+    assert.ok(codes.has(row.code), `開始日を過ぎたら検査対象に戻すこと: ${row.code}`);
+  }
 
-  // 日付を過ぎたら検査対象に戻る。
-  //   生成ファイルは Git に入っているため、日付を過ぎると
-  //   「生成し直してください」と CI が失敗して気づける。
-  const build = (today) => spawnSync(
+  // 生成ファイルは Git に入っているため、日付を過ぎたら
+  // 「生成し直してください」と CI が失敗して気づける。
+  const status = spawnSync(
     process.execPath,
     [path.join(root, 'scripts', 'build-agencies.mjs'), '--all', '--check'],
     { cwd: root, encoding: 'utf8', env: { ...process.env, QA_TODAY: today } },
   ).status;
-  assert.equal(build('2026-08-26'), 0, '開始日の前は今の生成結果と一致すること');
-  assert.notEqual(build('2026-09-02'), 0, '開始日を過ぎたら生成し直しが必要だと分かること');
+  assert.equal(status, 0, '今日の日付での生成結果と config/agencies.yml が一致すること');
 });
 
 await check('画面から保存した設定は最新版に更新しても消えない', () => {

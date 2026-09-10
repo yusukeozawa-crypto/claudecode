@@ -21,7 +21,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -96,7 +96,7 @@ const ACTIVE_STATUS = ['', '稼働', '稼働中', '運用中', 'ON', 'on', '○'
  * 正しい状態で、検査すると必ず不具合として出てしまう。
  * 実サイトで 5 件がこれに当たり、原因を 1 件ずつ人に確認する手間が出た。
  */
-function resolveMasterStatus(row, today) {
+export function resolveMasterStatus(row, today) {
   const status = String(row.status ?? '').trim();
   if (!ACTIVE_STATUS.includes(status)) {
     const note = String(row.note ?? '').trim();
@@ -391,4 +391,10 @@ function main() {
   }
 }
 
-main();
+// このファイルは検査 (scripts/check-ui.mjs) から読み込んで
+// resolveMasterStatus を単体で確かめている。
+// 読み込んだだけで生成が走ると config/agencies.yml を書き換えてしまうため、
+// 直接実行されたときだけ main を動かす。
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

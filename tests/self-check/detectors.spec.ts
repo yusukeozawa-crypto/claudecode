@@ -1059,19 +1059,45 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     );
     expect(otherCategory.severity, '対象外の種別は落とさないこと').toBe('critical');
 
-    // 収集経路にも効いていること (レポートに Low として載る)
-    const collector = new FindingCollector(withKnown, {
-      environment: config.environmentName,
-      environmentLabel: config.environment.label,
-      baseUrl: config.environment.baseUrl,
-      browserId: 'chromium',
-      deviceId: 'pc',
-      deviceLabel: 'PC',
-      agencyCode: 'selfcheckbr01',
-    });
-    collector.add({ category: 'agency-display', title: 'みらやく × なのに表示されています' });
-    expect(collector.blocking, '既知の不具合は CI を失敗させないこと').toEqual([]);
-    expect(collector.all[0]?.severity, 'レポートには Low として載ること').toBe('low');
+    // 収集経路にも効いていること (レポートに Low として載る)。
+    //
+    // 収集経路は「今日」で判定するため、修正日を実行日から数えて決める。
+    // 固定の日付 (2026-09-03) を書いていたため、その日を過ぎた実行で
+    // この検査自体が失敗した。
+    const day = (offset: number): string => {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      return date.toISOString().slice(0, 10);
+    };
+    const collectorFor = (fixedOn: string): FindingCollector => {
+      const collector = new FindingCollector(
+        { ...config, knownIssues: { knownIssues: [{ ...known.knownIssues[0], fixedOn }] } },
+        {
+          environment: config.environmentName,
+          environmentLabel: config.environment.label,
+          baseUrl: config.environment.baseUrl,
+          browserId: 'chromium',
+          deviceId: 'pc',
+          deviceLabel: 'PC',
+          agencyCode: 'selfcheckbr01',
+        },
+      );
+      collector.add({ category: 'agency-display', title: 'みらやく × なのに表示されています' });
+      return collector;
+    };
+
+    // 修正日より前 (明日が修正日) → CI を失敗させず、Low として載る
+    const active = collectorFor(day(1));
+    expect(active.blocking, '既知の不具合は CI を失敗させないこと').toEqual([]);
+    expect(active.all[0]?.severity, 'レポートには Low として載ること').toBe('low');
+
+    // 修正日を過ぎている (昨日が修正日) → 既知扱いをやめ、CI を失敗させる
+    const expired = collectorFor(day(-1));
+    expect(
+      expired.blocking.length,
+      '修正日を過ぎた既知の不具合は CI を失敗させること (直っていなければ気づけるように)',
+    ).toBeGreaterThan(0);
+    expect(expired.all[0]?.severity, '本来の重大度で載ること').toBe('critical');
 
     // 実際の設定ファイルが読めること (書式ミスの検知)
     for (const issue of config.knownIssues?.knownIssues ?? []) {
