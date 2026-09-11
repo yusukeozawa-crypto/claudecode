@@ -2586,5 +2586,52 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     expect(containsCodeStandalone('担当代理店コードは littlefamily03 です。', 'littlefamily03')).toBe(true);
     // 前が英数字の場合も別の文字列の一部として扱う
     expect(containsCodeStandalone('xxlittlefamily03', 'littlefamily03')).toBe(false);
+
+    // URL エンコードされた値でも見つけること。
+    //   本番の Cookie IS は %7B%22insAgentNo%22%3A%22...%22%7D の形で、
+    //   コードの直前が %22 の「2」になる。生の文字列だけを見ていたため
+    //   「コードが引き継がれていません」(Critical) を誤報した。
+    const cookie = '%7B%22insAgentNo%22%3A%22littlefamily03br35%22%7D';
+    expect(
+      containsCodeStandalone(cookie, 'littlefamily03br35'),
+      'URL エンコードされた Cookie でもコードを見つけること',
+    ).toBe(true);
+    expect(
+      containsCodeStandalone(cookie, 'littlefamily03'),
+      'エンコードされていても親コードは別コードとしないこと',
+    ).toBe(false);
+    // 復号した形でも同じ判定になること
+    expect(containsCodeStandalone(decodeURIComponent(cookie), 'littlefamily03br35')).toBe(true);
+    expect(containsCodeStandalone(decodeURIComponent(cookie), 'littlefamily03')).toBe(false);
+    // 二重エンコード
+    expect(containsCodeStandalone(encodeURIComponent(cookie), 'littlefamily03br35')).toBe(true);
+    // 壊れたエスケープが混ざっていても落ちないこと
+    expect(containsCodeStandalone('%E0%A4%A?insAgentNo=littlefamily03', 'littlefamily03')).toBe(true);
+  });
+  test('本番と同じ形 (URL エンコードされた JSON の Cookie) でもコードを見つける', async ({ page, context }) => {
+    // 本番サイトは Cookie「IS」に {"insAgentNo":"<コード>"} を
+    // URL エンコードして入れている。モックは素の値を入れていたため、
+    // モックの全件が通ってもこの形の取りこぼしに気づけなかった。
+    // 実際に本番で「コードが引き継がれていません」(Critical) を誤報した。
+    const code = 'A001BR01';
+    const value = encodeURIComponent(JSON.stringify({ insAgentNo: code }));
+    await context.clearCookies();
+    await context.addCookies([
+      { name: 'IS', value, url: config.environment.baseUrl },
+    ]);
+
+    // URL にはコードを付けない (Cookie だけが手がかりの状態にする)
+    await page.goto('/lp/');
+    const observation = await observeCodeInApplication(page, config, code, ['A001']);
+    expect(
+      observation.foundIn,
+      `エンコードされた Cookie からコードを見つけること: ${JSON.stringify(observation)}`,
+    ).toContain('Cookie');
+    expect(
+      observation.otherCodes,
+      '同じ Cookie の中の親コード (A001) を別コードとして数えないこと',
+    ).toEqual([]);
+
+    await context.clearCookies();
   });
 });

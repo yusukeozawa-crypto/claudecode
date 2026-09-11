@@ -1144,16 +1144,33 @@ export async function observeCodeInApplication(
     .evaluate(
       ({ target, param }: { target: string; param: string }) => {
         const places: string[] = [];
-        // 前後が英数字でないことを条件にする (utils/patterns.ts の
-        // containsCodeStandalone と同じ判定。ブラウザ側では関数を
-        // 渡せないため同じ内容をここに置いている)。
+        // utils/patterns.ts の containsCodeStandalone と同じ判定。
+        // ブラウザ側には関数を渡せないため内容をここに置いている。
+        // URL エンコードされた値も見る (Cookie は %22 で囲まれており、
+        // 生の文字列だけを見るとコードの直前が「2」になって弾かれる)。
         const isCodeChar = (char: string | undefined): boolean => char !== undefined && /[0-9a-z]/i.test(char);
-        const hasStandalone = (value: string): boolean => {
+        const occurs = (value: string): boolean => {
           for (let from = 0; from <= value.length - target.length; ) {
             const index = value.indexOf(target, from);
             if (index === -1) return false;
             if (!isCodeChar(value[index - 1]) && !isCodeChar(value[index + target.length])) return true;
             from = index + 1;
+          }
+          return false;
+        };
+        const hasStandalone = (value: string): boolean => {
+          if (occurs(value)) return true;
+          let current = value;
+          for (let depth = 0; depth < 2; depth += 1) {
+            if (!/%[0-9a-f]{2}/i.test(current)) return false;
+            try {
+                const decoded = decodeURIComponent(current);
+                if (decoded === current) return false;
+                if (occurs(decoded)) return true;
+                current = decoded;
+            } catch {
+                return false;
+            }
           }
           return false;
         };

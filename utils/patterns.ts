@@ -72,6 +72,16 @@ export function isSameOrigin(url: string, baseUrl: string): boolean {
  */
 export function containsCodeStandalone(haystack: string, code: string): boolean {
   if (haystack === '' || code === '') return false;
+  // URL エンコードされた値も見る。
+  //   Cookie の値は %7B%22insAgentNo%22%3A%22littlefamily03br35%22%7D の形で、
+  //   コードの直前が %22 の「2」になる。生の文字列だけを見ると
+  //   英数字が続いていると判断して弾いてしまう
+  //   (これで本番の「コードが引き継がれていません」を誤報した)。
+  return decodedVariants(haystack).some((value) => hasStandaloneOccurrence(value, code));
+}
+
+/** 前後が英数字でない位置に現れるか */
+function hasStandaloneOccurrence(haystack: string, code: string): boolean {
   const isCodeChar = (char: string | undefined): boolean => char !== undefined && /[0-9a-z]/i.test(char);
   for (let from = 0; from <= haystack.length - code.length; ) {
     const index = haystack.indexOf(code, from);
@@ -80,6 +90,25 @@ export function containsCodeStandalone(haystack: string, code: string): boolean 
     from = index + 1;
   }
   return false;
+}
+
+/** 元の文字列と、URL エンコードを解いたもの (二重エンコードまで) */
+function decodedVariants(value: string): string[] {
+  const variants = [value];
+  let current = value;
+  for (let depth = 0; depth < 2; depth += 1) {
+    if (!/%[0-9a-f]{2}/i.test(current)) break;
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) break;
+      variants.push(decoded);
+      current = decoded;
+    } catch {
+      // 不正なエスケープが混ざっている場合は元の文字列だけで判断する
+      break;
+    }
+  }
+  return variants;
 }
 
 /** 複数の文字列のどれかにコードが単体で現れているか */
