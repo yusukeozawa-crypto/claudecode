@@ -317,6 +317,12 @@ export interface RedirectTrace {
   httpRedirectCount: number;
   documentRequestCount: number;
   historyChangeCount: number;
+  /**
+   * 同じ URL を続けて読み込んだ回数 (再読み込み)。
+   * 遷移ではないためリダイレクト回数には数えないが、
+   * 挙動が変わったことに気づけるように記録する。
+   */
+  reloadCount: number;
   metaRefreshTargets: string[];
   mechanism: RedirectMechanism;
   loopDetected: boolean;

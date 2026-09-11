@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>検出テスト用｜自分を 1 回だけ再読み込みするページ</title>
+</head>
+<body>
+  <h1 data-testid="reloads-once">再読み込みされるページ</h1>
+  <p data-testid="reload-state">初回</p>
+  <script>
+    // 1 回だけ自分を読み直す。
+    // 本番サイトがリダイレクト後にリロードをかけているのと同じ状態を作る。
+    try {
+      if (sessionStorage.getItem('qa-reloaded') === null) {
+        sessionStorage.setItem('qa-reloaded', '1');
+        location.reload();
+      } else {
+        document.querySelector('[data-testid="reload-state"]').textContent = '再読み込み後';
+      }
+    } catch (error) {
+      /* sessionStorage が使えない環境では何もしない */
+    }
+  </script>
+</body>
+</html>

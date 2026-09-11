@@ -15,7 +15,7 @@ import { checkPageLinks } from '../../utils/links';
 import { detectTextIssues, textIssuesToFindings } from '../../utils/text-rules';
 import { extractText } from '../../utils/text-extract';
 import { FindingCollector } from '../../utils/findings';
-import { RedirectTracker, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
+import { RedirectTracker, describeRoute, detectMechanism, verifyRedirectTrace, verifyUrlHygiene } from '../../utils/redirect';
 import { captureFullPage } from '../../utils/screenshots';
 import { containsCodeStandalone } from '../../utils/patterns';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
@@ -213,6 +213,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       httpRedirectCount: 1,
       documentRequestCount: 2,
       historyChangeCount: 0,
+      reloadCount: 0,
       metaRefreshTargets: [],
       mechanism: 'http',
       loopDetected: false,
@@ -2197,6 +2198,7 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
       httpRedirectCount: 1,
       documentRequestCount: 2,
       historyChangeCount: 0,
+      reloadCount: 0,
       metaRefreshTargets: [],
       loopDetected: false,
       mechanism: 'http' as const,
@@ -2633,5 +2635,49 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     ).toEqual([]);
 
     await context.clearCookies();
+  });
+  test('リダイレクト後の再読み込みをリダイレクト回数に数えない', async ({ page, context }) => {
+    // 本番サイトはリダイレクト後にリロードをかけている。
+    // 再読み込みを遷移として数えていたため
+    // 「リダイレクト回数が仕様と異なります」(High) を誤報した。
+    //   期待 1 回 / 実際 2 回
+    //   経路 /lp/service/ -> /lp/service/ -> /lp/service-premium/ -> /lp/service-premium/
+    await context.clearCookies();
+    const entryUrl = `${config.environment.baseUrl}/broken/redirect-then-reload.html`;
+    const tracker = new RedirectTracker(page);
+    try {
+      await page.goto(entryUrl);
+      await page.waitForTimeout(500);
+      const trace = tracker.build(entryUrl, config.agencies.redirect.maxRedirects);
+
+      expect(trace.reloadCount, `再読み込みを数えること: ${describeRoute(trace)}`).toBe(1);
+      expect(describeRoute(trace), '経路のどこで再読み込みされたかが分かること').toContain('(リロード)');
+
+      // 遷移は 1 回 (JavaScript による遷移)。再読み込みは含めない
+      const findings = verifyRedirectTrace(
+        trace,
+        {
+          code: null,
+          entryPath: '/broken/redirect-then-reload.html',
+          expectedFinalPath: '/broken/reloads-once.html',
+          redirected: true,
+          redirectMechanism: 'js',
+          expectedRedirectCount: 1,
+          expectedRedirectPaths: [],
+        },
+        config,
+      );
+      expect(
+        findings.filter((finding) => finding.severity === 'high'),
+        `再読み込みを遷移として数えないこと: ${JSON.stringify(findings, null, 2)}`,
+      ).toEqual([]);
+
+      // 数えないだけで消さない。記録は残す (挙動が変わったら気づけるように)
+      const recorded = findings.filter((finding) => finding.title.includes('再読み込み'));
+      expect(recorded.length, '再読み込みを記録すること').toBe(1);
+      expect(recorded[0].severity, '記録は Low にすること').toBe('low');
+    } finally {
+      tracker.detach();
+    }
   });
 });

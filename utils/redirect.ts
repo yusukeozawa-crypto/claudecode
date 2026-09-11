@@ -151,6 +151,7 @@ export class RedirectTracker {
       httpRedirectCount,
       documentRequestCount: this.documentRequests,
       historyChangeCount: this.historyChanges,
+      reloadCount: countReloads(this.hops),
       metaRefreshTargets: [...this.metaRefreshTargets],
       mechanism: detectMechanism({
         entryUrl,
@@ -401,7 +402,8 @@ export function verifyRedirectTrace(
     const totalTransitions = countTransitions(trace);
     const breakdown =
       `HTTP 3xx: ${trace.httpRedirectCount}, ドキュメント要求: ${trace.documentRequestCount}, ` +
-      `SPA: ${trace.historyChangeCount}, meta refresh: ${trace.metaRefreshTargets.length}`;
+      `SPA: ${trace.historyChangeCount}, meta refresh: ${trace.metaRefreshTargets.length}, ` +
+      `リロード: ${trace.reloadCount} (遷移に数えません)`;
     if (expectation.expectedRedirectCount === null) {
       // 未実測。推測した回数で判定すると正常なサイトを不具合として報告してしまうため、
       // 照合せず実測値を記録して設定に反映できるようにする。
@@ -413,9 +415,8 @@ export function verifyRedirectTrace(
         actual: `実測値: ${totalTransitions} 回 (${breakdown})`,
         url,
         detail:
-          '経路: ' +
-          [trace.entryUrl, ...trace.hops.map((hop) => hop.url)].join(' -> ') +
-          ' / この回数を config/agency-profiles.yml の expectedRedirectCount に設定すると、以降は回数の変化を検知できます',
+          `経路: ${describeRoute(trace)}`
+          + ' / この回数を config/agency-profiles.yml の expectedRedirectCount に設定すると、以降は回数の変化を検知できます',
       });
     } else if (totalTransitions !== expectation.expectedRedirectCount) {
       findings.push({
@@ -423,11 +424,29 @@ export function verifyRedirectTrace(
         severity: 'high',
         title: `${label}: リダイレクト回数が仕様と異なります`,
         expected: `${expectation.expectedRedirectCount} 回`,
-        actual: `${totalTransitions} 回 (${breakdown}) [observed hops: ${observed}]`,
+        actual: `${totalTransitions} 回 (${breakdown})`,
         url,
-        detail: `経路: ${[trace.entryUrl, ...trace.hops.map((hop) => hop.url)].join(' -> ')}`,
+        detail: `経路: ${describeRoute(trace)}`,
       });
     }
+  }
+
+  // 再読み込みは遷移として数えないが、起きていること自体は記録する。
+  //   数えないだけで消してしまうと、サイトの挙動が変わったときに
+  //   誰も気づけなくなる。合否は付けない。
+  if (trace.reloadCount > 0) {
+    findings.push({
+      category: 'agency-redirect',
+      severity: 'low',
+      title: `[記録] ${label}: 同じページが再読み込みされています (${trace.reloadCount} 回)`,
+      expected: '再読み込みは遷移として数えない (合否は判定しない)',
+      actual: `再読み込み ${trace.reloadCount} 回`,
+      url,
+      detail:
+        `経路: ${describeRoute(trace)}`
+        + ' / リダイレクト直後の再読み込みは、計測タグや A/B テストの適用タイミングに影響します。'
+        + '意図したものかを一度確認してください。',
+    });
   }
 
   // (4) リダイレクト途中の URL
@@ -499,8 +518,46 @@ export function verifyRedirectTrace(
 function countTransitions(trace: RedirectTrace): number {
   // HTTP 3xx、meta refresh、SPA 遷移の合計を「リダイレクト回数」とみなす。
   // JavaScript による遷移は追加のドキュメント要求として現れる。
-  const jsTransitions = Math.max(0, trace.documentRequestCount - 1 - trace.httpRedirectCount);
+  //
+  // 再読み込み (同じ URL を続けて読み込む) は遷移ではないので差し引く。
+  // 差し引かないと、リダイレクト後に再読み込みするサイトで
+  // 「リダイレクト回数が仕様と異なります」を誤報する (実際に起きた)。
+  const jsTransitions = Math.max(
+    0,
+    trace.documentRequestCount - 1 - trace.httpRedirectCount - trace.reloadCount,
+  );
   return trace.httpRedirectCount + trace.historyChangeCount + jsTransitions;
+}
+
+/**
+ * 同じ URL を続けて読み込んだ回数 (再読み込み) を数える。
+ *
+ * 連続している場合だけを再読み込みとみなす。
+ * 離れた位置での重複は「戻ってきた」= ループの可能性があるため、
+ * ここでは数えない (ループ判定は別に行う)。
+ */
+export function countReloads(hops: RedirectTrace['hops']): number {
+  const documents = hops.filter((hop) => hop.kind !== 'history').map((hop) => hop.url);
+  let reloads = 0;
+  for (let index = 1; index < documents.length; index += 1) {
+    if (documents[index] === documents[index - 1]) reloads += 1;
+  }
+  return reloads;
+}
+
+/** 経路を「どこで再読み込みされたか」が分かる文にする */
+export function describeRoute(trace: RedirectTrace): string {
+  const parts = [trace.entryUrl];
+  let previous: string | null = null;
+  for (const hop of trace.hops) {
+    if (hop.kind !== 'history' && previous !== null && hop.url === previous) {
+      parts.push(`${hop.url} (リロード)`);
+    } else {
+      parts.push(hop.url);
+    }
+    if (hop.kind !== 'history') previous = hop.url;
+  }
+  return parts.join(' -> ');
 }
 
 function safePath(url: string): string {
