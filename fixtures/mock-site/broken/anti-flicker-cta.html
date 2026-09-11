@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>検出テスト用｜表示を差し替えるまでページを隠すページ</title>
+<script>
+  // A/B テストのツール (Zoho PageSense など) が使う「ちらつき防止」の模擬。
+  // 表示を差し替えるまでページ全体を隠す。
+  // この状態を見て「申込ボタンが表示されていません」と誤判定しないことを
+  // 検査するためのページ (本番で実際に誤報した)。
+  document.documentElement.style.visibility = 'hidden';
+  setTimeout(function () {
+    document.documentElement.style.visibility = '';
+  }, 800);
+</script>
+</head>
+<body>
+  <h1 data-testid="anti-flicker">読み込み直後は隠れているページ</h1>
+  <p>0.8 秒後に表示されます。</p>
+  <p>
+    <a class="btn-application" data-testid="cta-primary" href="http://localhost:4174/entry/?agency_code=A001">
+      お申込みはこちら
+    </a>
+  </p>
+</body>
+</html>

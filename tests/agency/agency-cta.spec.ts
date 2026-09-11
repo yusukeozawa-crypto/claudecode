@@ -17,7 +17,7 @@ import { loadConfig } from '../../utils/config';
 import { agencySpecs } from '../../utils/agency';
 import {
   describeApplicationLinks, installContextGuards, observeApplicationLinks,
-  observeCodeInApplication, verifyCodeCarried,
+  describePageVisibility, observeCodeInApplication, verifyCodeCarried,
 } from '../../utils/handoff';
 import { enterAsAgency } from '../../utils/agency-entry';
 import { expectedApplicationHost } from '../../utils/config';
@@ -105,6 +105,9 @@ test.describe('申込導線の観測 @agency @cta', () => {
       //   (「押せない」と「引き継がれない」を切り分けるため)。
       const hiddenOnly = !target.visible;
       if (hiddenOnly) {
+        // ボタンだけが隠れているのか、ページ全体が隠れているのかを書き添える
+        // (A/B テストのツールは差し替えが終わるまでページを隠すことがある)
+        const pageHidden = await describePageVisibility(page);
         qa.add({
           category: 'agency-handoff',
           severity: 'high',
@@ -114,7 +117,10 @@ test.describe('申込導線の観測 @agency @cta', () => {
           url: before,
           agencyCode: spec.code,
           detail:
-            '固定ヘッダー・追従バナー・折りたたみの中に隠れている可能性があります。' +
+            (pageHidden === ''
+              ? '固定ヘッダー・追従バナー・折りたたみの中に隠れている可能性があります。'
+              : `検査した時点でページ全体が隠れていました (${pageHidden})。`
+                + 'A/B テストのツールが表示を差し替える前だった可能性があります。') +
             '引き継ぎの確認は遷移先を直接開いて続けました。',
         });
       }

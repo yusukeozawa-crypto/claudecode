@@ -957,7 +957,7 @@ export async function observeApplicationLinks(
   //   (スクリーンショットにはボタンが写っていた)。
   await scrollThroughPage(page).catch(() => undefined);
 
-  const raw = await page
+  const readLinks = (): Promise<Array<{ kind: 'link' | 'form'; href: string; text: string; visible: boolean }>> => page
     .evaluate(() => {
       const isVisible = (element: Element): boolean => {
         const rect = element.getBoundingClientRect();
@@ -983,6 +983,34 @@ export async function observeApplicationLinks(
       return [...links, ...forms];
     })
     .catch(() => [] as Array<{ kind: 'link' | 'form'; href: string; text: string; visible: boolean }>);
+
+  /** 申込サイト行きのリンクが 1 つでも表示されているか */
+  const hasVisibleTarget = (
+    entries: Array<{ href: string; visible: boolean }>,
+  ): boolean => entries.some((entry) => {
+    if (!entry.visible) return false;
+    try {
+      return new URL(entry.href).host === expectedHost;
+    } catch {
+      return false;
+    }
+  });
+
+  // 一瞬だけ見て判定しない。
+  //
+  //   このサイトは A/B テストのツール (Zoho PageSense) が
+  //   表示を差し替えるまでページを隠す。リダイレクト後に
+  //   再読み込みもかかるため、隠れている時間に当たりやすい。
+  //   その瞬間を見て「申込ボタンが表示されていません」(High) を
+  //   本番で誤報した (人が開くと出ていた)。
+  //
+  //   表示されているものが 1 つも無いときだけ、少し待って見直す。
+  //   正常なページでは 1 回目で終わるので実行時間は変わらない。
+  let raw = await readLinks();
+  for (let attempt = 0; attempt < 6 && !hasVisibleTarget(raw); attempt += 1) {
+    await page.waitForTimeout(500);
+    raw = await readLinks();
+  }
 
   // 同じ文言・同じ行き先のリンクは 1 件にまとめる。
   //
@@ -1014,6 +1042,29 @@ export async function observeApplicationLinks(
     });
   }
   return [...byKey.values()];
+}
+
+/**
+ * 「ボタンだけが隠れている」のか「ページ全体が隠れている」のかを見分ける。
+ *
+ * A/B テストのツールは、表示を差し替えるまでページ全体を隠すことがある
+ * (いわゆるちらつき防止)。その状態を「申込ボタンが表示されていない」と
+ * 報告すると原因を取り違える。判定には使わず、報告に書き添える。
+ */
+export async function describePageVisibility(page: Page): Promise<string> {
+  return page
+    .evaluate(() => {
+      const reasons: string[] = [];
+      for (const [name, element] of [['html', document.documentElement], ['body', document.body]] as const) {
+        if (!element) continue;
+        const style = window.getComputedStyle(element);
+        if (style.visibility === 'hidden') reasons.push(`${name} が visibility: hidden`);
+        if (Number(style.opacity) === 0) reasons.push(`${name} が opacity: 0`);
+        if (style.display === 'none') reasons.push(`${name} が display: none`);
+      }
+      return reasons.join(' / ');
+    })
+    .catch(() => '');
 }
 
 /**

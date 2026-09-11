@@ -21,7 +21,7 @@ import { containsCodeStandalone } from '../../utils/patterns';
 import { capturePageSignatureStable, compareVisibleBlocks, diffSignatures, evaluateDisplayDifference, matchesIgnoreKey, toSelectorHint, visibleBlockKeys } from '../../utils/page-signature';
 import { agencyPairs, agencySpecs, canJudgeStoredCode, expectsDisplayChange, judgeCodeReflection, observeStorageLocation, readStoredCode, resolvePerProfile, storageLabel, storedCodeMatches, summarizeStoragePlaces, thirdPartyStorageKeys, verifyNoOtherAgencyInfo, verifyDisplayRules, verifySections, verifyStoredCode, verifyTexts } from '../../utils/agency';
 import {
-  describeApplicationLinks, installRequestGuards, observeApplicationLinks,
+  describeApplicationLinks, describePageVisibility, installRequestGuards, observeApplicationLinks,
   observeCodeInApplication, verifyCodeApplied, verifyCodeCarried,
 } from '../../utils/handoff';
 import { compareAcrossDevices } from '../../utils/cross-device';
@@ -2679,5 +2679,27 @@ test.describe('検出ロジックの自己検査 @selfcheck', () => {
     } finally {
       tracker.detach();
     }
+  });
+  test('表示を差し替えるまで隠れているページで「申込ボタンが無い」と誤判定しない', async ({ page }) => {
+    // A/B テストのツール (Zoho PageSense) は表示を差し替えるまで
+    // ページ全体を隠す。リダイレクト後の再読み込みもあり、
+    // 隠れている時間に当たりやすい。その瞬間を見て
+    // 「申込ボタンが画面に表示されていません」(High) を本番で誤報した
+    // (人が開くとボタンは出ていた)。
+    await page.goto('/broken/anti-flicker-cta.html');
+
+    // 読み込み直後は本当に隠れている (検査が甘くないことの確認)
+    expect(
+      await describePageVisibility(page),
+      '読み込み直後はページ全体が隠れていること',
+    ).toContain('visibility: hidden');
+
+    // 表示されるまで待って判定すること
+    const links = await observeApplicationLinks(page, config, 'A001');
+    expect(links.length, '申込サイトへのリンクを見つけること').toBeGreaterThan(0);
+    expect(
+      links.some((link) => link.visible),
+      `隠れている間に「表示されていない」と判定しないこと: ${JSON.stringify(links)}`,
+    ).toBe(true);
   });
 });
