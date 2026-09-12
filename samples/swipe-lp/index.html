@@ -144,16 +144,22 @@ p{ margin:0 0 14px; color:var(--ink-mid); font-size:clamp(14px,3.7vw,16px); }
   display:flex; flex-direction:column; align-items:center; gap:4px;
   font-size:11px; font-weight:700; letter-spacing:.14em; color:var(--ink-weak);
 }
+.swipe-hint::before{ content:"SWIPE"; }
 .swipe-hint span{ display:block; width:22px; height:22px; border-right:2px solid var(--ink-weak); border-bottom:2px solid var(--ink-weak); transform:rotate(45deg); animation:bob 1.8s var(--ease) infinite; }
 @keyframes bob{ 0%,100%{ transform:rotate(45deg) translate(0,0); opacity:.35 } 50%{ transform:rotate(45deg) translate(4px,4px); opacity:1 } }
-@media (prefers-reduced-motion:reduce){ .swipe-hint span{ animation:none } }
+@media (prefers-reduced-motion:reduce){ .swipe-hint::before{ content:"SWIPE"; }
+.swipe-hint span{ animation:none } }
 
 /* ---------- カード類 ---------- */
 .card{ background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); }
-.stack{ display:grid; gap:12px; }
-.bullet{ display:flex; gap:12px; align-items:flex-start; background:#fff; border-radius:14px; padding:14px 16px; box-shadow:0 4px 14px rgba(42,37,33,.06); }
+.stack{ display:grid; gap:10px; }
+.bullet{ display:flex; gap:12px; align-items:flex-start; background:#fff; border-radius:14px; padding:12px 15px; box-shadow:0 4px 14px rgba(42,37,33,.06); }
 .bullet .ico{ flex:0 0 auto; width:34px; height:34px; border-radius:10px; display:grid; place-items:center; background:rgba(242,103,79,.12); font-size:18px; }
 .bullet p{ margin:0; font-size:14px; }
+/* 項目名と金額を1行に並べる版（縦に詰めたいとき用） */
+.bullet--row{ align-items:center; gap:10px; padding:12px 14px; }
+.bullet--row h3{ margin:0; flex:1 1 auto; font-size:16px; }
+.bullet--row p{ flex:0 0 auto; font-weight:700; color:var(--ink); font-size:14px; }
 
 /* 比較テーブル（div構成・横スクロール可） */
 .table{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; background:#fff; border-radius:14px; overflow:hidden; box-shadow:var(--shadow); }
@@ -268,11 +274,68 @@ body.is-dark .dots button[aria-current="true"]{ background:var(--brand); }
 #agencyFooter:empty{ display:none; }
 #agencyFooter{ margin-bottom:6px; font-weight:700; color:rgba(255,255,255,.85); }
 
+/* 画面の小さい端末 (旧機種・低い画面) では 1 画面に収まるよう全体を詰める。
+   スナップ式は画面からはみ出した分が読まれないため、収まることを優先する。 */
+@media (max-width:360px), (max-height:660px){
+  .sec{ padding-top:calc(env(safe-area-inset-top) + 54px); padding-bottom:calc(var(--cta-h) + 16px); }
+  h1{ font-size:26px; }
+  h2{ font-size:21px; }
+  p{ font-size:13.5px; }
+  .lead{ font-size:14px; }
+  .eyebrow{ margin-bottom:8px; font-size:12px; }
+  .stack{ gap:8px; }
+  .bullet{ padding:10px 13px; }
+  .bullet .ico{ width:30px; height:30px; font-size:16px; }
+  .hero__pets{ font-size:46px; }
+  .hero__price{ padding:10px 18px; }
+  .num{ font-size:36px; }
+  .price-card{ padding:12px 10px; }
+  .price-card .pet{ font-size:24px; }
+  .price-card .amt{ font-size:22px; }
+  .voice{ padding:13px; }
+  .step{ padding:11px 13px; }
+  .faq summary{ padding:11px 40px 11px 14px; font-size:14px; }
+  .table th,.table td{ padding:9px 8px; }
+}
+
+/* =========================================================
+   PC 幅 (768px 以上) — スワイプをやめて通常の縦スクロールにする
+
+   スワイプ (scroll-snap) はスマートフォンの慣性スクロール前提の
+   操作感で、マウスホイールだと 1 ノッチ (≒120px) がスナップで
+   戻されて「固まった」ように見える。PC ではスナップを解除し、
+   セクションの高さも内容なりにする。
+   ========================================================= */
 @media (min-width:768px){
   :root{ --cta-h:84px; }
-  .sec__inner{ max-width:640px; }
+  html{ scroll-behavior:smooth; }
+  html,body{ height:auto; }
+
+  .deck{
+    height:auto; overflow:visible;
+    scroll-snap-type:none;          /* ← スワイプを解除 */
+  }
+  .sec{
+    min-height:0;
+    scroll-snap-align:none;
+    padding:104px 32px;
+  }
+  .sec--hero{ min-height:100vh; justify-content:center; padding-top:140px; }
+  .sec--cta{ padding:120px 32px 104px; }
+  .sec__inner{ max-width:720px; }
+  .sec__scroll{ max-height:none; overflow:visible; padding-right:0; }
+
+  .swipe-hint{ bottom:40px; }
+  .swipe-hint::before{ content:"SCROLL"; }
+
+  h1{ font-size:46px; }
+  h2{ font-size:34px; }
+  p{ font-size:17px; }
+  .lead{ font-size:18px; }
   .price-grid{ grid-template-columns:repeat(4,1fr); }
+  .stack{ gap:14px; }
 }
+@media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
 </style>
 </head>
 <body>
@@ -300,7 +363,7 @@ body.is-dark .dots button[aria-current="true"]{ background:var(--brand); }
       </div>
       <p class="note anim">※ 保険料は品種・年齢・プランにより異なります（安心パックなし・免責金額なしの場合）。</p>
     </div>
-    <div class="swipe-hint" aria-hidden="true">SWIPE<span></span></div>
+    <div class="swipe-hint" aria-hidden="true"><span></span></div>
   </section>
 
   <!-- 02 課題提起 -->
@@ -310,11 +373,11 @@ body.is-dark .dots button[aria-current="true"]{ background:var(--brand); }
       <h2 class="anim">ペットの治療費は<br><span class="mark">全額が自己負担</span>です。</h2>
       <p class="lead anim">人間の健康保険のような公的制度がないため、通院1回でも数千円〜、手術となれば十数万円かかることもあります。</p>
       <div class="stack anim">
-        <div class="bullet"><div class="ico">🩺</div><div><h3>通院</h3><p>1回あたり 5,000〜15,000円</p></div></div>
-        <div class="bullet"><div class="ico">🏥</div><div><h3>入院</h3><p>1日あたり 8,000〜20,000円</p></div></div>
-        <div class="bullet"><div class="ico">🔧</div><div><h3>手術</h3><p>1回あたり 100,000〜300,000円</p></div></div>
+        <div class="bullet bullet--row"><div class="ico">🩺</div><h3>通院</h3><p>5,000〜15,000円 / 回</p></div>
+        <div class="bullet bullet--row"><div class="ico">🏥</div><h3>入院</h3><p>8,000〜20,000円 / 日</p></div>
+        <div class="bullet bullet--row"><div class="ico">🔧</div><h3>手術</h3><p>10〜30万円 / 回</p></div>
       </div>
-      <p class="note anim" style="margin-top:12px">※ 金額は一般的な目安であり、実際の診療費は動物病院により異なります。</p>
+      <p class="note anim" style="margin-top:12px">※ 一般的な目安です。診療費は動物病院により異なります。</p>
     </div>
   </section>
 
@@ -463,7 +526,7 @@ body.is-dark .dots button[aria-current="true"]{ background:var(--brand); }
       <h2 class="anim">大切な家族に、<br>今日から備えを。</h2>
       <p class="lead anim">お見積り・お申込みは数分で完了します。</p>
       <div class="anim"><a class="btn js-cta" href="https://days.littlefamily-ssi.com/solicitation/step1">今すぐ申込む</a></div>
-      <div class="anim" style="margin-top:10px"><a class="btn btn--ghost" href="#" onclick="document.getElementById('deck').scrollTo({top:0,behavior:'smooth'});return false;">最初から見る</a></div>
+      <div class="anim" style="margin-top:10px"><a class="btn btn--ghost" href="#" data-goto-top>最初から見る</a></div>
       <div class="footer anim">
         <div id="agencyFooter"></div>
         <p class="note">このページは縦スワイプ型LPのサンプル実装です。記載の保険料・補償内容はデモ用の参考値であり、実際の商品内容とは異なります。</p>
@@ -487,6 +550,13 @@ body.is-dark .dots button[aria-current="true"]{ background:var(--brand); }
   var dotsWrap = document.getElementById('dots');
   var bar      = document.getElementById('progressBar');
   var ctaBar   = document.getElementById('ctaBar');
+
+  /* スワイプ (スクロールスナップ) はスマートフォン幅だけ。
+     PC 幅では CSS 側でスナップを解除しており、スクロールの主体が
+     .deck から window に変わる。境界は CSS のメディアクエリと揃える。 */
+  var swipeMQ   = window.matchMedia('(max-width: 767.98px)');
+  var swipeMode = swipeMQ.matches;
+  function scroller(){ return swipeMode ? deck : window; }
 
   /* ---------------------------------------------------------
      1. 代理店コード (insAgentNo) の受け取り
@@ -522,8 +592,13 @@ body.is-dark .dots button[aria-current="true"]{ background:var(--brand); }
   }
 
   /* ---------------------------------------------------------
-     2. ドットナビの生成
+     2. セクション移動
      --------------------------------------------------------- */
+  function go(i){
+    i = Math.max(0, Math.min(sections.length - 1, i));
+    sections[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   sections.forEach(function(sec, i){
     var b = document.createElement('button');
     b.type = 'button';
@@ -533,15 +608,18 @@ body.is-dark .dots button[aria-current="true"]{ background:var(--brand); }
   });
   var dots = Array.prototype.slice.call(dotsWrap.children);
 
-  function go(i){
-    i = Math.max(0, Math.min(sections.length - 1, i));
-    sections[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-goto-top]'), function(a){
+    a.addEventListener('click', function(e){ e.preventDefault(); go(0); });
+  });
 
   /* ---------------------------------------------------------
-     3. 現在位置の検出（アニメーション・進捗・CTA表示）
+     3. 現在位置の検出（進捗バー・ドット・固定CTA・配色）
+
+        上端がいちばん近いセクションを現在位置とする。
+        .deck が動く場合も window が動く場合も
+        getBoundingClientRect は画面基準なので同じ式で扱える。
      --------------------------------------------------------- */
-  var current = 0;
+  var current = -1;
 
   function setActive(i){
     if (i === current) return;
@@ -552,39 +630,67 @@ body.is-dark .dots button[aria-current="true"]{ background:var(--brand); }
     document.body.classList.toggle('is-dark', sections[i].dataset.theme === 'dark');
   }
 
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(en){
-      if (en.isIntersecting) {
-        en.target.classList.add('is-active');
-        if (en.intersectionRatio > 0.5) setActive(sections.indexOf(en.target));
-      }
-    });
-  }, { root: deck, threshold: [0.25, 0.55] });
+  function computeActive(){
+    var best = 0, bestDist = Infinity;
+    for (var i = 0; i < sections.length; i++) {
+      var dist = Math.abs(sections[i].getBoundingClientRect().top);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    }
+    setActive(best);
+  }
 
-  sections.forEach(function(s){ io.observe(s); });
+  var ticking = false;
+  function onScroll(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){ ticking = false; computeActive(); });
+  }
+
+  /* 入場アニメーションの発火だけは IntersectionObserver に任せる */
+  var io = null;
+  function observe(){
+    if (io) io.disconnect();
+    io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if (en.isIntersecting) en.target.classList.add('is-active'); });
+    }, { root: swipeMode ? deck : null, threshold: 0.15 });
+    sections.forEach(function(s){ io.observe(s); });
+  }
+
+  /* 100dvh 非対応ブラウザ向け。PC (通常スクロール) では高さを固定しない */
+  function fixHeight(){
+    if (swipeMode && !CSS.supports('height', '100dvh')) deck.style.height = window.innerHeight + 'px';
+    else deck.style.height = '';
+  }
+
+  function setup(){
+    swipeMode = swipeMQ.matches;
+    deck.removeEventListener('scroll', onScroll);
+    window.removeEventListener('scroll', onScroll);
+    scroller().addEventListener('scroll', onScroll, { passive: true });
+    observe();
+    fixHeight();
+    current = -1;
+    computeActive();
+  }
+
+  setup();
   sections[0].classList.add('is-active');
-  dots[0].setAttribute('aria-current', 'true');
-  bar.style.width = (1 / sections.length * 100) + '%';
+  swipeMQ.addEventListener('change', setup);
+  window.addEventListener('resize', fixHeight);
 
   /* ---------------------------------------------------------
-     4. キーボード操作（PC での確認用）
+     4. キーボード操作
+        スワイプ時のみ。PC (通常スクロール) では
+        矢印キーの既定の動作をそのまま使う。
      --------------------------------------------------------- */
   window.addEventListener('keydown', function(e){
+    if (!swipeMode) return;
     if (e.target.closest('summary, a, button, input, textarea')) return;
     if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); go(current + 1); }
     if (e.key === 'ArrowUp'   || e.key === 'PageUp')   { e.preventDefault(); go(current - 1); }
     if (e.key === 'Home') { e.preventDefault(); go(0); }
     if (e.key === 'End')  { e.preventDefault(); go(sections.length - 1); }
   });
-
-  /* ---------------------------------------------------------
-     5. モバイルのアドレスバー伸縮対策（100dvh 非対応ブラウザ）
-     --------------------------------------------------------- */
-  if (!CSS.supports('height', '100dvh')) {
-    var fix = function(){ deck.style.height = window.innerHeight + 'px'; };
-    fix();
-    window.addEventListener('resize', fix);
-  }
 })();
 </script>
 </body>
