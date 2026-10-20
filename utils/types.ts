@@ -135,9 +135,40 @@ export interface QaRecord {
 }
 
 // ---------- config/environments.yml ----------
+/**
+ * 1 つの環境の中で検査する「サイト」。
+ *
+ * 同じ代理店コードを、ドメインの違う複数のサイトで検査する。
+ *   LP          … lp.littlefamily-ssi.com
+ *   コーポレート … www.littlefamily-ssi.com (トップページで判断する)
+ *
+ * 入口のパスはサイトごとに違う。代理店プロファイル側の entryPath は
+ * LP のものなので、サイトが entryPath を持つ場合はそちらを使う。
+ */
+export interface SiteConfig {
+  id: string;
+  label: string;
+  baseUrl: string;
+  /** コードを付けて開く入口のパス。省略時は代理店プロファイルの entryPath */
+  entryPath?: string | null;
+  /**
+   * 経路 (リダイレクト先・回数・方式) の期待結果が実測済みか。
+   *
+   * false の間は経路の照合を行わず、実測値の記録だけを行う。
+   * 推測した経路で判定すると、正常なサイトを不具合として報告してしまう。
+   * discover で実測したら true にして期待結果を書く。
+   */
+  measured?: boolean;
+}
+
 export interface EnvironmentConfig {
   label: string;
   baseUrl: string;
+  /**
+   * この環境で検査するサイト。
+   * 省略時は baseUrl の 1 サイトだけを検査する (これまでと同じ)。
+   */
+  sites?: Record<string, Omit<SiteConfig, 'id'>>;
   /** 申込ドメイン (LP とは別ドメイン) */
   applicationBaseUrl: string;
   readOnly: boolean;

@@ -9,15 +9,25 @@
 import type { Page } from '@playwright/test';
 import type { QaSession } from './qa-session';
 import { resolveSelector } from './config';
-import type { AgencySpec, FallbackExpectation, FindingInput, QaConfig } from './types';
+import type { AgencySpec, FallbackExpectation, FindingInput, QaConfig, SiteConfig } from './types';
 
 function comparablePath(path: string): string {
   return path.replace(/\/+$/, '') || '/';
 }
 
 /** 代理店コード付きの流入 URL */
-export function buildEntryUrl(config: QaConfig, entryPath: string, code: string | null): string {
-  const url = new URL(entryPath, `${config.environment.baseUrl}/`);
+export function buildEntryUrl(
+  config: QaConfig,
+  entryPath: string,
+  code: string | null,
+  site?: SiteConfig,
+): string {
+  // サイトを渡した場合はそのドメインで開く。
+  //   同じ代理店コードを LP とコーポレートの両方で検査するため。
+  //   入口のパスもサイトごとに違う (コーポレートはトップページで判断する)。
+  const base = site?.baseUrl ?? config.environment.baseUrl;
+  const path = site?.entryPath ?? entryPath;
+  const url = new URL(path, `${base}/`);
   if (code) url.searchParams.set(config.agency.paramName, code);
   return url.toString();
 }

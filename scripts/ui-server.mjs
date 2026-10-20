@@ -71,8 +71,20 @@ function entryPaths() {
 
 /** 環境ごとの .env のキー名 */
 const ENV_KEYS = {
-  staging: { base: 'STAGING_BASE_URL', application: 'STAGING_APPLICATION_BASE_URL', user: 'STAGING_BASIC_USER', pass: 'STAGING_BASIC_PASS' },
-  production: { base: 'PRODUCTION_BASE_URL', application: 'PRODUCTION_APPLICATION_BASE_URL', user: 'PRODUCTION_BASIC_USER', pass: 'PRODUCTION_BASIC_PASS' },
+  staging: {
+    base: 'STAGING_BASE_URL',
+    corp: 'STAGING_CORP_BASE_URL',
+    application: 'STAGING_APPLICATION_BASE_URL',
+    user: 'STAGING_BASIC_USER',
+    pass: 'STAGING_BASIC_PASS',
+  },
+  production: {
+    base: 'PRODUCTION_BASE_URL',
+    corp: 'PRODUCTION_CORP_BASE_URL',
+    application: 'PRODUCTION_APPLICATION_BASE_URL',
+    user: 'PRODUCTION_BASIC_USER',
+    pass: 'PRODUCTION_BASIC_PASS',
+  },
 };
 
 /**
@@ -170,6 +182,8 @@ function envStatus() {
     status[target] = {
       configured: Boolean(base),
       baseUrl: origin(base),
+      // コーポレートサイト (同じ代理店コードを別ドメインでも検査する)
+      corpBaseUrl: origin(read(keys.corp)),
       applicationBaseUrl: origin(read(keys.application)),
       hasCredentials: Boolean(read(keys.user)),
       // 同じキーが 2 行以上ある場合は画面で知らせる
@@ -189,6 +203,13 @@ function saveEnv(target, body) {
   if (!parsed) return { ok: false, error: 'URL は https://example.jp の形式で入力してください' };
 
   const updates = { [keys.base]: parsed.origin };
+  // コーポレートサイトは任意。空欄なら「検査しない」として扱う
+  const corpInput = String(body.corpBaseUrl ?? '').trim();
+  if (corpInput !== '') {
+    const corp = parseOrigin(corpInput);
+    if (!corp) return { ok: false, error: 'コーポレートサイトの URL の形式が正しくありません' };
+    updates[keys.corp] = corp.origin;
+  }
   const applicationInput = String(body.applicationBaseUrl ?? '').trim();
   if (applicationInput !== '') {
     const application = parseOrigin(applicationInput);
@@ -202,10 +223,16 @@ function saveEnv(target, body) {
   if (pass !== '') updates[keys.pass] = pass;
 
   writeEnvValues(root, updates);
+  const paths = entryPaths();
   return {
     ok: true,
     droppedPath: parsed.droppedPath,
     saved: parsed.origin,
+    // 「ドメインしか出ない」と分かりにくいので、実際に開く URL も返す
+    openUrls: {
+      lp: parsed.origin + (paths.lp || '/'),
+      corp: corpInput === '' ? null : parseOrigin(corpInput).origin + '/',
+    },
   };
 }
 

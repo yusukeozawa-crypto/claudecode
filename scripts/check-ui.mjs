@@ -718,6 +718,31 @@ await check('稼働していない代理店コードは最初から検査しな�
   assert.equal(status, 0, '今日の日付での生成結果と config/agencies.yml が一致すること');
 });
 
+await check('LP とコーポレートの URL を別々に保存できる', () => {
+  // 同じ代理店コードを、ドメインの違う 2 つのサイトで検査する。
+  // 画面の設定で両方を登録できること、保存先のキーが分かれていることを見る。
+  const html = fs.readFileSync(path.join(root, 'scripts', 'ui', 'index.html'), 'utf8');
+  assert.ok(html.includes('id="env-corp"'), 'コーポレートサイトの入力欄があること');
+  assert.ok(html.includes('id="env-preview"'), '実際に開く URL を出す場所があること');
+
+  const server = fs.readFileSync(path.join(root, 'scripts', 'ui-server.mjs'), 'utf8');
+  for (const key of ['STAGING_CORP_BASE_URL', 'PRODUCTION_CORP_BASE_URL']) {
+    assert.ok(server.includes(key), `保存先のキーがあること: ${key}`);
+  }
+
+  // 環境ごとに別のキーへ保存していること (取り違えると本番を上書きする)
+  const environments = parseYaml(fs.readFileSync(path.join(root, 'config', 'environments.yml'), 'utf8'));
+  const sites = environments.environments.production.sites ?? {};
+  assert.ok(sites.lp && sites.corp, '本番に LP とコーポレートのサイトが定義されていること');
+  assert.equal(sites.corp.entryPath, '/', 'コーポレートはトップページで判断すること');
+  assert.equal(sites.corp.measured, false, '実測するまで経路を照合しないこと');
+  assert.notEqual(
+    environments.environments.staging.sites.corp.baseUrl,
+    sites.corp.baseUrl,
+    'ステージングと本番で別の環境変数を参照すること',
+  );
+});
+
 await check('画面から保存した設定は最新版に更新しても消えない', () => {
   // config/agency.yml を直接書き換える作りにすると、
   // 更新 (npm run update) のたびに運用側の判断が消える。

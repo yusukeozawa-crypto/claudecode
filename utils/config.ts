@@ -6,8 +6,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type {
-  AgenciesFile, AgencyFile, DevicesFile, EnvironmentsFile, ErrorsFile, KnownIssuesFile, LayoutFile,
-  PagesFile, QaConfig, RuntimeFile, TextRulesFile, VisualFile,
+  AgenciesFile, AgencyFile, DevicesFile, EnvironmentConfig, EnvironmentsFile, ErrorsFile,
+  KnownIssuesFile, LayoutFile, PagesFile, QaConfig, RuntimeFile, SiteConfig, TextRulesFile, VisualFile,
 } from './types';
 import { applyAgencyOverrides, readOverrides } from './overrides';
 
@@ -117,6 +117,9 @@ export function loadConfig(): QaConfig {
   environment.baseUrl = environment.baseUrl.replace(/\/+$/, '');
   environment.applicationBaseUrl = (environment.applicationBaseUrl ?? '').replace(/\/+$/, '');
   environment.httpCredentials = normalizeHttpCredentials(environment.httpCredentials);
+  normalizeSites(environment);
+  // 設定の取り違えで本番に書き込みが飛ばないようにする (最後の歯止め)
+  applyProductionSafetyLock(environmentName, environment, environments);
 
   const config: QaConfig = {
     environmentName,
@@ -161,6 +164,88 @@ function readOptionalYaml<T>(fileName: string): T | undefined {
  * 運用者が編集する頻度が高いため、どこが問題かを明示する
  * (テストから検証できるよう export している)。
  */
+/**
+ * 環境が検査するサイトを決める。
+ *
+ * sites が無い環境は baseUrl の 1 サイトだけを検査する (これまでと同じ)。
+ * URL が未設定のサイト (環境変数が空) は対象から外す。
+ * コーポレートサイトを登録していない環境でも、そのまま動かせるようにするため。
+ */
+function normalizeSites(environment: EnvironmentConfig): void {
+  if (!environment.sites) return;
+  const resolved: Record<string, Omit<SiteConfig, 'id'>> = {};
+  for (const [id, site] of Object.entries(environment.sites)) {
+    const baseUrl = String(site?.baseUrl ?? '').trim().replace(/\/+$/, '');
+    // ${VAR} が解決されなかった (= .env に無い) 場合も未設定として扱う
+    if (baseUrl === '' || baseUrl.includes('${')) continue;
+    resolved[id] = { ...site, baseUrl };
+  }
+  environment.sites = Object.keys(resolved).length > 0 ? resolved : undefined;
+}
+
+/** この環境で検査するサイトの一覧 (sites が無ければ baseUrl の 1 件) */
+export function sitesOf(config: QaConfig): SiteConfig[] {
+  const environment = config.environment;
+  const all: SiteConfig[] = environment.sites
+    ? Object.entries(environment.sites)
+      .map(([id, site]) => ({ id, ...site, baseUrl: String(site?.baseUrl ?? '').replace(/\/+$/, '') }))
+      // URL が未設定のサイト (${VAR} が解決されなかった) は検査しない。
+      // コーポレートを登録していない環境でもそのまま動かせるようにするため。
+      .filter((site) => site.baseUrl !== '' && !site.baseUrl.includes('${'))
+    : [{ id: 'lp', label: environment.label, baseUrl: environment.baseUrl }];
+  // QA_SITE で 1 サイトだけに絞れる (実測や切り分けのため)
+  const only = process.env.QA_SITE?.trim();
+  if (!only) return all;
+  const picked = all.filter((site) => site.id === only);
+  if (picked.length === 0) {
+    throw new Error(`QA_SITE=${only} は未定義です。利用可能: ${all.map((site) => site.id).join(', ')}`);
+  }
+  return picked;
+}
+
+/**
+ * 本番と同じホストを指している環境は、読み取り専用として扱う。
+ *
+ * 画面から URL を保存するとき、環境の選択を間違えると
+ * 「送信をブロックしない環境 (ステージング) で本番サイトを開く」状態になる。
+ * 実際にステージングの URL が本番を指している状態が発生した。
+ * 設定を取り違えても本番に書き込みが飛ばないよう、ここで必ず止める。
+ */
+export function applyProductionSafetyLock(
+  environmentName: string,
+  environment: EnvironmentConfig,
+  environments: EnvironmentsFile,
+): void {
+  if (environment.readOnly) return;
+
+  const hostsOf = (target: EnvironmentConfig): string[] =>
+    [target.baseUrl, ...Object.values(target.sites ?? {}).map((site) => site.baseUrl)]
+      .map((url) => safeHost(url))
+      .filter((host) => host !== '');
+
+  const protectedHosts = new Set(
+    Object.entries(environments.environments)
+      .filter(([name, target]) => name !== environmentName && target.readOnly)
+      .flatMap(([, target]) => hostsOf(target)),
+  );
+  const matched = hostsOf(environment).filter((host) => protectedHosts.has(host));
+  if (matched.length === 0) return;
+
+  environment.readOnly = true;
+  process.stdout.write(
+    `\n  [安全装置] 環境「${environmentName}」の URL が読み取り専用の環境と同じホスト (${[...new Set(matched)].join(', ')}) を指しています。\n`
+    + '             送信をブロックする読み取り専用として実行します。URL の設定を確認してください。\n\n',
+  );
+}
+
+function safeHost(url: string | undefined): string {
+  try {
+    return new URL(String(url ?? '')).host;
+  } catch {
+    return '';
+  }
+}
+
 export function validateConfig(config: QaConfig): void {
   const problems: string[] = [];
 

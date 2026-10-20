@@ -527,7 +527,10 @@ powercfg /change monitor-timeout-ac 10</code>
         <h3>対象サイト</h3>
         <p class="hint">
           保存先は <code>.env</code> です。Git には入りません。
-          URL はドメインまでで保存されます (ページのパスは設定ファイル側が持ちます)。
+          URL はドメインまでで保存されます (ページのパスは設定ファイル側が持つため)。
+          実際に開く URL は下に出します。
+          コーポレートサイトを入れると、<strong>同じ代理店コードを LP とコーポレートの両方で検査します</strong>
+          (空欄なら LP だけ)。
           パスワードは画面に表示しません (空欄なら変更しません)。
         </p>
         <div class="row" style="margin-bottom: 12px;">
@@ -540,9 +543,13 @@ powercfg /change monitor-timeout-ac 10</code>
           <span class="muted" id="env-current"></span>
         </div>
         <div class="row">
-          <label>サイトの URL<br><input id="env-base" type="url" placeholder="https://lp.example.jp" size="34"></label>
+          <label>LP の URL<br><input id="env-base" type="url" placeholder="https://lp.example.jp" size="34"></label>
+          <label>コーポレートサイトの URL (任意)<br><input id="env-corp" type="url" placeholder="https://www.example.jp" size="30"></label>
+        </div>
+        <div class="row">
           <label>申込サイトの URL (任意)<br><input id="env-application" type="url" placeholder="https://days.example.jp" size="30"></label>
         </div>
+        <p class="hint" id="env-preview" style="margin: 8px 0 0;"></p>
         <div class="row" style="margin-top: 10px;">
           <label>ベーシック認証 ユーザー名<br><input id="env-user" type="text" autocomplete="off" size="18"></label>
           <label>パスワード<br><input id="env-pass" type="password" autocomplete="off" size="18"></label>
@@ -645,6 +652,11 @@ powercfg /change monitor-timeout-ac 10</code>
       var join = function (origin, entryPath) { return origin + (entryPath || '/'); };
       var urls = configured
         ? '<span class="url"><b>LP</b>' + text(join(info.baseUrl, paths.lp)) + '</span>' +
+          // コーポレートサイト (登録されている環境だけ出す)。
+          // 同じ代理店コードを別ドメインでも検査するため、どこを見るのかを示す。
+          (info.corpBaseUrl
+            ? '<span class="url"><b>コーポ</b>' + text(join(info.corpBaseUrl, '/')) + '</span>'
+            : '') +
           '<span class="url"><b>申込</b>' +
           (info.applicationBaseUrl
             ? text(join(info.applicationBaseUrl, paths.application))
@@ -1259,6 +1271,7 @@ powercfg /change monitor-timeout-ac 10</code>
         document.getElementById('env-label').textContent =
           state.summary ? (state.summary.environmentLabel || '') + ' / ' + (state.summary.baseUrl || '') : '';
         latestEnv = state.env || {};
+        latestEntryPaths = state.entryPaths || {};
         // 選択肢はサーバーから受け取る。古いサーバー (更新前) は返さないため、
         // その場合は既定の選択肢を出しつつ、開き直しを促す
         var sizeSelect = document.getElementById('size');
@@ -1333,22 +1346,57 @@ powercfg /change monitor-timeout-ac 10</code>
   }
 
   var latestEnv = {};
+  var latestEntryPaths = {};
 
   function renderEnvForm() {
     var target = document.getElementById('env-target').value;
     var info = latestEnv[target] || {};
     document.getElementById('env-base').value = info.baseUrl || '';
+    document.getElementById('env-corp').value = info.corpBaseUrl || '';
     document.getElementById('env-application').value = info.applicationBaseUrl || '';
+    renderEnvPreview();
     document.getElementById('env-current').textContent = info.configured
       ? '設定済み' + (info.hasCredentials ? ' (ベーシック認証あり)' : '')
       : '未設定';
   }
 
+  /**
+   * 「実際に開く URL」を出す。
+   *
+   * .env にはドメインだけを保存するため、入力欄だけを見ると
+   * 「設定が反映されていない」ように見える (実際にそう見えた)。
+   * 設定側が持つページのパスをつないで、開く URL をそのまま出す。
+   */
+  function renderEnvPreview() {
+    var paths = latestEntryPaths || {};
+    var origin = function (value) {
+      try {
+        return new URL(value).origin;
+      } catch (error) {
+        return '';
+      }
+    };
+    var rows = [];
+    var lp = origin(document.getElementById('env-base').value);
+    if (lp) rows.push('LP: ' + lp + (paths.lp || '/'));
+    var corp = origin(document.getElementById('env-corp').value);
+    // コーポレートはトップページで判断するため、パスは付けない
+    if (corp) rows.push('コーポレート: ' + corp + '/');
+    var application = origin(document.getElementById('env-application').value);
+    if (application) rows.push('申込: ' + application + (paths.application || '/'));
+    document.getElementById('env-preview').textContent =
+      rows.length === 0 ? '' : '実際に開く URL — ' + rows.join(' / ');
+  }
+
+  document.getElementById('env-base').addEventListener('input', renderEnvPreview);
+  document.getElementById('env-corp').addEventListener('input', renderEnvPreview);
+  document.getElementById('env-application').addEventListener('input', renderEnvPreview);
   document.getElementById('env-target').addEventListener('change', renderEnvForm);
   document.getElementById('env-save').addEventListener('click', function () {
     var payload = {
       target: document.getElementById('env-target').value,
       baseUrl: document.getElementById('env-base').value,
+      corpBaseUrl: document.getElementById('env-corp').value,
       applicationBaseUrl: document.getElementById('env-application').value,
       basicUser: document.getElementById('env-user').value,
       basicPass: document.getElementById('env-pass').value,

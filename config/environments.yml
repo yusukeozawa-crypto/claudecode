@@ -33,6 +33,19 @@ environments:
     httpCredentials:
       username: ${STAGING_BASIC_USER}
       password: ${STAGING_BASIC_PASS}
+    # 同じ代理店コードを、ドメインの違う複数のサイトで検査する
+    sites:
+      lp:
+        label: LP
+        baseUrl: ${STAGING_BASE_URL}
+      corp:
+        label: コーポレート
+        baseUrl: ${STAGING_CORP_BASE_URL}
+        # トップページで判断する
+        entryPath: /
+        # 経路 (リダイレクト先・回数・方式) が未実測。
+        # 実測するまで照合せず、実測値の記録だけを行う。
+        measured: false
 
   production:
     label: 本番
@@ -43,3 +56,12 @@ environments:
     # 本番では読み取りと画面遷移のみ。フォーム送信/申込完了はコードレベルで禁止される
     readOnly: true
     startLocalServer: false
+    sites:
+      lp:
+        label: LP
+        baseUrl: ${PRODUCTION_BASE_URL}
+      corp:
+        label: コーポレート
+        baseUrl: ${PRODUCTION_CORP_BASE_URL}
+        entryPath: /
+        measured: false

@@ -16,7 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from '../qa-fixtures';
-import { PROJECT_ROOT } from '../../utils/config';
+import { PROJECT_ROOT, sitesOf } from '../../utils/config';
 import { writeHumanText } from '../../utils/text-file';
 import { agencySpecs } from '../../utils/agency';
 import { buildEntryUrl } from '../../utils/agency-entry';
@@ -88,9 +88,14 @@ test.describe('表示差分の調査 @discover', () => {
     const config = qa.config;
     const specs = representatives(agencySpecs(config));
     const entryPath = specs[0]?.entryPath ?? '/';
+    // 調べるサイト (QA_SITE で切り替える)。
+    //   LP とコーポレートはドメインも入口のパスも違うため、
+    //   期待結果はサイトごとに実測して決める。
+    const site = sitesOf(config)[0];
+    console.log(`  対象サイト: ${site.label} (${site.baseUrl})`);
 
-    // 基準はコードなし (通常の LP)
-    const baselineUrl = buildEntryUrl(config, entryPath, null);
+    // 基準はコードなし
+    const baselineUrl = buildEntryUrl(config, entryPath, null, site);
     if (!(await qa.goto({ url: baselineUrl }))) {
       test.skip(true, `基準ページを開けませんでした: ${baselineUrl}`);
       return;
@@ -103,7 +108,7 @@ test.describe('表示差分の調査 @discover', () => {
 
     const captured: Array<{ spec: AgencySpec; signature: PageSignature }> = [];
     for (const spec of specs) {
-      const url = buildEntryUrl(config, spec.entryPath, spec.code);
+      const url = buildEntryUrl(config, spec.entryPath, spec.code, site);
       if (!(await qa.goto({ url, agencyCode: spec.code }))) continue;
       const signature = await capturePageSignatureStable(page);
       if (!signature) {

@@ -6,11 +6,11 @@
  * (気づかないまま検査が素通りするのを防ぐ)。
  */
 import { test, expect } from '../qa-fixtures';
-import { loadConfig, parseEnvLines, resolveSelector, validateConfig } from '../../utils/config';
+import { applyProductionSafetyLock, loadConfig, parseEnvLines, resolveSelector, sitesOf, validateConfig } from '../../utils/config';
 import { isForbiddenRequest } from '../../utils/handoff';
-import { waitForFinalLanding } from '../../utils/agency-entry';
+import { buildEntryUrl, waitForFinalLanding } from '../../utils/agency-entry';
 import { applyAgencyOverrides, overrideExcludedCodes } from '../../utils/overrides';
-import type { QaConfig } from '../../utils/types';
+import type { EnvironmentConfig, EnvironmentsFile, QaConfig } from '../../utils/types';
 
 const config = loadConfig();
 
@@ -368,5 +368,82 @@ test.describe('描画完了判定の自己検査 @selfcheck', () => {
     } finally {
       qa.config.agency.readyIndicator = original;
     }
+  });
+  test('本番と同じホストを指す環境は読み取り専用として扱う (設定の取り違えの歯止め)', async () => {
+    // 画面から URL を保存するとき、環境の選択を間違えると
+    // 「送信をブロックしない環境 (ステージング) で本番サイトを開く」状態になる。
+    // 実際にステージングの URL が本番を指している状態が発生した。
+    const make = (stagingBase: string, corpBase?: string): EnvironmentsFile => ({
+      defaultEnvironment: 'staging',
+      environments: {
+        staging: {
+          label: 'ステージング',
+          baseUrl: stagingBase,
+          applicationBaseUrl: 'https://days.example-stg.com',
+          readOnly: false,
+          ...(corpBase === undefined ? {} : { sites: { corp: { label: 'コーポ', baseUrl: corpBase } } }),
+        } as EnvironmentConfig,
+        production: {
+          label: '本番',
+          baseUrl: 'https://lp.example.com',
+          applicationBaseUrl: 'https://days.example.com',
+          readOnly: true,
+          sites: { corp: { label: 'コーポ', baseUrl: 'https://www.example.com' } },
+        } as EnvironmentConfig,
+      },
+    });
+
+    // 正しい設定: そのまま (読み取り専用にしない)
+    const safe = make('https://lp.example-stg.com');
+    applyProductionSafetyLock('staging', safe.environments.staging, safe);
+    expect(safe.environments.staging.readOnly, '別のホストなら設定どおり動くこと').toBe(false);
+
+    // baseUrl が本番を指している
+    const wrong = make('https://lp.example.com');
+    applyProductionSafetyLock('staging', wrong.environments.staging, wrong);
+    expect(
+      wrong.environments.staging.readOnly,
+      '本番と同じホストなら読み取り専用にすること',
+    ).toBe(true);
+
+    // サイトの 1 つだけが本番を指している場合も止める
+    const partly = make('https://lp.example-stg.com', 'https://www.example.com');
+    applyProductionSafetyLock('staging', partly.environments.staging, partly);
+    expect(
+      partly.environments.staging.readOnly,
+      'サイトの 1 つでも本番を指していれば読み取り専用にすること',
+    ).toBe(true);
+  });
+
+  test('環境は複数のサイトを持てる (LP とコーポレートで同じ代理店コードを検査する)', async () => {
+    const sites = sitesOf(config);
+    expect(sites.length, '少なくとも 1 サイトはあること').toBeGreaterThan(0);
+    for (const site of sites) {
+      expect(site.id, 'サイトに id があること').toBeTruthy();
+      expect(site.baseUrl, `${site.id} の URL があること`).toMatch(/^https?:\/\//);
+      expect(site.baseUrl.endsWith('/'), '末尾スラッシュは落とすこと').toBe(false);
+    }
+
+    // URL が未設定のサイト (環境変数が空) は対象から外す。
+    // コーポレートを登録していない環境でもそのまま動かせるようにするため。
+    const draft = broken((copy) => {
+      copy.environment.sites = {
+        lp: { label: 'LP', baseUrl: config.environment.baseUrl },
+        corp: { label: 'コーポ', baseUrl: '${PRODUCTION_CORP_BASE_URL}' },
+      };
+    });
+    expect(
+      sitesOf(draft).map((site) => site.id),
+      '未解決の環境変数を URL として扱わないこと',
+    ).not.toContain('corp');
+
+    // サイトを渡すと、そのドメインと入口のパスで URL を組み立てること
+    const corp = { id: 'corp', label: 'コーポレート', baseUrl: 'https://www.example.com', entryPath: '/' };
+    const url = buildEntryUrl(config, '/lp/service/', 'littlefamily01', corp);
+    expect(url, 'コーポレートのドメインで開くこと').toContain('https://www.example.com/');
+    expect(url, 'コーポレートはトップページで判断すること').not.toContain('/lp/service/');
+    expect(url, '代理店コードは同じように付けること').toContain(`${config.agency.paramName}=littlefamily01`);
+    // サイトを渡さない場合はこれまでどおり
+    expect(buildEntryUrl(config, '/lp/service/', null)).toBe(`${config.environment.baseUrl}/lp/service/`);
   });
 });
