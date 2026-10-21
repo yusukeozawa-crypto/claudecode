@@ -198,7 +198,15 @@ export function sitesOf(config: QaConfig): SiteConfig[] {
   if (!only) return all;
   const picked = all.filter((site) => site.id === only);
   if (picked.length === 0) {
-    throw new Error(`QA_SITE=${only} は未定義です。利用可能: ${all.map((site) => site.id).join(', ')}`);
+    // 設定ファイルにサイトの定義はあるのに URL だけ未設定、という場合が多い。
+    // 「未定義です」とだけ出すと、どこを直せばよいのか分からない。
+    const declared = Object.keys(environment.sites ?? {});
+    const hint = declared.includes(only)
+      ? `サイト「${only}」の URL が設定されていません。`
+        + '画面の「設定」タブでコーポレートサイトの URL を登録してください '
+        + `(.env の ${environment.label === '本番' ? 'PRODUCTION' : 'STAGING'}_CORP_BASE_URL)。`
+      : `利用できるサイト: ${all.map((site) => site.id).join(', ')}`;
+    throw new Error(`QA_SITE=${only} を検査できません。${hint}`);
   }
   return picked;
 }

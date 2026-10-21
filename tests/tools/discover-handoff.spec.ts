@@ -18,7 +18,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from '../qa-fixtures';
-import { PROJECT_ROOT, resolveSelector } from '../../utils/config';
+import { PROJECT_ROOT, resolveSelector, sitesOf } from '../../utils/config';
 import { agencySpecs } from '../../utils/agency';
 import { buildEntryUrl, waitForFinalLanding } from '../../utils/agency-entry';
 import { RedirectTracker, describeMechanism, probeHttpChain } from '../../utils/redirect';
@@ -78,7 +78,7 @@ function suggestedYaml(results: DiscoveryResult[], config: QaConfig): string {
     '# 実サイトの観測結果から生成した推奨値 (npm run discover)',
     '#   そのまま使わず、内容を確認してから config/agencies.yml へ反映すること。',
     `#   観測日時: ${new Date().toISOString()}`,
-    `#   対象環境: ${config.environmentName} (${config.environment.baseUrl})`,
+    `#   対象環境: ${config.environmentName} / サイト: ${sitesOf(config)[0].label} (${sitesOf(config)[0].baseUrl})`,
     '# ============================================================',
     'agencies:',
   ];
@@ -151,7 +151,10 @@ test.describe('仕様調査 @discover', () => {
   test('代理店ごとのリダイレクトと申込引き継ぎの実仕様を記録する', async ({ qa, page, request }, testInfo) => {
     test.slow();
     const config = qa.config;
-    const lpHost = new URL(config.environment.baseUrl).host;
+    // 調べるサイト (QA_SITE で切り替える)。LP とコーポレートはドメインが違う
+    const site = sitesOf(config)[0];
+    console.log(`  対象サイト: ${site.label} (${site.baseUrl})`);
+    const lpHost = new URL(site.baseUrl).host;
     const results: DiscoveryResult[] = [];
 
     for (const spec of agencySpecs(config)) {
@@ -160,7 +163,7 @@ test.describe('仕様調査 @discover', () => {
       const detectedHandoffMethods: HandoffMethod[] = [];
       const apiResponses: DiscoveryResult['applicationPage'] extends null ? never[] : Array<{ url: string; status: number; bodyKeys: string[] }> = [];
 
-      const entryUrl = buildEntryUrl(config, spec.entryPath, spec.code);
+      const entryUrl = buildEntryUrl(config, spec.entryPath, spec.code, site);
 
       // --- 通信の記録 (別ドメイン宛のみ) ---
       const onRequest = (req: import('@playwright/test').Request) => {
