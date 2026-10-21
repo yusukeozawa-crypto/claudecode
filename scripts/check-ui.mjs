@@ -743,6 +743,33 @@ await check('LP とコーポレートの URL を別々に保存できる', () =>
   );
 });
 
+await check('仕様調査は指定したサイトを開く', () => {
+  // 「対象サイト: コーポレート」と出ているのに LP を開いていた、
+  // という食い違いが起きた。サイトを表示するだけで、URL の組み立てに
+  // 渡し忘れていると気づけない。両方を静的に確かめる。
+  for (const name of ['discover-handoff.spec.ts', 'discover-sections.spec.ts']) {
+    const file = fs.readFileSync(path.join(root, 'tests', 'tools', name), 'utf8');
+    assert.ok(file.includes('sitesOf(config)'), `${name}: 対象サイトを決めていること`);
+    // 引数の中に関数呼び出しが入るため、閉じ括弧ではなく
+    // 呼び出しの直後 200 文字を見る (丸括弧の対応を数えないで済ませる)
+    const calls = [];
+    for (let from = file.indexOf('buildEntryUrl('); from !== -1; from = file.indexOf('buildEntryUrl(', from + 1)) {
+      calls.push(file.slice(from, from + 200));
+    }
+    assert.ok(calls.length > 0, `${name}: 入口 URL を組み立てていること`);
+    for (const call of calls) {
+      assert.ok(
+        /,\s*site\b/.test(call),
+        `${name}: 入口 URL の組み立てにサイトを渡すこと: ${call.split('\n')[0]}`,
+      );
+    }
+  }
+
+  // 実際に開く URL をログに出していること (食い違いに気づけるように)
+  const handoff = fs.readFileSync(path.join(root, 'tests', 'tools', 'discover-handoff.spec.ts'), 'utf8');
+  assert.ok(handoff.includes('入口:'), '対象サイトと一緒に入口 URL を出すこと');
+});
+
 await check('画面から保存した設定は最新版に更新しても消えない', () => {
   // config/agency.yml を直接書き換える作りにすると、
   // 更新 (npm run update) のたびに運用側の判断が消える。

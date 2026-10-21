@@ -153,7 +153,13 @@ test.describe('仕様調査 @discover', () => {
     const config = qa.config;
     // 調べるサイト (QA_SITE で切り替える)。LP とコーポレートはドメインが違う
     const site = sitesOf(config)[0];
-    console.log(`  対象サイト: ${site.label} (${site.baseUrl})`);
+    // サイトと、実際に開く URL を必ず並べて出す。
+    //   「対象サイト: コーポレート」と出ているのに LP を開いていた、
+    //   という食い違いが起きた。どちらか一方だけでは気づけない。
+    console.log(
+      `  [handoff] 対象サイト: ${site.id} / ${site.label} (${site.baseUrl})`
+      + ` 入口: ${buildEntryUrl(config, agencySpecs(config)[0]?.entryPath ?? '/', null, site)}`,
+    );
     const lpHost = new URL(site.baseUrl).host;
     const results: DiscoveryResult[] = [];
 

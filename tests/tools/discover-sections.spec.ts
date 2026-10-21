@@ -92,7 +92,10 @@ test.describe('表示差分の調査 @discover', () => {
     //   LP とコーポレートはドメインも入口のパスも違うため、
     //   期待結果はサイトごとに実測して決める。
     const site = sitesOf(config)[0];
-    console.log(`  対象サイト: ${site.label} (${site.baseUrl})`);
+    console.log(
+      `  [sections] 対象サイト: ${site.id} / ${site.label} (${site.baseUrl})`
+      + ` 入口: ${buildEntryUrl(config, entryPath, null, site)}`,
+    );
 
     // 基準はコードなし
     const baselineUrl = buildEntryUrl(config, entryPath, null, site);
