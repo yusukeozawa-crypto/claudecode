@@ -219,11 +219,13 @@
   #discover-details { margin-top: 20px; }
   #discover-details code { background: #f3f5f7; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
   .settings-title { font-size: 13px; font-weight: 700; color: var(--sub); letter-spacing: 0.06em; }
-  select, input {
+  select, input, textarea {
     font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border);
     border-radius: 8px; background: #fff; color: var(--text);
   }
-  select:focus, input:focus { outline: 2px solid #bcd3ec; outline-offset: -1px; border-color: #9db4cc; }
+  select:focus, input:focus, textarea:focus { outline: 2px solid #bcd3ec; outline-offset: -1px; border-color: #9db4cc; }
+  /* 代理店コードは等幅で並べたほうが、貼り付けた列を目で追いやすい */
+  textarea#only { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; resize: vertical; }
   label { color: var(--sub); font-size: 13px; }
 
   .notice {
@@ -440,13 +442,19 @@
       指定した場合は件数の抽選より優先する (名指しの意図が一番はっきりしているため)。
     -->
     <div class="row" style="margin-bottom: 12px;">
-      <label>このコードだけ検査する (任意)
-        <input id="only" type="text" size="44" placeholder="littlefamily03, littlefamily42">
+      <label>このコードだけ検査する (任意)<br>
+        <!--
+          Excel の列をそのまま貼れるように複数行にする。
+          1 行の入力欄だと、改行つきで貼ったときに 1 件目しか入らない。
+        -->
+        <textarea id="only" rows="4" cols="46"
+          placeholder="littlefamily03br05&#10;littlefamily03br06&#10;littlefamily03br07"></textarea>
       </label>
       <button class="small" id="only-clear" type="button">クリア</button>
     </div>
     <p class="muted" id="only-note" style="margin: -6px 0 12px;">
-      カンマか空白で区切って複数指定できます。指定すると<strong>件数の抽選は使わず、そのコードだけ</strong>を検査します。
+      <strong>Excel の列をそのまま貼れます</strong> (改行・カンマ・空白のどれで区切っても構いません)。
+      指定すると<strong>件数の抽選は使わず、そのコードだけ</strong>を検査します。
       検査対象から外しているコード (未稼働など) を指定した場合は、理由を出して止まります。
     </p>
 
@@ -1407,11 +1415,17 @@ powercfg /change monitor-timeout-ac 10</code>
 
   // 指定中は件数の選択を使わないことを画面でも示す (何が効くのか迷わせない)
   function renderOnlyState() {
-    var only = document.getElementById('only').value.trim();
-    document.getElementById('size').disabled = only !== '';
-    document.getElementById('size-note').textContent = only === ''
+    var raw = document.getElementById('only').value;
+    var codes = raw.split(/[,\s]+/).map(function (code) { return code.trim(); })
+      .filter(function (code) { return code !== ''; });
+    // 重複を除いた件数を出す。貼り間違いにその場で気づけるように
+    var unique = codes.filter(function (code, index) { return codes.indexOf(code) === index; });
+    document.getElementById('size').disabled = unique.length > 0;
+    document.getElementById('size-note').textContent = unique.length === 0
       ? 'まずは最小で動作を確認し、問題がなくなってから増やしてください。'
-      : '指定したコードだけを検査するため、件数の指定は使いません。';
+      : unique.length + ' 件を指定中'
+        + (codes.length !== unique.length ? ' (重複 ' + (codes.length - unique.length) + ' 件を除く)' : '')
+        + ' — 件数の指定は使いません。';
   }
   document.getElementById('only').addEventListener('input', renderOnlyState);
   document.getElementById('only-clear').addEventListener('click', function () {

@@ -148,6 +148,13 @@ test.describe('代理店の抽選の自己検査 @selfcheck', () => {
     expect(only('alpha-000'), '1 社だけ指定できること').toEqual(['alpha-000']);
     expect(only('alpha-000,beta-001'), 'カンマ区切りで複数指定できること').toEqual(['alpha-000', 'beta-001']);
     expect(only(' alpha-000 beta-001 '), '空白区切りでも指定できること').toEqual(['alpha-000', 'beta-001']);
+    // Excel の列をそのまま貼ると改行区切りになる (タブや空行が混ざることもある)
+    expect(
+      only('alpha-000\r\nbeta-001\r\n\r\n'),
+      '改行区切り (Excel からの貼り付け) でも指定できること',
+    ).toEqual(['alpha-000', 'beta-001']);
+    expect(only('alpha-000\tbeta-001'), 'タブ区切りでも指定できること').toEqual(['alpha-000', 'beta-001']);
+    expect(only('alpha-000\nalpha-000'), '同じコードを並べても 1 件として扱うこと').toEqual(['alpha-000']);
     expect(only('ALPHA-000'), '大文字小文字を区別しないこと').toEqual(['alpha-000']);
     expect(only('beta-001,alpha-000'), '出力順はマスタの並び順にすること').toEqual(['alpha-000', 'beta-001']);
 

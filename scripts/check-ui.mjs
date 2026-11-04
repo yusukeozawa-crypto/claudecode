@@ -774,7 +774,8 @@ await check('指定したコードだけを検査できる', () => {
   // 1 社だけ・数社だけをすぐ確かめたい場面のための入口。
   // 画面・コマンドのどちらからでも、設定ファイルを触らずに指定できること。
   const html = fs.readFileSync(path.join(root, 'scripts', 'ui', 'index.html'), 'utf8');
-  assert.ok(html.includes('id="only"'), '画面に入力欄があること');
+  // Excel の列をそのまま貼れること。1 行の入力欄だと 1 件目しか入らない
+  assert.ok(/<textarea id="only"/.test(html), '画面の入力欄が複数行であること (Excel から貼れる)');
   assert.ok(html.includes('only=') && html.includes('/api/run?'), '実行時に指定を渡すこと');
 
   const server = fs.readFileSync(path.join(root, 'scripts', 'ui-server.mjs'), 'utf8');
