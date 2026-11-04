@@ -14,6 +14,7 @@
 import { test, expect } from '../qa-fixtures';
 import { loadConfig } from '../../utils/config';
 import { agencySpecs } from '../../utils/agency';
+import { clearPause, codeFromTitle, isPaused, requestPause } from '../../utils/pause';
 import type { AgenciesFile, AgencySpec, QaConfig } from '../../utils/types';
 
 const baseConfig = loadConfig();
@@ -167,5 +168,26 @@ test.describe('代理店の抽選の自己検査 @selfcheck', () => {
     expect(only('').length, '指定が空なら抽選に戻ること').toBeLessThan(
       Object.values(COUNTS).reduce((sum, count) => sum + count, 0),
     );
+  });
+  test('一時停止と再開のしくみ (合図のファイルと、名前からのコード判定)', async () => {
+    // プロセスを凍らせず、これから始めるテストを飛ばして終わらせる方式。
+    // 凍らせると、再開した瞬間にタイムアウトが大量発火して
+    // 正常なサイトが不具合として並ぶ (スリープで実際に起きた)。
+    clearPause();
+    expect(isPaused(), '合図が無ければ止めないこと').toBe(false);
+    requestPause();
+    expect(isPaused(), '合図があれば止めること').toBe(true);
+    clearPause();
+    expect(isPaused(), '取り消せること').toBe(false);
+
+    // 飛ばしたテストには検知結果が付かないため、名前からコードを判断する。
+    // 支店コードは親コードを含むので、長いほうを採る。
+    const codes = ['littlefamily03', 'littlefamily03br05', 'littlefamily18'];
+    expect(
+      codeFromTitle('littlefamily03br05: ページ遷移後も代理店コードと表示を保持する', codes),
+      '支店コードを親コードと取り違えないこと',
+    ).toBe('littlefamily03br05');
+    expect(codeFromTitle('littlefamily03: リダイレクト先が仕様どおり', codes)).toBe('littlefamily03');
+    expect(codeFromTitle('代理店コードなし: 通常表示になる', codes), '該当が無ければ null').toBe(null);
   });
 });

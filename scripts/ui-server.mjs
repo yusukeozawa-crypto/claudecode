@@ -37,6 +37,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const REPORT_DIR = path.join(root, 'reports');
 const HISTORY_DIR = path.join(REPORT_DIR, 'history');
 const PROGRESS_PATH = path.join(REPORT_DIR, 'progress.json');
+const PAUSE_FLAG_PATH = path.join(REPORT_DIR, 'pause.flag');
 const UI_PATH = path.join(root, 'scripts', 'ui', 'index.html');
 const PORT = Number(process.env.QA_UI_PORT ?? 4180);
 
@@ -234,6 +235,34 @@ function saveEnv(target, body) {
       corp: corpInput === '' ? null : parseOrigin(corpInput).origin + '/',
     },
   };
+}
+
+/**
+ * 一時停止を指示する。
+ *
+ * 動いているテストは最後まで走らせ、これから始めるテストを飛ばす。
+ * プロセスを凍らせないので、再開してもタイムアウトが大量発火しない。
+ */
+function pauseRun() {
+  if (!current) return { ok: false, error: '実行していません' };
+  fs.mkdirSync(REPORT_DIR, { recursive: true });
+  fs.writeFileSync(PAUSE_FLAG_PATH, new Date().toISOString(), 'utf8');
+  logLines.push('[一時停止] いま動いている検査が終わったら止まります (残りは飛ばします)');
+  return { ok: true };
+}
+
+/** 一時停止の指示を取り消す (まだ実行中なら、そのまま続きを検査する) */
+function cancelPause() {
+  fs.rmSync(PAUSE_FLAG_PATH, { force: true });
+  if (current) logLines.push('[再開] 一時停止を取り消しました');
+  return { ok: true };
+}
+
+/** 前回終わらなかった代理店コード (進行状況ファイルから読む) */
+function remainingCodes() {
+  const progress = readJson(PROGRESS_PATH);
+  const codes = Array.isArray(progress?.remainingCodes) ? progress.remainingCodes : [];
+  return codes.filter((code) => typeof code === 'string' && code !== '');
 }
 
 function historyList() {
@@ -492,6 +521,9 @@ function state() {
     running: Boolean(current),
     runningLabel: current?.label ?? null,
     progress: readJson(PROGRESS_PATH),
+    paused: fs.existsSync(PAUSE_FLAG_PATH),
+    // 「残りから再開」で何件回るかを画面に出す
+    remainingCodes: remainingCodes(),
     summary: slimSummary(report?.summary),
     checklist: checklistOf(report),
     // 保留事項 / 後日確認 / 後日仕様変更。
@@ -550,6 +582,8 @@ function startRun(kind, key, size = 'min', only = '') {
   if (parsedOnly.codes.length > 0) {
     logLines.push(`[指定] このコードだけ検査します: ${parsedOnly.codes.join(', ')}`);
   }
+  // 前回の一時停止の指示を必ず解除する (残っていると即座に全部飛ばしてしまう)
+  fs.rmSync(PAUSE_FLAG_PATH, { force: true });
   // 前回の進行状況を消す (古い結果が残って混乱しないように)
   fs.rmSync(PROGRESS_PATH, { force: true });
 
@@ -718,6 +752,27 @@ export const server = http.createServer((req, res) => {
       const result = saveEnv(String(body.target ?? ''), body);
       sendJson(res, result.ok ? 200 : 400, result);
     });
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === '/api/pause') {
+    const result = pauseRun();
+    sendJson(res, result.ok ? 200 : 409, result);
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === '/api/pause/cancel') {
+    sendJson(res, 200, cancelPause());
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === '/api/resume') {
+    const codes = remainingCodes();
+    if (codes.length === 0) {
+      sendJson(res, 409, { ok: false, error: '終わっていない代理店コードがありません' });
+      return;
+    }
+    const progress = readJson(PROGRESS_PATH);
+    const target = typeof progress?.environment === 'string' ? progress.environment : '';
+    const result = startRun('test', target, url.searchParams.get('size') ?? 'min', codes.join(','));
+    sendJson(res, result.ok ? 200 : 409, result);
     return;
   }
   if (req.method === 'POST' && url.pathname === '/api/stop') {

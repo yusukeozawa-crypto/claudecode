@@ -417,6 +417,15 @@
       <div class="groups" id="groups"></div>
     </div>
     <div class="actions">
+      <!--
+        一時停止はプロセスを凍らせない。いま動いている検査は最後まで走らせ、
+        これから始める分を飛ばして終わらせる。凍らせると、再開した瞬間に
+        タイムアウトが大量発火して正常なサイトが不具合として並ぶ
+        (スリープで実際に起きた壊れ方と同じになる)。
+      -->
+      <button class="small" id="pause" hidden>一時停止</button>
+      <button class="small" id="pause-cancel" hidden>一時停止をやめる</button>
+      <button class="small" id="resume" hidden>残りから再開</button>
       <button class="small stop" id="stop" hidden>実行を止める</button>
       <button class="small" id="open-report" hidden>証跡を別画面で開く</button>
       <!-- 保存済みのレポートを CSV にするだけ (検査は実行しない) -->
@@ -755,6 +764,13 @@ powercfg /change monitor-timeout-ac 10</code>
     var progress = state.progress;
 
     stop.hidden = !state.running;
+    // 実行中は「一時停止」、止めたあとは「残りから再開」を出す
+    var remaining = (state.remainingCodes || []).length;
+    document.getElementById('pause').hidden = !state.running || state.paused;
+    document.getElementById('pause-cancel').hidden = !state.running || !state.paused;
+    var resume = document.getElementById('resume');
+    resume.hidden = state.running || remaining === 0;
+    resume.textContent = '残りから再開 (' + remaining + ' 社)';
     document.getElementById('open-report').hidden = !state.hasReport;
     // 結果が無いときに押せると「何も出ない」ので隠す
     document.getElementById('export-csv').hidden = !state.hasReport || state.running;
@@ -1496,6 +1512,12 @@ powercfg /change monitor-timeout-ac 10</code>
   });
 
   document.getElementById('stop').addEventListener('click', function () { post('/api/stop'); });
+  document.getElementById('pause').addEventListener('click', function () { post('/api/pause'); });
+  document.getElementById('pause-cancel').addEventListener('click', function () { post('/api/pause/cancel'); });
+  document.getElementById('resume').addEventListener('click', function () {
+    var size = document.getElementById('size').value || 'min';
+    post('/api/resume?size=' + encodeURIComponent(size));
+  });
   document.getElementById('open-report').addEventListener('click', function () {
     window.open('/reports/qa-report.html', '_blank');
   });

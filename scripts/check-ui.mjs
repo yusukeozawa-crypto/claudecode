@@ -793,6 +793,35 @@ await check('指定したコードだけを検査できる', () => {
   );
 });
 
+await check('一時停止と再開ができる', () => {
+  // プロセスを凍らせる方式は採らない (再開時にタイムアウトが大量発火するため)。
+  // 「これから始める分を飛ばして終わらせ、残りを次の実行で回す」形になっていること。
+  const html = fs.readFileSync(path.join(root, 'scripts', 'ui', 'index.html'), 'utf8');
+  for (const id of ['id="pause"', 'id="pause-cancel"', 'id="resume"']) {
+    assert.ok(html.includes(id), `画面にボタンがあること: ${id}`);
+  }
+
+  const server = fs.readFileSync(path.join(root, 'scripts', 'ui-server.mjs'), 'utf8');
+  for (const route of ['/api/pause', '/api/pause/cancel', '/api/resume']) {
+    assert.ok(server.includes(route), `入口があること: ${route}`);
+  }
+  // 実行を始めるときは必ず合図を消す (残っていると即座に全部飛ばしてしまう)
+  assert.ok(
+    /logLines = \[`\[開始\][\s\S]{0,400}?PAUSE_FLAG_PATH/.test(server),
+    '実行開始時に一時停止の合図を消すこと',
+  );
+  // 凍らせる方式を使っていないこと
+  assert.ok(!/SIGSTOP|pssuspend|NtSuspend/i.test(server), 'プロセスを凍らせないこと');
+
+  // 残りの判定はレポータが書く進行状況から読む
+  const reporter = fs.readFileSync(path.join(root, 'reporters', 'qa-html-reporter.ts'), 'utf8');
+  assert.ok(reporter.includes('remainingCodes'), '終わっていないコードを記録すること');
+  assert.ok(
+    reporter.includes('isPaused()'),
+    '一時停止で飛ばした分だけを未完了として数えること (仕様上の飛ばしと区別する)',
+  );
+});
+
 await check('画面から保存した設定は最新版に更新しても消えない', () => {
   // config/agency.yml を直接書き換える作りにすると、
   // 更新 (npm run update) のたびに運用側の判断が消える。

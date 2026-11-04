@@ -13,6 +13,7 @@ import { loadConfig } from '../utils/config';
 import { QaSession } from '../utils/qa-session';
 import { resolvePages } from '../utils/page-source';
 import { installContextGuards } from '../utils/handoff';
+import { isPaused } from '../utils/pause';
 import type { FindingInput, PageConfig, QaConfig } from '../utils/types';
 
 export interface QaFixtures {
@@ -74,6 +75,17 @@ export const test = base.extend<QaFixtures>({
     session.monitor.detach();
     await session.findings.flush(testInfo);
   },
+});
+
+/**
+ * 一時停止の合図が出ていたら、これから始めるテストは飛ばす。
+ *
+ * 動いているテストは最後まで走らせる (途中で切ると結果が中途半端になる)。
+ * 飛ばしたテストは「飛ばした」として記録されるので、
+ * どの代理店が終わっていないかが後から分かり、残りだけを再開できる。
+ */
+test.beforeEach(async () => {
+  test.skip(isPaused(), '一時停止が指示されました (画面の「残りから再開」で続きを実行できます)');
 });
 
 export { expect };

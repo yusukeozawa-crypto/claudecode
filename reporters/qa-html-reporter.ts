@@ -17,6 +17,7 @@ import { SEVERITY_LABEL, SEVERITY_ORDER, sortBySeverity } from '../utils/finding
 import { loadConfig, PROJECT_ROOT } from '../utils/config';
 import { agencySeed, agencySpecs } from '../utils/agency';
 import { activeKnownIssues } from '../utils/known-issues';
+import { codeFromTitle, isPaused } from '../utils/pause';
 import { buildChecklist } from '../utils/checklist';
 import { compareAcrossDevices } from '../utils/cross-device';
 import type { AgencyMeta, Checklist } from '../utils/checklist';
@@ -111,6 +112,14 @@ export default class QaHtmlReporter implements Reporter {
   private readonly interruptions: Array<{ at: string; minutes: number }> = [];
   private readonly groupProgress = new Map<string, { done: number; total: number }>();
   private currentLabel = '';
+  /**
+   * 代理店コードごとの進み具合。
+   *   飛ばした (一時停止した) テストがあるコードは「終わっていない」とみなす。
+   *   残りだけを再開できるようにするために記録する。
+   */
+  private readonly codeProgress = new Map<string, { done: number; skipped: number }>();
+  /** 検査対象の代理店コード (この実行で回るはずだったもの) */
+  private targetCodes: string[] = [];
 
   onBegin(config: FullConfig, suite: Suite): void {
     this.startedAt = new Date();
@@ -130,6 +139,8 @@ export default class QaHtmlReporter implements Reporter {
       this.environmentLabel = qaConfig.environment.label;
       this.baseUrl = qaConfig.environment.baseUrl;
       this.failOnSeverities = qaConfig.runtime.failOnSeverities;
+      // 「残りから再開」のために、この実行で回るはずの代理店コードを控える
+      this.targetCodes = agencySpecs(qaConfig).map((spec) => spec.code);
     } catch {
       // 設定読み込みに失敗した場合もレポート生成自体は継続する
     }
@@ -162,6 +173,12 @@ export default class QaHtmlReporter implements Reporter {
               done: entry.done,
               total: entry.total,
             })),
+            // 一時停止したときに「残りから再開」できるようにする。
+            //   1 件でも飛ばしたコードは終わっていないものとして残す
+            //   (中途半端な行をレポートに残さないため、再開時にやり直す)。
+            paused: isPaused(),
+            doneCodes: this.finishedCodes(),
+            remainingCodes: this.remainingCodes(),
           },
           null,
           2,
@@ -173,7 +190,38 @@ export default class QaHtmlReporter implements Reporter {
     }
   }
 
+  /** すべてのテストが終わった代理店コード */
+  private finishedCodes(): string[] {
+    return this.targetCodes.filter((code) => {
+      const entry = this.codeProgress.get(code);
+      return entry !== undefined && entry.done > 0 && entry.skipped === 0;
+    });
+  }
+
+  /** まだ終わっていない代理店コード (未着手 + 途中で飛ばした分) */
+  private remainingCodes(): string[] {
+    const finished = new Set(this.finishedCodes());
+    return this.targetCodes.filter((code) => !finished.has(code));
+  }
+
   onTestEnd(testCase: TestCase, result: TestResult): void {
+    // 代理店コードごとの進み具合を数える。
+    //   飛ばしたテストには検知結果が付かないため、名前から判断する。
+    const code = codeFromTitle(testCase.titlePath().join(' '), this.targetCodes);
+    if (code !== null) {
+      const entry = this.codeProgress.get(code) ?? { done: 0, skipped: 0 };
+      if (result.status !== 'skipped') {
+        entry.done += 1;
+      } else if (isPaused()) {
+        // 一時停止で飛ばした分だけを「終わっていない」として数える。
+        //   仕様上もともと行わない検査 (支店コードの引き継ぎなど) も
+        //   「飛ばした」になるため、区別しないと再開が終わらなくなる
+        //   (実際に、再開して全部終わっても残りが減らなかった)。
+        entry.skipped += 1;
+      }
+      this.codeProgress.set(code, entry);
+    }
+
     // リトライされたテストは最後の試行だけを採用する。
     // 全試行を積むと、失敗 → リトライ成功 のテストで失敗時の検知が残り、
     // 成功しているのにゲートが失敗する。
