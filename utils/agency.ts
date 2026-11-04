@@ -142,7 +142,43 @@ export function judgeCodeReflection(input: {
   return 'changed';
 }
 
+/**
+ * 「このコードだけ検査する」の指定を読む (QA_AGENCY_ONLY)。
+ *
+ * 1 社だけ・数社だけを急いで確かめたい場面が多いため、
+ * 設定ファイルを触らずにその場で指定できるようにする。
+ * カンマ・空白・改行のどれで区切ってもよい。
+ */
+export function requestedOnlyCodes(): string[] {
+  return (process.env.QA_AGENCY_ONLY ?? '')
+    .split(/[,\s]+/)
+    .map((code) => code.trim())
+    .filter((code) => code !== '');
+}
+
 export function agencySpecs(config: QaConfig): AgencySpec[] {
+  // 「このコードだけ」の指定が最優先。
+  //   抽選・常時検査・画面からの除外のどれよりも先に効かせる。
+  //   名指しした人の意図が一番はっきりしているため
+  //   (未稼働のコードを調べたい、除外したコードを確かめ直したい、など)。
+  const only = requestedOnlyCodes();
+  if (only.length > 0) {
+    const wanted = new Set(only.map((code) => code.toLowerCase()));
+    const picked = config.agencies.agencies.filter((spec) => wanted.has(spec.code.toLowerCase()));
+    const missing = only.filter(
+      (code) => !picked.some((spec) => spec.code.toLowerCase() === code.toLowerCase()),
+    );
+    if (missing.length > 0) {
+      // 黙って 0 件で終わると「異常なし」に見えてしまう
+      throw new Error(
+        `QA_AGENCY_ONLY に、検査対象にないコードが含まれています: ${missing.join(', ')}\n`
+        + '  config/agency-master.tsv に無いか、未稼働・稼働開始前・期待結果が未確定で検査対象から外れています。\n'
+        + '  画面の「備考」に外している理由が出ます。',
+      );
+    }
+    return picked;
+  }
+
   // 画面 (設定タブ) で「検査しない」と指定されたコードを外す。
   //   config/agency-profiles.yml の除外と違い、生成のやり直し
   //   (npm run agencies:build) が要らない。運用側がその場で外せるようにする。

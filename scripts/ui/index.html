@@ -434,6 +434,21 @@
       </label>
       <span class="muted" id="size-note">まずは最小で動作を確認し、問題がなくなってから増やしてください。</span>
     </div>
+    <!--
+      1 社だけ・数社だけをすぐ確かめたい場面が多い。
+      設定ファイルを触らず、実行ごとに指定できるようにする。
+      指定した場合は件数の抽選より優先する (名指しの意図が一番はっきりしているため)。
+    -->
+    <div class="row" style="margin-bottom: 12px;">
+      <label>このコードだけ検査する (任意)
+        <input id="only" type="text" size="44" placeholder="littlefamily03, littlefamily42">
+      </label>
+      <button class="small" id="only-clear" type="button">クリア</button>
+    </div>
+    <p class="muted" id="only-note" style="margin: -6px 0 12px;">
+      カンマか空白で区切って複数指定できます。指定すると<strong>件数の抽選は使わず、そのコードだけ</strong>を検査します。
+      検査対象から外しているコード (未稼働など) を指定した場合は、理由を出して止まります。
+    </p>
 
     <!--
       全件は 1 時間を超える。途中でパソコンがスリープすると、復帰時に
@@ -685,7 +700,9 @@ powercfg /change monitor-timeout-ac 10</code>
     Array.prototype.forEach.call(container.querySelectorAll('[data-target]'), function (button) {
       button.addEventListener('click', function () {
         var size = document.getElementById('size').value || 'min';
+        var only = document.getElementById('only').value || '';
         post('/api/run?kind=test&size=' + encodeURIComponent(size) +
+          '&only=' + encodeURIComponent(only) +
           '&key=' + encodeURIComponent(button.getAttribute('data-target')));
       });
     });
@@ -1387,6 +1404,20 @@ powercfg /change monitor-timeout-ac 10</code>
     document.getElementById('env-preview').textContent =
       rows.length === 0 ? '' : '実際に開く URL — ' + rows.join(' / ');
   }
+
+  // 指定中は件数の選択を使わないことを画面でも示す (何が効くのか迷わせない)
+  function renderOnlyState() {
+    var only = document.getElementById('only').value.trim();
+    document.getElementById('size').disabled = only !== '';
+    document.getElementById('size-note').textContent = only === ''
+      ? 'まずは最小で動作を確認し、問題がなくなってから増やしてください。'
+      : '指定したコードだけを検査するため、件数の指定は使いません。';
+  }
+  document.getElementById('only').addEventListener('input', renderOnlyState);
+  document.getElementById('only-clear').addEventListener('click', function () {
+    document.getElementById('only').value = '';
+    renderOnlyState();
+  });
 
   document.getElementById('env-base').addEventListener('input', renderEnvPreview);
   document.getElementById('env-corp').addEventListener('input', renderEnvPreview);

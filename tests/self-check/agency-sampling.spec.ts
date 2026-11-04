@@ -129,4 +129,36 @@ test.describe('代理店の抽選の自己検査 @selfcheck', () => {
     expect(picked, '存在するコードは選ばれること').toContain('alpha-000');
     expect(picked, '存在しないコードは含まれないこと').not.toContain('NO-SUCH-CODE');
   });
+  test('コードを名指しすると、そのコードだけを検査する', async () => {
+    // 1 社だけ・数社だけをすぐ確かめたい場面のための指定。
+    // 抽選・常時検査・画面からの除外より優先する
+    // (名指しした人の意図が一番はっきりしているため)。
+    const config = configWithAgencies(COUNTS, SCOPE);
+    const only = (value: string): string[] => {
+      const previous = process.env.QA_AGENCY_ONLY;
+      process.env.QA_AGENCY_ONLY = value;
+      try {
+        return agencySpecs(config).map((spec) => spec.code);
+      } finally {
+        if (previous === undefined) delete process.env.QA_AGENCY_ONLY;
+        else process.env.QA_AGENCY_ONLY = previous;
+      }
+    };
+
+    expect(only('alpha-000'), '1 社だけ指定できること').toEqual(['alpha-000']);
+    expect(only('alpha-000,beta-001'), 'カンマ区切りで複数指定できること').toEqual(['alpha-000', 'beta-001']);
+    expect(only(' alpha-000 beta-001 '), '空白区切りでも指定できること').toEqual(['alpha-000', 'beta-001']);
+    expect(only('ALPHA-000'), '大文字小文字を区別しないこと').toEqual(['alpha-000']);
+    expect(only('beta-001,alpha-000'), '出力順はマスタの並び順にすること').toEqual(['alpha-000', 'beta-001']);
+
+    // 検査対象にないコードは、黙って 0 件にせずエラーにする。
+    // 0 件で終わると「異常なし」に見えてしまう。
+    expect(() => only('NO-SUCH-CODE')).toThrow(/QA_AGENCY_ONLY/);
+    expect(() => only('alpha-000,NO-SUCH-CODE')).toThrow(/NO-SUCH-CODE/);
+
+    // 指定が無ければこれまでどおり抽選する
+    expect(only('').length, '指定が空なら抽選に戻ること').toBeLessThan(
+      Object.values(COUNTS).reduce((sum, count) => sum + count, 0),
+    );
+  });
 });

@@ -517,21 +517,53 @@ function state() {
 }
 
 /** npm script を実行する。script 名は固定リストのみ */
-function startRun(kind, key, size = 'min') {
+/**
+ * 「このコードだけ検査する」の指定を整える。
+ *
+ * カンマ・空白・改行のどれで区切ってもよい。
+ * 1 社だけ急いで確かめたい場面が多いため、入力の形を細かく問わない。
+ */
+function parseOnlyCodes(input) {
+  const codes = String(input ?? '')
+    .split(/[,\s]+/)
+    .map((code) => code.trim())
+    .filter((code) => code !== '');
+  // 想定外に長い入力は受け付けない
+  if (codes.length > 50) return { ok: false, error: '一度に指定できるのは 50 件までです' };
+  const invalid = codes.filter((code) => !/^[A-Za-z0-9_-]{1,64}$/.test(code));
+  if (invalid.length > 0) {
+    return { ok: false, error: `代理店コードとして扱えない値があります: ${invalid.join(', ')}` };
+  }
+  return { ok: true, codes: [...new Set(codes)] };
+}
+
+function startRun(kind, key, size = 'min', only = '') {
   if (current) return { ok: false, error: 'すでに実行中です' };
   const entry = kind === 'test' ? TARGETS[key] : ACTIONS[key];
   if (!entry) return { ok: false, error: '不明な操作です' };
   const sizeEntry = SIZES[size];
   if (!sizeEntry) return { ok: false, error: '不明な件数の指定です' };
+  const parsedOnly = parseOnlyCodes(only);
+  if (!parsedOnly.ok) return parsedOnly;
 
   logLines = [`[開始] ${entry.label}`];
+  if (parsedOnly.codes.length > 0) {
+    logLines.push(`[指定] このコードだけ検査します: ${parsedOnly.codes.join(', ')}`);
+  }
   // 前回の進行状況を消す (古い結果が残って混乱しないように)
   fs.rmSync(PROGRESS_PATH, { force: true });
 
   const child = spawn('npm', ['run', entry.script], {
     cwd: root,
     // 件数の指定は環境変数で渡す (設定ファイルは書き換えない)
-    env: { ...withBinPath(path.join(root, 'node_modules', '.bin')), ...(kind === 'test' ? sizeEntry.env : {}) },
+    env: {
+      ...withBinPath(path.join(root, 'node_modules', '.bin')),
+      ...(kind === 'test' ? sizeEntry.env : {}),
+      // コードを名指しした場合は抽選より優先する (検査本体が判断する)
+      ...(kind === 'test' && parsedOnly.codes.length > 0
+        ? { QA_AGENCY_ONLY: parsedOnly.codes.join(',') }
+        : {}),
+    },
     shell: process.platform === 'win32',
     // 「止める」で確実に停止させるため、子孫まとめて終了できるようにする
     // (npm だけを終了しても、その先の検査プロセスが残ってしまう)
@@ -639,6 +671,7 @@ export const server = http.createServer((req, res) => {
       url.searchParams.get('kind') ?? 'test',
       url.searchParams.get('key') ?? '',
       url.searchParams.get('size') ?? 'min',
+      url.searchParams.get('only') ?? '',
     );
     sendJson(res, result.ok ? 200 : 409, result);
     return;

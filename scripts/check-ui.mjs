@@ -770,6 +770,28 @@ await check('仕様調査は指定したサイトを開く', () => {
   assert.ok(handoff.includes('入口:'), '対象サイトと一緒に入口 URL を出すこと');
 });
 
+await check('指定したコードだけを検査できる', () => {
+  // 1 社だけ・数社だけをすぐ確かめたい場面のための入口。
+  // 画面・コマンドのどちらからでも、設定ファイルを触らずに指定できること。
+  const html = fs.readFileSync(path.join(root, 'scripts', 'ui', 'index.html'), 'utf8');
+  assert.ok(html.includes('id="only"'), '画面に入力欄があること');
+  assert.ok(html.includes('only=') && html.includes('/api/run?'), '実行時に指定を渡すこと');
+
+  const server = fs.readFileSync(path.join(root, 'scripts', 'ui-server.mjs'), 'utf8');
+  assert.ok(server.includes('QA_AGENCY_ONLY'), '検査本体へ環境変数で渡すこと');
+
+  // 入力の検証 (想定外の値・長すぎる指定を受け付けない)
+  assert.ok(server.includes('function parseOnlyCodes'), '入力を検証していること');
+  assert.ok(/A-Za-z0-9_-/.test(server), '代理店コードとして扱える文字だけに限ること');
+
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  assert.ok(pkg.scripts.only, 'コマンドからも指定できること (npm run only)');
+  assert.ok(
+    fs.existsSync(path.join(root, 'scripts', 'only.mjs')),
+    'コマンドの入口があること',
+  );
+});
+
 await check('画面から保存した設定は最新版に更新しても消えない', () => {
   // config/agency.yml を直接書き換える作りにすると、
   // 更新 (npm run update) のたびに運用側の判断が消える。

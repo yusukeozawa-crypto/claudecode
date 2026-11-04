@@ -276,6 +276,11 @@ function samplingLines(profiles, agenciesFile) {
       lines.push(`抽選に関係なく毎回必ず検査するコード: ${always.join(', ')}`);
     }
   }
+  lines.push(
+    '1 社だけ・数社だけを確かめたいときは、画面の「このコードだけ検査する」に'
+    + 'コードを入れて実行します (抽選より優先します)。'
+    + 'コマンドからは npm run only -- <コード> でも同じことができます。',
+  );
   if (excluded > 0) {
     lines.push(`期待結果が確定していない ${excluded} 件は対象外にしています (画面の「備考」に一覧が出ます)。`);
   }
